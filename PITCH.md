@@ -50,7 +50,7 @@ There is currently no unified system that combines all these capabilities into a
 
 # Proposed Solution
 
-Nexir is an Offline-First Personal Knowledge Operating System.
+Zikron is an Offline-First Personal Knowledge Operating System.
 
 The platform enables users to:
 
