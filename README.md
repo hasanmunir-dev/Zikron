@@ -1,189 +1,184 @@
-# Khazanix
+# Zikron.md
 
-> Your Personal Knowledge, Memory, Document, and Reminder Operating System.
+# Project Overview
 
-## Vision
+## Working Title
 
-People save important information everywhere:
+**Zikron**
 
-* WhatsApp self-chat
-* Screenshots
-* Downloads folder
-* Google Drive
-* Browser bookmarks
-* University slides
-* Notes apps
-* Emails
-
-The result is simple:
-
-You remember saving something, but you don't remember where.
-
-Khazanix solves this problem by creating a centralized personal system where everything can be captured, organized, searched, and recalled instantly.
-
-The goal is to become a personal second brain.
+> A personal knowledge, memory, reminder, and sharing platform designed to replace scattered information across messaging applications, file systems, browsers, notes applications, and cloud storage providers.
 
 ---
 
 # Problem Statement
 
-Current workflow:
+Modern users store information across multiple disconnected platforms:
 
-* Send messages to yourself on WhatsApp
-* Save PDFs in random folders
-* Store images in gallery
-* Keep notes in multiple apps
-* Forget reminders and deadlines
-* Waste time searching for information
+* WhatsApp Saved Messages
+* Telegram Saved Messages
+* Browser Bookmarks
+* Google Drive
+* Local Storage
+* Notes Applications
+* Email
+* Screenshots
+* Voice Notes
 
-Challenges:
+Over time, important information becomes difficult to locate.
 
-* No unified organization
-* Poor retrieval
-* Information scattered across platforms
-* Important items get buried under newer content
-* No intelligent reminder system
+Common problems include:
+
+* Forgetting important notes
+* Losing documents among thousands of files
+* Missing reminders
+* Saving information without organizing it
+* Spending excessive time searching for previously saved content
+* Lack of a centralized personal knowledge system
+
+Most existing solutions focus on only one area:
+
+| Product                 | Notes   | Files   | Reminders | Offline | Sharing |
+| ----------------------- | ------- | ------- | --------- | ------- | ------- |
+| Google Keep             | ✓       | Limited | ✓         | Limited | Limited |
+| Notion                  | ✓       | ✓       | Limited   | ✗       | ✓       |
+| Google Drive            | ✗       | ✓       | ✗         | Limited | ✓       |
+| WhatsApp Saved Messages | Limited | Limited | ✗         | ✗       | ✗       |
+
+There is currently no unified system that combines all these capabilities into a single platform.
 
 ---
 
-# Solution
+# Proposed Solution
 
-Khazanix provides:
+Zikron is an Offline-First Personal Knowledge Operating System.
+
+The platform enables users to:
+
+* Capture information instantly
+* Organize information efficiently
+* Retrieve information quickly
+* Set reminders
+* Store files
+* Record voice notes
+* Share knowledge securely
+* Access content offline
+
+---
+
+# Core Philosophy
+
+Capture Anything.
+
+Find Anything.
+
+Remember Anything.
+
+Share Anything.
+
+---
+
+# Primary Objectives
+
+## Personal Knowledge Management
+
+Store and organize:
 
 * Notes
-* Documents
-* Images
-* Reminders
-* Tasks
-* Bookmarks
-* Study Materials
-* Personal Knowledge Base
-
-inside a single platform.
-
-Everything becomes searchable and categorized.
-
----
-
-# Core Principles
-
-## 1. Capture Fast
-
-The biggest priority.
-
-If saving information takes too much effort, users won't use the system.
-
-One-click capture should support:
-
-* Text
-* Links
-* Images
+* Files
 * PDFs
-* Documents
-* Screenshots
-* Videos
-* Code snippets
+* Images
+* Voice Notes
+* Links
+* Bookmarks
 * Reminders
-* Tasks
-
-Everything first enters an Inbox.
-
-Users can organize later.
 
 ---
 
-## 2. Retrieve Instantly
+## Offline First
 
-The system must make retrieval easier than WhatsApp search.
+The platform remains fully functional without internet access.
 
-Search should support:
+Users can:
 
-* Titles
-* Content
-* Tags
-* Categories
-* Dates
-* File types
-* AI semantic search
+* Read notes
+* View files
+* Access collections
+* Create reminders
+* Record voice notes
 
-Example:
+while offline.
 
-"Find that compiler construction PDF about LR parsing."
-
-The system should locate it immediately.
+Synchronization occurs automatically when internet becomes available.
 
 ---
 
-## 3. Never Forget
+## Universal Inbox
 
-Important information should reappear when needed.
-
-Reminder channels:
-
-* Browser notifications
-* Email notifications
-* WhatsApp notifications
-* Mobile push notifications
-
----
-
-# Product Structure
-
-## Types
+Every item first enters a central inbox.
 
 Examples:
 
-* Study
-* Personal
-* Work
-* Projects
-* Finance
-* Health
-* Travel
+* Save article
+* Upload PDF
+* Record voice note
+* Create reminder
+* Save bookmark
 
-## Categories
-
-Examples:
-
-Study
-
-* Compiler Construction
-* Database Systems
-* Operating Systems
-
-Projects
-
-* Portfolio
-* Saudi Visa
-* Fleet Management
-
-## Tags
-
-Examples:
-
-* Important
-* Exam
-* Assignment
-* Urgent
-* UI
-* Backend
-* Research
+The user organizes content later.
 
 ---
 
-# Recommended Hierarchy
+## Shareable Knowledge Objects
 
-Type
-→ Category
-→ Tags
+Every object in the system can be shared.
 
-Avoid excessive nesting.
+Examples:
 
-Tags provide flexibility while maintaining simplicity.
+* Note
+* PDF
+* Voice Note
+* Collection
+* Reminder
+
+Sharing methods:
+
+* Private
+* Public Link
+* Password Protected
+* Expiring Links
 
 ---
 
-# Architecture
+# Target Users
+
+## Students
+
+* Lecture Notes
+* Assignments
+* Exam Preparation
+* Research Material
+
+## Professionals
+
+* Documentation
+* Meeting Notes
+* Project Files
+
+## Freelancers
+
+* Client Files
+* Contracts
+* Deliverables
+
+## General Users
+
+* Personal Notes
+* Reminders
+* Important Documents
+
+---
+
+# Technology Stack
 
 ## Frontend
 
@@ -193,9 +188,14 @@ Tags provide flexibility while maintaining simplicity.
 * shadcn/ui
 * Framer Motion
 
-Domain:
+---
 
-notes.hasanmunir.dev
+## Offline Layer
+
+* Service Workers
+* IndexedDB
+* Dexie.js
+* Progressive Web App (PWA)
 
 ---
 
@@ -204,412 +204,212 @@ notes.hasanmunir.dev
 * Next.js API Routes
 * Supabase
 
-Responsibilities:
-
-* Authentication
-* Database
-* Realtime Updates
-* Search
-* Reminder Management
-
 ---
 
 ## Database
 
-Supabase PostgreSQL
-
-Main Tables:
-
-users
-
-notes
-
-categories
-
-tags
-
-note_tags
-
-files
-
-reminders
-
-notification_logs
-
-search_index
-
-settings
+* PostgreSQL
+* Supabase Realtime
 
 ---
 
-# Storage Strategy
+## Authentication
 
-## Google Drive (Primary Storage)
-
-Purpose:
-
-* PDFs
-* Documents
-* Images
-* Videos
-* Study Material
-
-Advantages:
-
-* Existing 2TB storage
-* Reliable
-* Affordable
-* Scalable
-
-Store:
-
-Google Drive File ID
-
-inside Supabase.
-
-Actual files remain in Google Drive.
+* Supabase Auth
 
 ---
 
-## Supabase Storage (Optional)
+## File Storage
 
-Use for:
+Primary:
 
-* User avatars
-* App assets
-* Temporary uploads
+* Google Drive API
 
----
+Secondary:
 
-# Search System
-
-Phase 1:
-
-Postgres Full Text Search
-
-Supports:
-
-* Title search
-* Content search
-* Tags search
+* Supabase Storage
 
 ---
 
-Phase 2:
+## Notifications
 
-AI Search
-
-Using:
-
-* Embeddings
-* Semantic Search
-* Vector Database
-
-Examples:
-
-Find:
-"That note where I discussed Next.js middleware issue"
-
-without exact keywords.
-
----
-
-# Reminder Engine
-
-Reminder Object:
-
-* title
-* description
-* due date
-* priority
-* repeat rule
-* channels
-
-Channels:
-
-* Browser Push
-* Email
-* WhatsApp
-* Mobile Push
-
----
-
-# Notification System
-
-## Browser Notifications
-
-Web Push API
-
-Benefits:
-
-* Free
-* Instant
-* Cross-platform
-
----
-
-## Email Notifications
-
-Provider:
-
-* Resend
-
-Alternative:
-
-* Gmail API
-
----
-
-## WhatsApp Notifications
-
-Future feature.
-
-Use:
-
-WhatsApp Business Cloud API
-
-Avoid unofficial automation.
-
----
-
-# Capture Methods
-
-## Web App
-
-Create manually.
-
----
-
-## Chrome Extension
-
-Save:
-
-* Current page
-* Links
-* Images
-* Articles
-* PDFs
-
-directly into Khazanix.
-
----
-
-## Mobile Share Sheet
-
-Future feature.
-
-Share content directly into Khazanix.
-
----
-
-# Study Mode
-
-Special area for students.
-
-Features:
-
-* Course Organization
-* Lecture Notes
-* Slides
-* Assignments
-* Exam Reminders
-* Quick Revision Notes
-
-Example:
-
-Compiler Construction
-
-* Slides
-* Notes
-* Assignments
-* Important Questions
-* Exam Schedule
-
----
-
-# Smart Features
-
-## OCR
-
-Extract text from:
-
-* Images
-* Screenshots
-* PDFs
-
-Make them searchable.
-
----
-
-## Auto Tagging
-
-AI automatically adds tags.
-
-Example:
-
-PDF about LR Parsing
-
-Tags:
-
-* Compiler Construction
-* Parsing
-* Exam
-
----
-
-## Summaries
-
-AI-generated:
-
-* PDF summaries
-* Lecture summaries
-* Article summaries
-
----
-
-## Related Content
-
-Automatically show:
-
-* Similar notes
-* Similar documents
-* Similar reminders
-
----
-
-# Security
-
-Authentication:
-
-* Google Login
-* GitHub Login
+* Browser Push Notifications
+* Email Notifications
 
 Future:
 
-* Email Login
-
-Row Level Security:
-
-Supabase RLS
-
-All data remains private.
+* WhatsApp Business API
 
 ---
 
-# MVP Roadmap
+## Deployment
+
+Frontend:
+
+* Vercel
+
+Backend:
+
+* Supabase
+
+---
+
+# Feature Roadmap
 
 ## Phase 1
 
-Personal Use
+### Foundation MVP
 
 Features:
 
 * Authentication
-* Notes
+* Offline Notes
+* Universal Inbox
 * Categories
 * Tags
-* File Uploads
-* Google Drive Integration
 * Search
-* Reminders
-* Email Notifications
-* Browser Notifications
-
-Goal:
-
-Replace WhatsApp self-chat.
+* Self Chat
 
 ---
 
 ## Phase 2
 
-Power User Features
+### Knowledge Vault
 
 Features:
 
-* OCR
-* Chrome Extension
-* AI Search
-* Auto Tagging
-* Summaries
-* Study Mode
-
-Goal:
-
-Build a true second brain.
+* File Uploads
+* PDF Viewer
+* Collections
+* Bookmark Manager
 
 ---
 
 ## Phase 3
 
-Productization
+### Voice & Media
 
 Features:
 
-* Multi-user Support
+* Voice Recording
+* Audio Player
+* Media Viewer
+
+---
+
+## Phase 4
+
+### Reminder Engine
+
+Features:
+
+* Reminders
+* Browser Notifications
+* Email Notifications
+
+---
+
+## Phase 5
+
+### Sync & Backup
+
+Features:
+
+* Google Drive Integration
+* Multi-device Sync
+* Offline Sync Queue
+
+---
+
+## Phase 6
+
+### Sharing Platform
+
+Features:
+
+* Public Links
+* Protected Links
+* Shared Collections
+
+---
+
+## Phase 7
+
+### Collaboration
+
+Features:
+
 * Teams
 * Shared Workspaces
-* Public Sharing
-* Mobile App
-* Subscription Plans
-
-Goal:
-
-Launch publicly.
+* In-App Messaging
 
 ---
 
-# Long-Term Vision
+# Monetization Strategy
 
-Khazanix becomes the single place where users store, organize, remember, and rediscover information.
+## Free Plan
 
-Instead of asking:
+Features:
 
-"Where did I save this?"
+* Notes
+* Files
+* Voice Notes
+* Reminders
+* Basic Sharing
+* Offline Access
 
-Users ask:
+Limits:
 
-"Show me this."
-
-and instantly get the answer.
+* 5 GB Storage
+* Limited Collections
+* Limited Shared Links
 
 ---
 
-# Tech Stack
+## Premium Plan
 
-Frontend:
+Features:
 
-* Next.js
-* TypeScript
-* Tailwind
-* shadcn/ui
-* Framer Motion
+* Unlimited Collections
+* Advanced Sharing Controls
+* Priority Sync
+* Team Collaboration
+* Advanced Analytics
 
-Backend:
+Potential Pricing:
 
-* Next.js API Routes
-* Supabase
+* Monthly Subscription
+* Yearly Subscription
 
-Storage:
+---
 
-* Google Drive
-* Supabase Storage
+# Future Expansion
 
-Automation:
+* Browser Extension
+* Mobile Application
+* Telegram Integration
+* WhatsApp Integration
+* Public Knowledge Libraries
+* Team Knowledge Spaces
+* Educational Workspaces
 
-* Trigger.dev
-* Vercel Cron
+---
 
-Notifications:
+# Final Year Project Scope
 
-* Web Push
-* Email
-* WhatsApp Business API
+## Academic Contribution
 
-Hosting:
+The project demonstrates:
 
-* Vercel
+* Progressive Web Applications
+* Offline-First Architecture
+* Distributed Synchronization
+* Knowledge Management Systems
+* Cloud Storage Integration
+* Information Retrieval Systems
 
-Domain:
+---
 
-* notes.hasanmunir.dev
+# Expected Outcome
+
+A production-ready personal knowledge management platform capable of serving both individual users and collaborative teams while maintaining offline functionality and scalable cloud synchronization.
