@@ -1,11 +1,10 @@
 'use client';
 
-import { useEffect, useState, useCallback, useRef } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { Send, Star, Trash2, Search, X, MessageSquare } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
-import { selfChatService } from '@/lib/services/self-chat';
-import { onDataRefresh } from '@/lib/sync/events';
 import { savePageState, getPageState } from '@/lib/page-state';
+import { useSelfChat, useSendMessage, useToggleFavoriteMessage, useDeleteMessage } from '@/hooks/queries/use-self-chat';
 import { MarkdownViewer } from '@/components/editor/markdown-viewer';
 import { formatRelativeTime } from '@/utils/date';
 import type { SelfChatMessage } from '@/types';
@@ -14,7 +13,6 @@ type SavedState = { search: string; showSearch: boolean };
 
 export default function SelfChatPage() {
   const { user } = useAuth();
-  const [messages, setMessages] = useState<SelfChatMessage[]>([]);
   const [input, setInput] = useState('');
 
   const saved = getPageState<SavedState>('self-chat');
@@ -24,19 +22,14 @@ export default function SelfChatPage() {
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
-  // Persist search visibility so returning to this page restores it
+  const { data: messages = [], isLoading } = useSelfChat();
+  const sendMessage = useSendMessage();
+  const toggleFavorite = useToggleFavoriteMessage();
+  const deleteMessage = useDeleteMessage();
+
   useEffect(() => {
     savePageState<SavedState>('self-chat', { search, showSearch });
   }, [search, showSearch]);
-
-  const load = useCallback(async () => {
-    const data = await selfChatService.list();
-    setMessages(data);
-  }, []);
-
-  useEffect(() => { load(); }, [load]);
-
-  useEffect(() => onDataRefresh('self-chat', load), [load]);
 
   useEffect(() => {
     if (!showSearch) bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -46,18 +39,15 @@ export default function SelfChatPage() {
     const content = input.trim();
     if (!content || !user) return;
     setInput('');
-    await selfChatService.create(content);
-    load();
+    sendMessage.mutate(content);
   }
 
-  async function handleToggleFavorite(id: string, current: boolean) {
-    await selfChatService.toggleFavorite(id, current);
-    load();
+  function handleToggleFavorite(id: string, current: boolean) {
+    toggleFavorite.mutate({ id, current });
   }
 
-  async function handleDelete(id: string) {
-    await selfChatService.delete(id);
-    load();
+  function handleDelete(id: string) {
+    deleteMessage.mutate(id);
   }
 
   function handleKeyDown(e: React.KeyboardEvent) {
@@ -65,7 +55,7 @@ export default function SelfChatPage() {
   }
 
   const filtered = search
-    ? messages.filter(m => m.content.toLowerCase().includes(search.toLowerCase()))
+    ? messages.filter((m: SelfChatMessage) => m.content.toLowerCase().includes(search.toLowerCase()))
     : messages;
 
   return (
@@ -115,7 +105,12 @@ export default function SelfChatPage() {
 
       {/* Messages */}
       <div className="flex-1 overflow-y-auto px-4 py-4 space-y-2">
-        {filtered.length === 0 && !search && (
+        {isLoading && messages.length === 0 && (
+          <div className="flex flex-col items-center justify-center h-full gap-3">
+            <div className="w-6 h-6 rounded-full border-2 border-blue-500 border-t-transparent animate-spin" />
+          </div>
+        )}
+        {!isLoading && filtered.length === 0 && !search && (
           <div className="flex flex-col items-center justify-center h-full text-center">
             <div className="w-14 h-14 bg-emerald-50 dark:bg-emerald-950/40 rounded-2xl flex items-center justify-center mb-4">
               <MessageSquare size={26} className="text-emerald-400" />
@@ -125,7 +120,7 @@ export default function SelfChatPage() {
           </div>
         )}
         {filtered.length === 0 && search && (
-          <div className="text-center py-8 text-sm text-muted-foreground">No messages match "{search}"</div>
+          <div className="text-center py-8 text-sm text-muted-foreground">No messages match &quot;{search}&quot;</div>
         )}
         {filtered.map((msg, i) => {
           const prev = filtered[i - 1];
@@ -165,7 +160,7 @@ export default function SelfChatPage() {
           <button
             type="button"
             onClick={handleSend}
-            disabled={!input.trim()}
+            disabled={!input.trim() || sendMessage.isPending}
             aria-label="Send message"
             className="w-10 h-10 bg-blue-600 text-white rounded-xl flex items-center justify-center hover:bg-blue-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed shrink-0"
           >

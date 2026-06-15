@@ -1,10 +1,7 @@
 'use client';
 
-import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { inboxService } from '@/lib/services/inbox';
-import { getCachedItem } from '@/lib/page-state';
-import { emitDataRefresh } from '@/lib/sync/events';
+import { useInboxItem, useCreateInboxItem, useUpdateInboxItem, useDeleteInboxItem } from '@/hooks/queries/use-inbox';
 import { useAuth } from '@/hooks/useAuth';
 import { dialogUrl } from '@/lib/dialog-url';
 import { InboxEditor } from './InboxEditor';
@@ -20,57 +17,41 @@ interface Props {
 export function InboxDialog({ mode, id, closeUrl, basePath }: Props) {
   const router = useRouter();
   const { user } = useAuth();
+  const createItem = useCreateInboxItem();
+  const updateItem = useUpdateInboxItem();
+  const deleteItem = useDeleteInboxItem();
 
-  const [item, setItem] = useState<Partial<InboxItem> | null>(
-    () => (mode !== 'create' && id ? getCachedItem<InboxItem>(id) : null),
-  );
-  const [ready, setReady] = useState(
-    () => mode === 'create' || (id ? getCachedItem<InboxItem>(id) !== null : false),
-  );
-
-  useEffect(() => {
-    if (mode === 'create' || !id) {
-      setReady(true);
-      return;
-    }
-    inboxService.get(id).then(data => {
-      if (data) setItem(data);
-      setReady(true);
-    });
-  }, [id, mode]);
+  const { data: item, isLoading } = useInboxItem(mode !== 'create' ? id : undefined);
 
   async function handleSave(data: Pick<InboxItem, 'title' | 'content' | 'url' | 'type' | 'tags' | 'category_id'>) {
     if (mode === 'create') {
       if (!user) return;
-      await inboxService.create(data);
+      createItem.mutate(data);
     } else if (id) {
-      await inboxService.update(id, {
-        title: data.title,
-        content: data.content,
-        url: data.url,
-        tags: data.tags,
+      updateItem.mutate({
+        id,
+        data: {
+          title: data.title,
+          content: data.content,
+          url: data.url,
+          tags: data.tags,
+        },
       });
     }
-    emitDataRefresh('inbox');
   }
 
-  async function handleDelete(itemId: string) {
-    await inboxService.delete(itemId);
-    emitDataRefresh('inbox');
+  function handleDelete(itemId: string) {
+    deleteItem.mutate(itemId);
     router.replace(closeUrl);
   }
 
-  async function handleToggleFavorite(itemId: string, isFav: boolean) {
-    const updated = await inboxService.update(itemId, { status: isFav ? 'inbox' : 'favorite' });
-    emitDataRefresh('inbox');
-    setItem(updated);
+  function handleToggleFavorite(itemId: string, isFav: boolean) {
+    updateItem.mutate({ id: itemId, data: { status: isFav ? 'inbox' : 'favorite' } });
   }
 
-  async function handleArchive(itemId: string) {
-    const current = item as InboxItem | null;
-    const newStatus = current?.status === 'archived' ? 'inbox' : 'archived';
-    await inboxService.update(itemId, { status: newStatus });
-    emitDataRefresh('inbox');
+  function handleArchive(itemId: string) {
+    const newStatus = (item as InboxItem | undefined)?.status === 'archived' ? 'inbox' : 'archived';
+    updateItem.mutate({ id: itemId, data: { status: newStatus } });
     router.replace(closeUrl);
   }
 
@@ -78,7 +59,7 @@ export function InboxDialog({ mode, id, closeUrl, basePath }: Props) {
     router.replace(closeUrl);
   }
 
-  if (!ready) {
+  if (mode !== 'create' && isLoading && !item) {
     return (
       <div className="fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
         <div className="bg-card w-full sm:rounded-2xl sm:w-[95vw] sm:max-w-5xl h-80 animate-pulse" />
@@ -86,7 +67,7 @@ export function InboxDialog({ mode, id, closeUrl, basePath }: Props) {
     );
   }
 
-  if (mode !== 'create' && !item) {
+  if (mode !== 'create' && !item && !isLoading) {
     router.replace(closeUrl);
     return null;
   }
@@ -96,7 +77,7 @@ export function InboxDialog({ mode, id, closeUrl, basePath }: Props) {
   return (
     <InboxEditor
       mode={mode}
-      item={mode === 'create' ? null : item}
+      item={mode === 'create' ? null : item ?? null}
       onSave={handleSave}
       onDelete={mode !== 'create' ? handleDelete : undefined}
       onToggleFavorite={mode !== 'create' ? handleToggleFavorite : undefined}

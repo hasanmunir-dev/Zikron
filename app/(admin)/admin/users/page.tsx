@@ -1,32 +1,22 @@
 'use client';
 
-import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { Users, Clock } from 'lucide-react';
-import { api } from '@/lib/api';
+import { useAdminUsers } from '@/hooks/queries/use-admin';
 import { cacheItem } from '@/lib/page-state';
 import { parseDialogState, closeDialogUrl } from '@/lib/dialog-url';
 import { formatRelativeTime } from '@/utils/date';
 import { UserDetailPanel } from '@/components/admin/UserDetailPanel';
-import type { UserProfile } from '@/types';
 
 const BASE = '/admin/users';
 
 export default function AdminUsersPage() {
   const searchParams = useSearchParams();
-  const [users, setUsers] = useState<UserProfile[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data: users = [], isLoading } = useAdminUsers();
 
   const dialog = parseDialogState(searchParams);
   const closeUrl = closeDialogUrl(BASE, searchParams);
-
-  useEffect(() => {
-    api.get<UserProfile[]>('/api/admin/users')
-      .then(data => setUsers(data))
-      .catch(() => {})
-      .finally(() => setLoading(false));
-  }, []);
 
   return (
     <div className="p-6 max-w-6xl mx-auto">
@@ -36,7 +26,7 @@ export default function AdminUsersPage() {
       </div>
 
       <div className="bg-card border border-border rounded-xl overflow-hidden">
-        {loading ? (
+        {isLoading ? (
           <div className="p-8 text-center text-sm text-muted-foreground">Loading users...</div>
         ) : users.length === 0 ? (
           <div className="p-8 text-center">
@@ -97,8 +87,6 @@ export default function AdminUsersPage() {
         )}
       </div>
 
-      {/* UserDetailPanel handles its own overlay and uses router.back() on close,
-          which correctly pops the ?detail=id history entry. */}
       {dialog?.action === 'detail' && dialog.id && (
         <UserDetailPanel userId={dialog.id} listRoute={BASE} fullPage={false} />
       )}

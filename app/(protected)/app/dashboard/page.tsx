@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useQuery } from "@tanstack/react-query";
 import {
   Inbox,
   BookOpen,
@@ -16,6 +16,10 @@ import {
 import { useAuth } from "@/hooks/useAuth";
 import { api } from "@/lib/api";
 import { cacheItem } from "@/lib/page-state";
+import { noteKeys } from "@/hooks/queries/use-notes";
+import { inboxKeys } from "@/hooks/queries/use-inbox";
+import { selfChatKeys } from "@/hooks/queries/use-self-chat";
+import { listKeys } from "@/hooks/queries/use-lists";
 import { formatRelativeTime } from "@/utils/date";
 import type { Note, InboxItem, SelfChatMessage, List } from "@/types";
 
@@ -60,52 +64,51 @@ const quickCapture = [
 export default function DashboardPage() {
   const pathname = usePathname();
   const { user } = useAuth();
-  const [counts, setCounts] = useState({ notes: 0, inbox: 0, messages: 0, lists: 0 });
-  const [recents, setRecents] = useState<Array<Note | InboxItem | SelfChatMessage>>([]);
-  const [recentLists, setRecentLists] = useState<List[]>([]);
-  const [favorites, setFavorites] = useState<Array<Note | SelfChatMessage>>([]);
+
+  const { data: notes = [] } = useQuery({
+    queryKey: noteKeys.all(),
+    queryFn: () => api.get<Note[]>('/api/notes'),
+  });
+  const { data: inbox = [] } = useQuery({
+    queryKey: inboxKeys.all(),
+    queryFn: () => api.get<InboxItem[]>('/api/inbox'),
+  });
+  const { data: messages = [] } = useQuery({
+    queryKey: selfChatKeys.all(),
+    queryFn: () => api.get<SelfChatMessage[]>('/api/self-chat'),
+  });
+  const { data: lists = [] } = useQuery({
+    queryKey: listKeys.all(),
+    queryFn: () => api.get<List[]>('/api/lists'),
+  });
 
   const firstName = user?.user_metadata?.full_name?.split(" ")[0] ?? "there";
   const hour = new Date().getHours();
   const greeting = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
 
-  useEffect(() => {
-    async function load() {
-      const [notes, inbox, messages, lists] = await Promise.all([
-        api.get<Note[]>('/api/notes'),
-        api.get<InboxItem[]>('/api/inbox'),
-        api.get<SelfChatMessage[]>('/api/self-chat'),
-        api.get<List[]>('/api/lists'),
-      ]);
+  const counts = {
+    notes: notes.length,
+    inbox: inbox.filter(i => i.status === 'inbox').length,
+    messages: messages.length,
+    lists: lists.length,
+  };
 
-      setCounts({
-        notes: notes.length,
-        inbox: inbox.filter(i => i.status === 'inbox').length,
-        messages: messages.length,
-        lists: lists.length,
-      });
+  const recents = [
+    ...notes.slice(0, 3),
+    ...inbox.slice(0, 2),
+    ...[...messages].reverse().slice(0, 2),
+  ]
+    .sort((a, b) =>
+      new Date((b as Note).updated_at ?? b.created_at).getTime() -
+      new Date((a as Note).updated_at ?? a.created_at).getTime(),
+    )
+    .slice(0, 5);
 
-      const recentNotes = notes.slice(0, 3);
-      const recentInbox = inbox.slice(0, 2);
-      const recentMsgs = messages.slice().reverse().slice(0, 2);
-
-      setRecents(
-        [...recentNotes, ...recentInbox, ...recentMsgs]
-          .sort((a, b) =>
-            new Date((b as Note).updated_at ?? b.created_at).getTime() -
-            new Date((a as Note).updated_at ?? a.created_at).getTime(),
-          )
-          .slice(0, 5),
-      );
-
-      setRecentLists(lists.slice(0, 3));
-      setFavorites([
-        ...notes.filter(n => n.is_favorite).slice(0, 3),
-        ...messages.filter(m => m.is_favorite).slice(0, 2),
-      ]);
-    }
-    load();
-  }, []);
+  const recentLists = lists.slice(0, 3);
+  const favorites = [
+    ...notes.filter(n => n.is_favorite).slice(0, 3),
+    ...messages.filter(m => m.is_favorite).slice(0, 2),
+  ];
 
   return (
     <div className="p-6 max-w-4xl mx-auto space-y-8">

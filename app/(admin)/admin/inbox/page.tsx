@@ -1,44 +1,22 @@
 'use client';
 
-import { useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Inbox, Clock, Link as LinkIcon, FileText, X, ExternalLink } from 'lucide-react';
-import { api } from '@/lib/api';
+import { useAdminInbox } from '@/hooks/queries/use-admin';
 import { closeDialogUrl } from '@/lib/dialog-url';
 import { MarkdownViewer } from '@/components/editor/markdown-viewer';
 import { formatRelativeTime } from '@/utils/date';
 
 const BASE_PATH = '/admin/inbox';
 
-interface AdminInboxItem {
-  id: string;
-  user_id: string;
-  title: string;
-  content: string | null;
-  url: string | null;
-  type: 'text' | 'link';
-  status: string;
-  tags: string[];
-  created_at: string;
-  profiles: { email: string | null; full_name: string | null } | null;
-}
-
 export default function AdminInboxPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [items, setItems] = useState<AdminInboxItem[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data: items = [], isLoading } = useAdminInbox();
 
   const detailId = searchParams.get('detail');
   const detailItem = detailId ? items.find(i => i.id === detailId) ?? null : null;
   const closeUrl = closeDialogUrl(BASE_PATH, searchParams);
-
-  useEffect(() => {
-    api.get<AdminInboxItem[]>('/api/admin/inbox')
-      .then(setItems)
-      .catch(() => {})
-      .finally(() => setLoading(false));
-  }, []);
 
   return (
     <div className="p-6 max-w-6xl mx-auto">
@@ -48,7 +26,7 @@ export default function AdminInboxPage() {
       </div>
 
       <div className="bg-card border border-border rounded-xl overflow-hidden">
-        {loading ? (
+        {isLoading ? (
           <div className="p-8 text-center text-sm text-muted-foreground">Loading...</div>
         ) : items.length === 0 ? (
           <div className="p-8 text-center">
@@ -185,8 +163,7 @@ export default function AdminInboxPage() {
         </div>
       )}
 
-      {/* Loading state for deep-linked detail (item not yet in list) */}
-      {detailId && !detailItem && !loading && (
+      {detailId && !detailItem && !isLoading && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center" onClick={() => router.replace(closeUrl)}>
           <div className="bg-card rounded-2xl p-8 text-center shadow-xl border border-border" onClick={e => e.stopPropagation()}>
             <p className="text-sm text-muted-foreground mb-4">Item not found.</p>

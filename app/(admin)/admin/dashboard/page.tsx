@@ -1,58 +1,19 @@
 'use client';
 
-import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Users, BookOpen, Inbox, MessageSquare, UserCheck, UserX, Clock, Table2, ListChecks } from 'lucide-react';
-import { api } from '@/lib/api';
+import { useAdminStats, useAdminUsers, useAdminLists } from '@/hooks/queries/use-admin';
 import { formatRelativeTime } from '@/utils/date';
 import type { AdminList } from '@/types';
 
-interface Stats {
-  totalUsers: number;
-  totalNotes: number;
-  totalInbox: number;
-  totalMessages: number;
-  totalLists: number;
-  totalRows: number;
-  activeUsers: number;
-  disabledUsers: number;
-}
-
-interface Profile {
-  id: string;
-  user_id: string;
-  email: string | null;
-  full_name: string | null;
-  role: string;
-  status: string;
-  created_at: string;
-}
-
 export default function AdminDashboardPage() {
-  const [stats, setStats] = useState<Stats | null>(null);
-  const [recentUsers, setRecentUsers] = useState<Profile[]>([]);
-  const [recentLists, setRecentLists] = useState<AdminList[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data: stats, isLoading: statsLoading } = useAdminStats();
+  const { data: users = [], isLoading: usersLoading } = useAdminUsers();
+  const { data: lists = [], isLoading: listsLoading } = useAdminLists();
 
-  useEffect(() => {
-    async function load() {
-      try {
-        const [statsData, usersData, listsData] = await Promise.all([
-          api.get<Stats>('/api/admin/stats'),
-          api.get<Profile[]>('/api/admin/users'),
-          api.get<AdminList[]>('/api/admin/lists'),
-        ]);
-        setStats(statsData);
-        setRecentUsers(usersData.slice(0, 5));
-        setRecentLists(listsData.slice(0, 4));
-      } catch {
-        // handled gracefully
-      } finally {
-        setLoading(false);
-      }
-    }
-    load();
-  }, []);
+  const loading = statsLoading || usersLoading || listsLoading;
+  const recentUsers = users.slice(0, 5);
+  const recentLists = (lists as AdminList[]).slice(0, 4);
 
   const statCards = [
     { label: 'Total Users',  value: stats?.totalUsers   ?? '—', icon: Users,        color: 'text-blue-600 bg-blue-100 dark:bg-blue-950/60' },
@@ -82,7 +43,7 @@ export default function AdminDashboardPage() {
                 <Icon size={15} />
               </div>
               <p className="text-xl font-bold text-foreground">
-                {loading ? <span className="inline-block w-6 h-5 bg-muted rounded animate-pulse" /> : value}
+                {statsLoading ? <span className="inline-block w-6 h-5 bg-muted rounded animate-pulse" /> : value}
               </p>
               <p className="text-xs text-muted-foreground mt-0.5 leading-tight">{label}</p>
             </div>
@@ -91,7 +52,7 @@ export default function AdminDashboardPage() {
       </section>
 
       {/* Recent Lists */}
-      {!loading && recentLists.length > 0 && (
+      {!listsLoading && recentLists.length > 0 && (
         <section>
           <div className="flex items-center justify-between mb-3">
             <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Recent Lists</h3>
@@ -144,7 +105,7 @@ export default function AdminDashboardPage() {
       <section>
         <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Recent Users</h3>
         <div className="bg-card border border-border rounded-xl overflow-hidden">
-          {loading ? (
+          {usersLoading ? (
             <div className="p-8 text-center text-sm text-muted-foreground">Loading...</div>
           ) : recentUsers.length === 0 ? (
             <div className="p-8 text-center text-sm text-muted-foreground">No users yet.</div>

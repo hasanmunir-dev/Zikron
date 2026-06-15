@@ -1,32 +1,22 @@
 'use client';
 
-import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { BookOpen, Clock } from 'lucide-react';
-import { api } from '@/lib/api';
+import { useAdminNotes } from '@/hooks/queries/use-admin';
 import { cacheItem } from '@/lib/page-state';
 import { parseDialogState, closeDialogUrl } from '@/lib/dialog-url';
 import { formatRelativeTime } from '@/utils/date';
 import { AdminNoteDialog } from '@/components/features/notes/AdminNoteDialog';
-import type { AdminNote } from '@/types';
 
 const BASE = '/admin/notes';
 
 export default function AdminNotesPage() {
   const searchParams = useSearchParams();
-  const [notes, setNotes] = useState<AdminNote[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data: notes = [], isLoading } = useAdminNotes();
 
   const dialog = parseDialogState(searchParams);
   const closeUrl = closeDialogUrl(BASE, searchParams);
-
-  useEffect(() => {
-    api.get<AdminNote[]>('/api/admin/notes')
-      .then(setNotes)
-      .catch(() => {})
-      .finally(() => setLoading(false));
-  }, []);
 
   return (
     <div className="p-6 max-w-6xl mx-auto">
@@ -36,7 +26,7 @@ export default function AdminNotesPage() {
       </div>
 
       <div className="bg-card border border-border rounded-xl overflow-hidden">
-        {loading ? (
+        {isLoading ? (
           <div className="p-8 text-center text-sm text-muted-foreground">Loading...</div>
         ) : notes.length === 0 ? (
           <div className="p-8 text-center">
@@ -55,11 +45,8 @@ export default function AdminNotesPage() {
             </thead>
             <tbody className="divide-y divide-border">
               {notes.map(note => (
-                // Stretched-link: Link covers the row, cells use relative z-10 so
-                // tag spans are still selectable without blocking the row link.
                 <tr key={note.id} className="relative hover:bg-muted/30 transition-colors">
                   <td className="px-4 py-3">
-                    {/* Row link — covers the entire row via position:fixed simulation */}
                     <Link
                       href={`${BASE}?detail=${note.id}`}
                       scroll={false}

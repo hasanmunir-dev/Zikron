@@ -1,9 +1,7 @@
 'use client';
 
-import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { notesService } from '@/lib/services/notes';
-import { getCachedItem } from '@/lib/page-state';
+import { useNote, useCreateNote, useUpdateNote, useDeleteNote } from '@/hooks/queries/use-notes';
 import { useAuth } from '@/hooks/useAuth';
 import { NoteEditor } from './NoteEditor';
 import type { Note } from '@/types';
@@ -18,29 +16,16 @@ interface Props {
 export function NoteDialog({ mode, id, closeUrl, defaultTab = 'write' }: Props) {
   const router = useRouter();
   const { user } = useAuth();
+  const createNote = useCreateNote();
+  const updateNote = useUpdateNote();
+  const deleteNote = useDeleteNote();
 
-  const [note, setNote] = useState<Partial<Note> | null>(
-    () => (mode === 'edit' && id ? getCachedItem<Note>(id) : null),
-  );
-  const [ready, setReady] = useState(
-    () => mode === 'create' || (mode === 'edit' && id ? getCachedItem<Note>(id) !== null : false),
-  );
+  const { data: note, isLoading } = useNote(mode === 'edit' ? id : undefined);
 
-  useEffect(() => {
-    if (mode === 'create' || !id) {
-      setReady(true);
-      return;
-    }
-    notesService.get(id).then(data => {
-      if (data) setNote(data);
-      setReady(true);
-    });
-  }, [id, mode]);
-
-  async function handleSave(data: Partial<Note>) {
+  function handleSave(data: Partial<Note>) {
     if (mode === 'create') {
       if (!user) return;
-      await notesService.create({
+      createNote.mutate({
         title: data.title!,
         content: data.content ?? null,
         category_id: null,
@@ -49,12 +34,13 @@ export function NoteDialog({ mode, id, closeUrl, defaultTab = 'write' }: Props) 
         is_archived: false,
       });
     } else if (id) {
-      await notesService.update(id, data);
+      updateNote.mutate({ id, data });
     }
+    // NoteEditor calls onClose() right after onSave(), so dialog closes immediately
   }
 
-  async function handleDelete(noteId: string) {
-    await notesService.delete(noteId);
+  function handleDelete(noteId: string) {
+    deleteNote.mutate(noteId);
     router.replace(closeUrl);
   }
 
@@ -62,7 +48,7 @@ export function NoteDialog({ mode, id, closeUrl, defaultTab = 'write' }: Props) 
     router.replace(closeUrl);
   }
 
-  if (!ready) {
+  if (mode === 'edit' && isLoading && !note) {
     return (
       <div className="fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
         <div className="bg-card w-full sm:rounded-2xl sm:max-w-xl h-80 animate-pulse" />
@@ -70,14 +56,14 @@ export function NoteDialog({ mode, id, closeUrl, defaultTab = 'write' }: Props) 
     );
   }
 
-  if (mode === 'edit' && !note) {
+  if (mode === 'edit' && !note && !isLoading) {
     router.replace(closeUrl);
     return null;
   }
 
   return (
     <NoteEditor
-      note={mode === 'create' ? null : note}
+      note={mode === 'create' ? null : note ?? null}
       onSave={handleSave}
       onDelete={mode === 'edit' ? handleDelete : undefined}
       onClose={handleClose}

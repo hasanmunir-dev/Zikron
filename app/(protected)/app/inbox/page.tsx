@@ -1,13 +1,12 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Plus, Inbox, Archive, Star, Search, X } from 'lucide-react';
-import { inboxService } from '@/lib/services/inbox';
-import { onDataRefresh } from '@/lib/sync/events';
 import { savePageState, getPageState } from '@/lib/page-state';
 import { dialogUrl, closeDialogUrl, parseDialogState } from '@/lib/dialog-url';
+import { useInbox, useUpdateInboxItem, useDeleteInboxItem } from '@/hooks/queries/use-inbox';
 import { InboxItemCard } from '@/components/features/inbox/InboxItem';
 import { InboxDialog } from '@/components/features/inbox/InboxDialog';
 import type { InboxItem } from '@/types';
@@ -22,15 +21,16 @@ export default function InboxPage() {
   const searchParams = useSearchParams();
 
   const saved = getPageState<SavedState>('inbox');
-  const [items, setItems] = useState<InboxItem[]>([]);
   const [tab, setTab] = useState<Tab>(saved?.tab ?? 'inbox');
   const [search, setSearch] = useState(saved?.search ?? '');
 
-  // Dialog state derived from URL — no extra useState needed.
   const dialog = parseDialogState(searchParams);
   const closeUrl = closeDialogUrl(BASE_PATH, searchParams);
 
-  // Handle legacy ?new=1 links (e.g. from old dashboard quick-capture)
+  const { data: items = [], isLoading, isFetching } = useInbox(tab);
+  const updateItem = useUpdateInboxItem();
+  const deleteItem = useDeleteInboxItem();
+
   useEffect(() => {
     if (searchParams.get('new') === '1') {
       router.replace(dialogUrl(BASE_PATH, 'create'));
@@ -41,34 +41,25 @@ export default function InboxPage() {
     savePageState<SavedState>('inbox', { tab, search });
   }, [tab, search]);
 
-  const load = useCallback(async () => {
-    const data = await inboxService.list(tab);
-    setItems(data);
-  }, [tab]);
-
-  useEffect(() => { load(); }, [load]);
-  useEffect(() => onDataRefresh('inbox', load), [load]);
-
-  async function handleToggleFavorite(id: string, isFav: boolean) {
-    await inboxService.update(id, { status: isFav ? 'inbox' : 'favorite' });
-    load();
+  function handleToggleFavorite(id: string, isFav: boolean) {
+    updateItem.mutate({ id, data: { status: isFav ? 'inbox' : 'favorite' } });
   }
 
-  async function handleArchive(id: string) {
-    await inboxService.update(id, { status: 'archived' });
-    load();
+  function handleArchive(id: string) {
+    const current = items.find(i => i.id === id);
+    const newStatus = current?.status === 'archived' ? 'inbox' : 'archived';
+    updateItem.mutate({ id, data: { status: newStatus } });
   }
 
-  async function handleDelete(id: string) {
-    await inboxService.delete(id);
-    load();
+  function handleDelete(id: string) {
+    deleteItem.mutate(id);
   }
 
   const filtered = search
-    ? items.filter(i =>
+    ? items.filter((i: InboxItem) =>
         i.title.toLowerCase().includes(search.toLowerCase()) ||
         i.content?.toLowerCase().includes(search.toLowerCase()) ||
-        i.tags.some(t => t.toLowerCase().includes(search.toLowerCase()))
+        i.tags.some((t: string) => t.toLowerCase().includes(search.toLowerCase()))
       )
     : items;
 
@@ -107,6 +98,9 @@ export default function InboxPage() {
             {label}
           </button>
         ))}
+        {isFetching && items.length > 0 && (
+          <span className="self-center ml-1 w-3 h-3 rounded-full border-2 border-blue-500 border-t-transparent animate-spin" />
+        )}
       </div>
 
       <div className="relative mb-5">
@@ -124,7 +118,13 @@ export default function InboxPage() {
         )}
       </div>
 
-      {filtered.length === 0 ? (
+      {isLoading && items.length === 0 ? (
+        <div className="space-y-3">
+          {[1, 2, 3].map(i => (
+            <div key={i} className="bg-card border border-border rounded-xl p-4 h-20 animate-pulse" />
+          ))}
+        </div>
+      ) : filtered.length === 0 ? (
         <div className="text-center py-16">
           <div className="w-12 h-12 bg-muted rounded-xl flex items-center justify-center mx-auto mb-3">
             <Inbox size={22} className="text-muted-foreground/40" />
@@ -157,7 +157,6 @@ export default function InboxPage() {
         </div>
       )}
 
-      {/* Dialog overlay — URL is the source of truth */}
       {dialog?.action === 'create' && (
         <InboxDialog mode="create" closeUrl={closeUrl} basePath={BASE_PATH} />
       )}

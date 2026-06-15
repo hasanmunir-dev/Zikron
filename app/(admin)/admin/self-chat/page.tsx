@@ -1,29 +1,11 @@
 'use client';
 
-import { useEffect, useState } from 'react';
 import { MessageSquare, Clock, Star } from 'lucide-react';
-import { api } from '@/lib/api';
+import { useAdminSelfChat } from '@/hooks/queries/use-admin';
 import { formatRelativeTime } from '@/utils/date';
 
-interface AdminMessage {
-  id: string;
-  user_id: string;
-  content: string;
-  is_favorite: boolean;
-  created_at: string;
-  profiles: { email: string | null; full_name: string | null } | null;
-}
-
 export default function AdminSelfChatPage() {
-  const [messages, setMessages] = useState<AdminMessage[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    api.get<AdminMessage[]>('/api/admin/self-chat')
-      .then(setMessages)
-      .catch(() => {})
-      .finally(() => setLoading(false));
-  }, []);
+  const { data: messages = [], isLoading } = useAdminSelfChat();
 
   return (
     <div className="p-6 max-w-6xl mx-auto">
@@ -33,7 +15,7 @@ export default function AdminSelfChatPage() {
       </div>
 
       <div className="bg-card border border-border rounded-xl overflow-hidden">
-        {loading ? (
+        {isLoading ? (
           <div className="p-8 text-center text-sm text-muted-foreground">Loading...</div>
         ) : messages.length === 0 ? (
           <div className="p-8 text-center">

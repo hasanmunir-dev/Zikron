@@ -1,14 +1,13 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Plus, BookOpen, Search, X, Star, Archive } from 'lucide-react';
-import { notesService } from '@/lib/services/notes';
-import { onDataRefresh } from '@/lib/sync/events';
 import { savePageState, getPageState, cacheItem } from '@/lib/page-state';
 import { dialogUrl, closeDialogUrl, parseDialogState } from '@/lib/dialog-url';
 import { formatRelativeTime } from '@/utils/date';
+import { useNotes, useUpdateNote } from '@/hooks/queries/use-notes';
 import { NoteDialog } from './NoteDialog';
 import type { Note } from '@/types';
 
@@ -16,11 +15,6 @@ type Tab = 'all' | 'favorites' | 'archived';
 type SavedState = { tab: Tab; search: string };
 
 interface Props {
-  /**
-   * Base path that all dialog URLs are relative to.
-   * User panel:  "/app/notes"
-   * Admin panel: "/admin/my-notes"
-   */
   basePath: string;
 }
 
@@ -30,15 +24,15 @@ export function NotesPage({ basePath }: Props) {
   const stateKey = `notes:${basePath}`;
 
   const saved = getPageState<SavedState>(stateKey);
-  const [notes, setNotes] = useState<Note[]>([]);
   const [tab, setTab] = useState<Tab>(saved?.tab ?? 'all');
   const [search, setSearch] = useState(saved?.search ?? '');
 
-  // Dialog state derived from URL — no extra useState needed.
   const dialog = parseDialogState(searchParams);
   const closeUrl = closeDialogUrl(basePath, searchParams);
 
-  // Handle legacy ?new=1 links (e.g. from old dashboard quick-capture)
+  const { data: notes = [], isLoading, isFetching } = useNotes(tab);
+  const updateNote = useUpdateNote();
+
   useEffect(() => {
     if (searchParams.get('new') === '1') {
       router.replace(dialogUrl(basePath, 'create'));
@@ -49,26 +43,16 @@ export function NotesPage({ basePath }: Props) {
     savePageState<SavedState>(stateKey, { tab, search });
   }, [tab, search, stateKey]);
 
-  const load = useCallback(async () => {
-    const data = await notesService.list(tab);
-    setNotes(data);
-  }, [tab]);
-
-  useEffect(() => { load(); }, [load]);
-  useEffect(() => onDataRefresh('notes', load), [load]);
-
-  async function handleToggleFavorite(note: Note, e: React.MouseEvent) {
+  function handleToggleFavorite(note: Note, e: React.MouseEvent) {
     e.preventDefault();
     e.stopPropagation();
-    await notesService.update(note.id, { is_favorite: !note.is_favorite });
-    load();
+    updateNote.mutate({ id: note.id, data: { is_favorite: !note.is_favorite } });
   }
 
-  async function handleArchive(note: Note, e: React.MouseEvent) {
+  function handleArchive(note: Note, e: React.MouseEvent) {
     e.preventDefault();
     e.stopPropagation();
-    await notesService.update(note.id, { is_archived: !note.is_archived });
-    load();
+    updateNote.mutate({ id: note.id, data: { is_archived: !note.is_archived } });
   }
 
   const filtered = search
@@ -115,6 +99,9 @@ export function NotesPage({ basePath }: Props) {
             {label}
           </button>
         ))}
+        {isFetching && notes.length > 0 && (
+          <span className="ml-2 self-center w-3 h-3 rounded-full border-2 border-blue-500 border-t-transparent animate-spin" />
+        )}
       </div>
 
       <div className="relative mb-5">
@@ -132,7 +119,13 @@ export function NotesPage({ basePath }: Props) {
         )}
       </div>
 
-      {filtered.length === 0 ? (
+      {isLoading && notes.length === 0 ? (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {[1, 2, 3].map(i => (
+            <div key={i} className="bg-card border border-border rounded-xl p-4 h-32 animate-pulse" />
+          ))}
+        </div>
+      ) : filtered.length === 0 ? (
         <div className="text-center py-16">
           <div className="w-12 h-12 bg-muted rounded-xl flex items-center justify-center mx-auto mb-3">
             <BookOpen size={22} className="text-muted-foreground/40" />
@@ -164,7 +157,6 @@ export function NotesPage({ basePath }: Props) {
         </div>
       )}
 
-      {/* Dialog overlay — rendered on top of the list, URL is the source of truth */}
       {dialog?.action === 'create' && (
         <NoteDialog mode="create" closeUrl={closeUrl} defaultTab="write" />
       )}
@@ -185,9 +177,6 @@ function NoteCard({ note, detailUrl, onToggleFavorite, onArchive }: {
   onArchive: (e: React.MouseEvent) => void;
 }) {
   return (
-    // Stretched-link pattern: the card is position:relative, the Link is
-    // position:absolute inset-0. Action buttons sit above it via z-index.
-    // This avoids nesting interactive elements inside <a> (invalid HTML).
     <div className="group relative bg-card border border-border rounded-xl p-4 hover:shadow-sm transition-all flex flex-col min-h-35">
       <Link
         href={detailUrl}
