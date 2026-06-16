@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { X, Star, Trash2, Archive, Pencil, Link as LinkIcon, FileText, Tag, ExternalLink } from 'lucide-react';
 import { MarkdownEditor } from '@/components/editor/markdown-editor';
 import { MarkdownViewer } from '@/components/editor/markdown-viewer';
+import { DeleteConfirmDialog } from '@/components/shared/delete-confirm-dialog';
 import { formatRelativeTime } from '@/utils/date';
 import type { InboxItem } from '@/types';
 
@@ -25,6 +26,7 @@ export function InboxEditor({ mode, item, onSave, onDelete, onToggleFavorite, on
   const [content, setContent] = useState(item?.content ?? '');
   const [url, setUrl] = useState(item?.url ?? '');
   const [tags, setTags] = useState(item?.tags?.join(', ') ?? '');
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   useEffect(() => {
     setType(item?.type ?? 'text');
@@ -87,7 +89,7 @@ export function InboxEditor({ mode, item, onSave, onDelete, onToggleFavorite, on
               {item?.id && onDelete && (
                 <button
                   type="button"
-                  onClick={() => { onDelete(item.id!); onClose(); }}
+                  onClick={() => setConfirmDelete(true)}
                   className="p-1.5 rounded-lg text-muted-foreground/40 hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 transition-colors"
                   title="Delete"
                 >
@@ -225,13 +227,25 @@ export function InboxEditor({ mode, item, onSave, onDelete, onToggleFavorite, on
   );
 
   return (
-    <div
-      className="fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4"
-      onClick={onClose}
-    >
-      <div onClick={e => e.stopPropagation()}>
-        {card}
+    <>
+      <div
+        className="fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4"
+        onClick={onClose}
+      >
+        <div onClick={e => e.stopPropagation()}>
+          {card}
+        </div>
       </div>
-    </div>
+      {item?.id && onDelete && (
+        <DeleteConfirmDialog
+          open={confirmDelete}
+          onOpenChange={setConfirmDelete}
+          title="Delete Inbox Item?"
+          description="This action cannot be undone."
+          itemName={item.title}
+          onConfirm={() => { setConfirmDelete(false); onDelete(item.id!); onClose(); }}
+        />
+      )}
+    </>
   );
 }

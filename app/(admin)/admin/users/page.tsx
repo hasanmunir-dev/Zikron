@@ -45,7 +45,7 @@ export default function AdminUsersPage() {
             </thead>
             <tbody className="divide-y divide-border">
               {users.map(u => (
-                <tr key={u.id} className="relative hover:bg-muted/30 transition-colors">
+                <tr key={u.id} className="group relative hover:bg-muted/30 transition-colors">
                   <td className="px-4 py-3">
                     <Link
                       href={`${BASE}?detail=${u.user_id}`}

@@ -154,3 +154,81 @@ export function useAdminDeleteList() {
     },
   });
 }
+
+export function useAdminDeleteNote() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => api.delete(`/api/admin/notes/${id}`),
+    onMutate: async (id) => {
+      await queryClient.cancelQueries({ queryKey: adminKeys.notes() });
+      const prev = queryClient.getQueryData<AdminNote[]>(adminKeys.notes());
+      queryClient.setQueryData<AdminNote[]>(adminKeys.notes(), old =>
+        (old ?? []).filter(n => n.id !== id),
+      );
+      return { prev };
+    },
+    onError: (_err, _id, context) => {
+      if (context?.prev) queryClient.setQueryData(adminKeys.notes(), context.prev);
+      toast.error('Failed to delete note');
+    },
+    onSuccess: () => {
+      toast.success('Note deleted');
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: adminKeys.notes() });
+      queryClient.invalidateQueries({ queryKey: adminKeys.stats() });
+    },
+  });
+}
+
+export function useAdminDeleteInboxItem() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => api.delete(`/api/admin/inbox/${id}`),
+    onMutate: async (id) => {
+      await queryClient.cancelQueries({ queryKey: adminKeys.inbox() });
+      const prev = queryClient.getQueryData<AdminInboxItem[]>(adminKeys.inbox());
+      queryClient.setQueryData<AdminInboxItem[]>(adminKeys.inbox(), old =>
+        (old ?? []).filter(i => i.id !== id),
+      );
+      return { prev };
+    },
+    onError: (_err, _id, context) => {
+      if (context?.prev) queryClient.setQueryData(adminKeys.inbox(), context.prev);
+      toast.error('Failed to delete inbox item');
+    },
+    onSuccess: () => {
+      toast.success('Inbox item deleted');
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: adminKeys.inbox() });
+      queryClient.invalidateQueries({ queryKey: adminKeys.stats() });
+    },
+  });
+}
+
+export function useAdminDeleteMessage() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => api.delete(`/api/admin/self-chat/${id}`),
+    onMutate: async (id) => {
+      await queryClient.cancelQueries({ queryKey: adminKeys.selfChat() });
+      const prev = queryClient.getQueryData<AdminMessage[]>(adminKeys.selfChat());
+      queryClient.setQueryData<AdminMessage[]>(adminKeys.selfChat(), old =>
+        (old ?? []).filter(m => m.id !== id),
+      );
+      return { prev };
+    },
+    onError: (_err, _id, context) => {
+      if (context?.prev) queryClient.setQueryData(adminKeys.selfChat(), context.prev);
+      toast.error('Failed to delete message');
+    },
+    onSuccess: () => {
+      toast.success('Message deleted');
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: adminKeys.selfChat() });
+      queryClient.invalidateQueries({ queryKey: adminKeys.stats() });
+    },
+  });
+}

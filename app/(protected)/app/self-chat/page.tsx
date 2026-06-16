@@ -1,11 +1,12 @@
 'use client';
 
 import { useEffect, useState, useRef } from 'react';
-import { Send, Star, Trash2, Search, X, MessageSquare } from 'lucide-react';
+import { Send, Search, X, MessageSquare, Star } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { savePageState, getPageState } from '@/lib/page-state';
 import { useSelfChat, useSendMessage, useToggleFavoriteMessage, useDeleteMessage } from '@/hooks/queries/use-self-chat';
 import { MarkdownViewer } from '@/components/editor/markdown-viewer';
+import { ItemActions } from '@/components/shared/item-actions';
 import { formatRelativeTime } from '@/utils/date';
 import type { SelfChatMessage } from '@/types';
 
@@ -191,16 +192,15 @@ function MessageBubble({ msg, onToggleFavorite, onDelete }: {
           [&_.prose_a]:text-blue-200 [&_.prose_h1]:text-white [&_.prose_h2]:text-white [&_.prose_h3]:text-white">
           <MarkdownViewer content={msg.content} />
         </div>
-        <div className="flex items-center justify-end mt-1">
+        <div className="flex items-center justify-end gap-1 mt-1">
+          <ItemActions
+            isFavorite={msg.is_favorite}
+            onToggleFavorite={onToggleFavorite}
+            onDelete={onDelete}
+            deleteTitle="Delete Message?"
+            className="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+          />
           <span className="text-xs text-muted-foreground">{formatRelativeTime(msg.created_at)}</span>
-        </div>
-        <div className="absolute -left-20 top-1 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1">
-          <button type="button" onClick={onToggleFavorite} aria-label="Toggle favorite" className="p-1.5 bg-card border border-border rounded-lg shadow-sm hover:bg-amber-50 dark:hover:bg-amber-950/40 transition-colors">
-            <Star size={12} className={msg.is_favorite ? 'text-amber-400 fill-amber-400' : 'text-muted-foreground/40'} />
-          </button>
-          <button type="button" onClick={onDelete} aria-label="Delete message" className="p-1.5 bg-card border border-border rounded-lg shadow-sm hover:bg-red-50 dark:hover:bg-red-950/40 transition-colors">
-            <Trash2 size={12} className="text-muted-foreground/40 hover:text-red-400" />
-          </button>
         </div>
       </div>
     </div>

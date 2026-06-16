@@ -3,9 +3,10 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ChevronLeft, Star, Archive, Edit, Trash2, Table2, Loader2 } from 'lucide-react';
+import { ChevronLeft, Star, Archive, Pencil, Trash2, Table2, Loader2 } from 'lucide-react';
 import { listsService } from '@/lib/services/lists';
 import { MarkdownViewer } from '@/components/editor/markdown-viewer';
+import { DeleteConfirmDialog } from '@/components/shared/delete-confirm-dialog';
 import { formatRelativeTime } from '@/utils/date';
 import type { FullList } from '@/types';
 
@@ -18,6 +19,7 @@ export function ListDetailView({ id }: Props) {
   const [list, setList] = useState<FullList | null>(null);
   const [loading, setLoading] = useState(true);
   const [deleting, setDeleting] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   useEffect(() => {
     listsService.get(id).then(data => {
@@ -38,9 +40,8 @@ export function ListDetailView({ id }: Props) {
     setList(prev => prev ? { ...prev, is_archived: updated.is_archived } : null);
   }
 
-  async function handleDelete() {
+  async function handleDeleteConfirm() {
     if (!list) return;
-    if (!window.confirm(`Delete "${list.title}"? This cannot be undone.`)) return;
     setDeleting(true);
     await listsService.delete(list.id);
     router.push('/app/lists');
@@ -129,11 +130,11 @@ export function ListDetailView({ id }: Props) {
             href={`/app/lists/${list.id}/edit`}
             className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium bg-muted hover:bg-muted/80 text-foreground rounded-lg transition-colors"
           >
-            <Edit size={14} /> Edit
+            <Pencil size={14} /> Edit
           </Link>
           <button
             type="button"
-            onClick={handleDelete}
+            onClick={() => setConfirmDelete(true)}
             disabled={deleting}
             className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40 rounded-lg transition-colors disabled:opacity-50"
           >
@@ -165,7 +166,7 @@ export function ListDetailView({ id }: Props) {
             href={`/app/lists/${list.id}/edit`}
             className="inline-flex items-center gap-2 text-sm text-blue-600 hover:underline"
           >
-            <Edit size={13} /> Add columns
+            <Pencil size={13} /> Add columns
           </Link>
         </div>
       ) : (
@@ -215,6 +216,15 @@ export function ListDetailView({ id }: Props) {
           </div>
         </div>
       )}
+      <DeleteConfirmDialog
+        open={confirmDelete}
+        onOpenChange={setConfirmDelete}
+        title="Delete List?"
+        description="This action cannot be undone."
+        itemName={list.title}
+        onConfirm={handleDeleteConfirm}
+        isLoading={deleting}
+      />
     </div>
   );
 }

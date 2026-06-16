@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { X, Star, Trash2, Tag } from 'lucide-react';
 import { MarkdownEditor } from '@/components/editor/markdown-editor';
+import { DeleteConfirmDialog } from '@/components/shared/delete-confirm-dialog';
 import type { Note } from '@/types';
 
 interface Props {
@@ -21,6 +22,7 @@ export function NoteEditor({ note, onSave, onDelete, onClose, fullPage = false, 
   const [content, setContent] = useState(note?.content ?? '');
   const [tags, setTags] = useState(note?.tags?.join(', ') ?? '');
   const [isFavorite, setIsFavorite] = useState(note?.is_favorite ?? false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   useEffect(() => {
     setTitle(note?.title ?? '');
@@ -61,7 +63,7 @@ export function NoteEditor({ note, onSave, onDelete, onClose, fullPage = false, 
           {note?.id && onDelete && (
             <button
               type="button"
-              onClick={() => { onDelete(note.id!); onClose(); }}
+              onClick={() => setConfirmDelete(true)}
               className="p-1.5 rounded-lg text-muted-foreground/40 hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 transition-colors"
               title="Delete"
             >
@@ -122,22 +124,39 @@ export function NoteEditor({ note, onSave, onDelete, onClose, fullPage = false, 
     </div>
   );
 
+  const deleteDialog = note?.id && onDelete ? (
+    <DeleteConfirmDialog
+      open={confirmDelete}
+      onOpenChange={setConfirmDelete}
+      title="Delete Note?"
+      description="This action cannot be undone."
+      itemName={note.title}
+      onConfirm={() => { setConfirmDelete(false); onDelete(note.id!); onClose(); }}
+    />
+  ) : null;
+
   if (fullPage) {
     return (
-      <div className="p-6 flex justify-center">
-        {card}
-      </div>
+      <>
+        <div className="p-6 flex justify-center">
+          {card}
+        </div>
+        {deleteDialog}
+      </>
     );
   }
 
   return (
-    <div
-      className="fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4"
-      onClick={onClose}
-    >
-      <div onClick={e => e.stopPropagation()}>
-        {card}
+    <>
+      <div
+        className="fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4"
+        onClick={onClose}
+      >
+        <div onClick={e => e.stopPropagation()}>
+          {card}
+        </div>
       </div>
-    </div>
+      {deleteDialog}
+    </>
   );
 }

@@ -2,13 +2,26 @@
 
 import { useTheme } from 'next-themes';
 import { Moon, Sun, Monitor } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 export function ThemeToggle() {
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => setMounted(true), []);
+
+  useEffect(() => {
+    if (!open) return;
+    function handleClickOutside(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [open]);
 
   if (!mounted) {
     return <div className="w-8 h-8" />;
@@ -24,30 +37,36 @@ export function ThemeToggle() {
   const CurrentIcon = current.icon;
 
   return (
-    <div className="relative group">
+    <div className="relative" ref={ref}>
       <button
+        type="button"
+        onClick={() => setOpen(v => !v)}
         className="flex items-center justify-center w-8 h-8 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
         aria-label="Toggle theme"
+        aria-expanded={open ? 'true' : 'false'}
       >
         <CurrentIcon size={16} />
       </button>
 
-      <div className="absolute right-0 top-full mt-1 w-32 bg-card border border-border rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50 py-1">
-        {themes.map(({ value, icon: Icon, label }) => (
-          <button
-            key={value}
-            onClick={() => setTheme(value)}
-            className={`w-full flex items-center gap-2.5 px-3 py-1.5 text-sm transition-colors
-              ${theme === value
-                ? 'text-foreground bg-muted font-medium'
-                : 'text-muted-foreground hover:text-foreground hover:bg-muted'
-              }`}
-          >
-            <Icon size={14} />
-            {label}
-          </button>
-        ))}
-      </div>
+      {open && (
+        <div className="absolute right-0 top-full mt-1 w-32 bg-card border border-border rounded-lg shadow-lg z-50 py-1">
+          {themes.map(({ value, icon: Icon, label }) => (
+            <button
+              key={value}
+              type="button"
+              onClick={() => { setTheme(value); setOpen(false); }}
+              className={`w-full flex items-center gap-2.5 px-3 py-1.5 text-sm transition-colors
+                ${theme === value
+                  ? 'text-foreground bg-muted font-medium'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+                }`}
+            >
+              <Icon size={14} />
+              {label}
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

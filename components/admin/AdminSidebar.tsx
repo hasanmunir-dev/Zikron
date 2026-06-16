@@ -1,30 +1,111 @@
-'use client';
+"use client";
 
-import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 import {
-  LayoutDashboard, Users, BookOpen, Inbox,
-  MessageSquare, Settings, LogOut, X, ShieldCheck, Bell, FolderOpen, Table2,
-} from 'lucide-react';
-import { useAuth } from '@/hooks/useAuth';
+  LayoutDashboard,
+  Users,
+  BookOpen,
+  Inbox,
+  MessageSquare,
+  Settings,
+  LogOut,
+  X,
+  ShieldCheck,
+  Bell,
+  LinkIcon,
+  FolderOpen,
+  Contact,
+  Table2,
+} from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
 
 const mySpaceItems = [
-  {href: '/admin/my-dashboard', icon: LayoutDashboard, label: 'My Dashboard' },
-  { href: '/admin/my-notes', icon: BookOpen, label: 'My Notes' },
-  {href: '/admin/my-lists', icon: Table2, label: 'My Lists' },
-  { href: '/admin/my-inbox', icon: Inbox, label: 'My Inbox' },
-  { href: '/admin/my-chat', icon: MessageSquare, label: 'My Chat' },
-  { href: '/admin/my-reminders', icon: Bell, label: 'My Reminders' },
-  { href: '/admin/my-collections', icon: FolderOpen, label: 'My Collections' },
+  {
+    href: "/admin/my-dashboard",
+    icon: LayoutDashboard,
+    label: "My Dashboard",
+    placeholder: false,
+  },
+  {
+    href: "/admin/my-notes",
+    icon: BookOpen,
+    label: "My Notes",
+    placeholder: false,
+  },
+  {
+    href: "/admin/my-lists",
+    icon: Table2,
+    label: "My Lists",
+    placeholder: false,
+  },
+  {
+    href: "/admin/my-inbox",
+    icon: Inbox,
+    label: "My Inbox",
+    placeholder: false,
+  },
+  {
+    href: "/admin/my-chat",
+    icon: MessageSquare,
+    label: "My Chat",
+    placeholder: false,
+  },
+  {
+    href: "/admin/my-reminders",
+    icon: Bell,
+    label: "My Reminders",
+    placeholder: false,
+  },
+  {
+    href: "/admin/my-collections",
+    icon: FolderOpen,
+    label: "My Collections",
+    placeholder: false,
+  },
 ];
 
 const systemItems = [
-  { href: '/admin/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-  { href: '/admin/users', icon: Users, label: 'Users' },
-  { href: '/admin/notes', icon: BookOpen, label: 'All Notes' },
-  { href: '/admin/inbox', icon: Inbox, label: 'All Inbox' },
-  { href: '/admin/lists', icon: Table2, label: 'All Lists' },
-  { href: '/admin/self-chat', icon: MessageSquare, label: 'All Messages' },
+  {
+    href: "/admin/dashboard",
+    icon: LayoutDashboard,
+    label: "Dashboard",
+    placeholder: false,
+  },
+  { href: "/admin/users", icon: Users, label: "Users", placeholder: false },
+  { href: "/admin/notes", icon: BookOpen, label: "Notes", placeholder: false },
+  { href: "/admin/inbox", icon: Inbox, label: "Inbox", placeholder: false },
+  { href: "/admin/lists", icon: Table2, label: "Lists", placeholder: false },
+  {
+    href: "/admin/self-chat",
+    icon: MessageSquare,
+    label: "Self Chat",
+    placeholder: false,
+  },
+  {
+    href: "/admin/reminders",
+    icon: Bell,
+    label: "Reminders",
+    placeholder: true,
+  },
+  {
+    href: "/admin/collections",
+    icon: FolderOpen,
+    label: "Collections",
+    placeholder: true,
+  },
+  {
+    href: "/admin/shared",
+    icon: LinkIcon,
+    label: "Shared Links",
+    placeholder: true,
+  },
+  {
+    href: "/admin/contacts",
+    icon: Contact,
+    label: "Contacts",
+    placeholder: true,
+  },
 ];
 
 interface Props {
@@ -37,10 +118,20 @@ export function AdminSidebar({ open, onClose }: Props) {
   const { user, signOut } = useAuth();
 
   const initials = user?.user_metadata?.full_name
-    ? user.user_metadata.full_name.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase()
-    : user?.email?.[0]?.toUpperCase() ?? 'A';
+    ? user.user_metadata.full_name
+        .split(" ")
+        .map((n: string) => n[0])
+        .join("")
+        .slice(0, 2)
+        .toUpperCase()
+    : (user?.email?.[0]?.toUpperCase() ?? "A");
 
-  function navLink(href: string, icon: React.ElementType, label: string) {
+  function navLink(
+    href: string,
+    icon: React.ElementType,
+    label: string,
+    placeholder: boolean,
+  ) {
     const Icon = icon;
     const active = pathname === href;
     return (
@@ -49,14 +140,29 @@ export function AdminSidebar({ open, onClose }: Props) {
         href={href}
         onClick={onClose}
         className={`
-          flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors
-          ${active
-            ? 'bg-blue-50 dark:bg-blue-950/50 text-blue-700 dark:text-blue-400'
-            : 'text-muted-foreground hover:bg-muted hover:text-foreground'}
-        `}
+                  flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors
+                  ${
+                    active
+                      ? "bg-blue-50 dark:bg-blue-950/50 text-blue-700 dark:text-blue-400"
+                      : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                  }
+                  ${placeholder ? "opacity-50" : ""}
+                `}
       >
-        <Icon size={17} className={active ? 'text-blue-600 dark:text-blue-400' : 'text-muted-foreground'} />
-        {label}
+        <Icon
+          size={17}
+          className={
+            active
+              ? "text-blue-600 dark:text-blue-400"
+              : "text-muted-foreground"
+          }
+        />
+        <span className="flex-1">{label}</span>
+        {placeholder && (
+          <span className="text-[10px] font-medium bg-muted text-muted-foreground px-1.5 py-0.5 rounded">
+            Soon
+          </span>
+        )}
       </Link>
     );
   }
@@ -64,14 +170,17 @@ export function AdminSidebar({ open, onClose }: Props) {
   return (
     <>
       {open && (
-        <div className="fixed inset-0 bg-black/40 z-20 lg:hidden" onClick={onClose} />
+        <div
+          className="fixed inset-0 bg-black/40 z-20 lg:hidden"
+          onClick={onClose}
+        />
       )}
 
       <aside
         className={`
           fixed top-0 left-0 h-full w-60 bg-card border-r border-border z-30 flex flex-col
           transition-transform duration-200
-          ${open ? 'translate-x-0' : '-translate-x-full'}
+          ${open ? "translate-x-0" : "-translate-x-full"}
           lg:translate-x-0 lg:static lg:z-auto
         `}
       >
@@ -95,17 +204,25 @@ export function AdminSidebar({ open, onClose }: Props) {
         <nav className="flex-1 px-3 py-4 overflow-y-auto space-y-4">
           {/* My Space */}
           <div>
-            <p className="px-3 mb-1 text-xs font-semibold text-muted-foreground/60 uppercase tracking-wider">My Space</p>
+            <p className="px-3 mb-1 text-xs font-semibold text-muted-foreground/60 uppercase tracking-wider">
+              My Space
+            </p>
             <div className="space-y-0.5">
-              {mySpaceItems.map(({ href, icon, label }) => navLink(href, icon, label))}
+              {mySpaceItems.map(({ href, icon, label, placeholder }) =>
+                navLink(href, icon, label, placeholder),
+              )}
             </div>
           </div>
 
           {/* System */}
           <div>
-            <p className="px-3 mb-1 text-xs font-semibold text-muted-foreground/60 uppercase tracking-wider">System</p>
+            <p className="px-3 mb-1 text-xs font-semibold text-muted-foreground/60 uppercase tracking-wider">
+              System
+            </p>
             <div className="space-y-0.5">
-              {systemItems.map(({ href, icon, label }) => navLink(href, icon, label))}
+              {systemItems.map(({ href, icon, label, placeholder }) =>
+                navLink(href, icon, label, placeholder),
+              )}
             </div>
           </div>
         </nav>
@@ -116,9 +233,11 @@ export function AdminSidebar({ open, onClose }: Props) {
             href="/admin/settings"
             onClick={onClose}
             className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors
-              ${pathname === '/admin/settings'
-                ? 'bg-blue-50 dark:bg-blue-950/50 text-blue-700 dark:text-blue-400'
-                : 'text-muted-foreground hover:bg-muted hover:text-foreground'}`}
+              ${
+                pathname === "/admin/settings"
+                  ? "bg-blue-50 dark:bg-blue-950/50 text-blue-700 dark:text-blue-400"
+                  : "text-muted-foreground hover:bg-muted hover:text-foreground"
+              }`}
           >
             <Settings size={17} className="text-muted-foreground" />
             Settings
@@ -130,9 +249,11 @@ export function AdminSidebar({ open, onClose }: Props) {
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-xs font-medium text-foreground truncate">
-                {user?.user_metadata?.full_name ?? 'Admin'}
+                {user?.user_metadata?.full_name ?? "Admin"}
               </p>
-              <p className="text-xs text-muted-foreground truncate">{user?.email}</p>
+              <p className="text-xs text-muted-foreground truncate">
+                {user?.email}
+              </p>
             </div>
             <button
               type="button"

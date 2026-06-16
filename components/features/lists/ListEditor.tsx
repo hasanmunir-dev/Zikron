@@ -6,6 +6,7 @@ import { Plus, Trash2, ChevronLeft, ChevronRight, Table2, Tag, X, Loader2 } from
 import { listsService } from '@/lib/services/lists';
 import { useAuth } from '@/hooks/useAuth';
 import { MarkdownEditor } from '@/components/editor/markdown-editor';
+import { DeleteConfirmDialog } from '@/components/shared/delete-confirm-dialog';
 import type { List, ListColumn, ListRow, ListCell, FullList } from '@/types';
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
@@ -65,6 +66,8 @@ export function ListEditor({ mode, initialData, backHref = '/app/lists' }: Props
   );
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const [pendingDeleteRow, setPendingDeleteRow] = useState<string | null>(null);
+  const [pendingDeleteColumn, setPendingDeleteColumn] = useState<string | null>(null);
 
   const titleRef = useRef<HTMLInputElement>(null);
 
@@ -237,9 +240,13 @@ export function ListEditor({ mode, initialData, backHref = '/app/lists' }: Props
   // ─── Unified handlers (create vs edit) ───────────────────────────────────────
 
   const onAddColumn = mode === 'create' ? addColumn : handleAddColumnEdit;
-  const onRemoveColumn = mode === 'create' ? removeColumn : handleRemoveColumnEdit;
+  const onRemoveColumn = mode === 'create'
+    ? removeColumn
+    : (colId: string) => setPendingDeleteColumn(colId);
   const onAddRow = mode === 'create' ? addRow : handleAddRowEdit;
-  const onRemoveRow = mode === 'create' ? removeRow : handleRemoveRowEdit;
+  const onRemoveRow = mode === 'create'
+    ? removeRow
+    : (rowId: string) => setPendingDeleteRow(rowId);
 
   // ─── Render ──────────────────────────────────────────────────────────────────
 
@@ -340,7 +347,7 @@ export function ListEditor({ mode, initialData, backHref = '/app/lists' }: Props
                         className="flex-1 text-xs font-semibold text-foreground bg-transparent focus:outline-none min-w-0"
                         aria-label={`Column ${idx + 1} name`}
                       />
-                      <div className="flex items-center gap-0.5 opacity-0 group-hover/header:opacity-100 transition-opacity shrink-0">
+                      <div className="flex items-center gap-0.5 opacity-100 md:opacity-70 md:group-hover/header:opacity-100 transition-opacity shrink-0">
                         {idx > 0 && (
                           <button
                             type="button"
@@ -395,7 +402,7 @@ export function ListEditor({ mode, initialData, backHref = '/app/lists' }: Props
                     <button
                       type="button"
                       onClick={() => void onRemoveRow(row.id)}
-                      className="opacity-0 group-hover/row:opacity-100 w-5 h-5 flex items-center justify-center rounded hover:bg-red-50 dark:hover:bg-red-950/40 text-muted-foreground hover:text-red-500 transition-all"
+                      className="opacity-100 md:opacity-70 md:group-hover/row:opacity-100 w-5 h-5 flex items-center justify-center rounded hover:bg-red-50 dark:hover:bg-red-950/40 text-muted-foreground hover:text-red-500 transition-opacity"
                       title="Delete row"
                     >
                       <Trash2 size={11} />
@@ -458,6 +465,31 @@ export function ListEditor({ mode, initialData, backHref = '/app/lists' }: Props
           Cancel
         </button>
       </div>
+
+      {/* Row delete confirmation (edit mode only) */}
+      <DeleteConfirmDialog
+        open={pendingDeleteRow !== null}
+        onOpenChange={open => { if (!open) setPendingDeleteRow(null); }}
+        title="Delete Row?"
+        description="This action cannot be undone. The row and all its cell data will be permanently removed."
+        onConfirm={() => {
+          if (pendingDeleteRow) void handleRemoveRowEdit(pendingDeleteRow);
+          setPendingDeleteRow(null);
+        }}
+      />
+
+      {/* Column delete confirmation (edit mode only) */}
+      <DeleteConfirmDialog
+        open={pendingDeleteColumn !== null}
+        onOpenChange={open => { if (!open) setPendingDeleteColumn(null); }}
+        title="Delete Column?"
+        description="This action cannot be undone. The column and all its cell data will be permanently removed."
+        itemName={pendingDeleteColumn ? columns.find(c => c.id === pendingDeleteColumn)?.name : undefined}
+        onConfirm={() => {
+          if (pendingDeleteColumn) void handleRemoveColumnEdit(pendingDeleteColumn);
+          setPendingDeleteColumn(null);
+        }}
+      />
     </div>
   );
 }

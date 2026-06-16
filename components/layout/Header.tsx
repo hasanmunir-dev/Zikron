@@ -35,7 +35,7 @@ export function Header({ onMenuClick, title }: HeaderProps) {
       <h1 className="font-semibold text-foreground text-sm hidden sm:block">{title}</h1>
 
       {/* Search bar */}
-      <form onSubmit={handleSearch} className="flex-1 max-w-sm ml-auto lg:ml-0">
+      <form onSubmit={handleSearch} className="flex-1  ml-auto lg:ml-0">
         <div className="relative">
           <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
           <input
