@@ -1,6 +1,6 @@
-'use client';
+"use client";
 
-import { TriangleAlert } from 'lucide-react';
+import { TriangleAlert } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -10,7 +10,7 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
+} from "@/components/ui/alert-dialog";
 
 interface Props {
   open: boolean;
@@ -37,11 +37,14 @@ export function DeleteConfirmDialog({
         <AlertDialogHeader>
           <div className="flex items-center gap-3 mb-1">
             <div className="w-9 h-9 rounded-full bg-red-100 dark:bg-red-950/50 flex items-center justify-center shrink-0">
-              <TriangleAlert size={18} className="text-red-600 dark:text-red-400" />
+              <TriangleAlert
+                size={18}
+                className="text-red-600 dark:text-red-400"
+              />
             </div>
             <AlertDialogTitle>{title}</AlertDialogTitle>
           </div>
-          <AlertDialogDescription asChild>
+          {/* <AlertDialogDescription asChild>
             <div className="space-y-1 pl-12">
               <p>{description}</p>
               {itemName && (
@@ -51,7 +54,19 @@ export function DeleteConfirmDialog({
                 </p>
               )}
             </div>
+          </AlertDialogDescription> */}
+          <AlertDialogDescription className="pl-12">
+            {description}
           </AlertDialogDescription>
+
+          {itemName && (
+            <p className="pl-12 text-sm text-muted-foreground">
+              <span className="font-medium text-foreground">
+                &ldquo;{itemName}&rdquo;
+              </span>{" "}
+              will be permanently removed.
+            </p>
+          )}
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel disabled={isLoading}>Cancel</AlertDialogCancel>
@@ -60,7 +75,7 @@ export function DeleteConfirmDialog({
             disabled={isLoading}
             className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
           >
-            {isLoading ? 'Deleting…' : 'Delete'}
+            {isLoading ? "Deleting…" : "Delete"}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
