@@ -41,7 +41,7 @@ export function ItemActions({
   return (
     <>
       <DropdownMenu>
-        <DropdownMenuTrigger asChild>
+        {/* <DropdownMenuTrigger asChild>
           <button
             type="button"
             onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}
@@ -50,7 +50,20 @@ export function ItemActions({
           >
             <MoreHorizontal size={15} />
           </button>
-        </DropdownMenuTrigger>
+        </DropdownMenuTrigger> */}
+        <DropdownMenuTrigger
+  onClick={(e) => {
+    e.preventDefault();
+    e.stopPropagation();
+  }}
+  className={
+    className ??
+    'p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring'
+  }
+  aria-label="More actions"
+>
+  <MoreHorizontal size={15} />
+</DropdownMenuTrigger>
         <DropdownMenuContent
           align="end"
           onClick={(e) => e.stopPropagation()}
