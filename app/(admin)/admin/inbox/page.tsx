@@ -27,8 +27,8 @@ export default function AdminInboxPage() {
     ? items.filter(i =>
         i.title.toLowerCase().includes(search.toLowerCase()) ||
         i.content?.toLowerCase().includes(search.toLowerCase()) ||
-        (i.profiles?.email ?? '').toLowerCase().includes(search.toLowerCase()) ||
-        (i.profiles?.full_name ?? '').toLowerCase().includes(search.toLowerCase()),
+        (i.owner?.email ?? '').toLowerCase().includes(search.toLowerCase()) ||
+        (i.owner?.full_name ?? '').toLowerCase().includes(search.toLowerCase()),
       )
     : items;
 
@@ -98,8 +98,8 @@ export default function AdminInboxPage() {
                     </div>
                   </td>
                   <td className="px-4 py-3 hidden sm:table-cell">
-                    <p className="text-foreground text-xs truncate">{item.profiles?.full_name ?? '—'}</p>
-                    <p className="text-muted-foreground text-xs truncate">{item.profiles?.email}</p>
+                    <p className="text-foreground text-xs truncate">{item.owner?.full_name ?? '—'}</p>
+                    <p className="text-muted-foreground text-xs truncate">{item.owner?.email}</p>
                   </td>
                   <td className="px-4 py-3 hidden md:table-cell">
                     <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
@@ -148,7 +148,7 @@ export default function AdminInboxPage() {
             <div className="flex items-center justify-between px-5 py-3.5 border-b border-border shrink-0">
               <div className="flex items-center gap-2">
                 <span className="text-xs font-medium text-muted-foreground">
-                  {detailItem.profiles?.full_name ?? detailItem.profiles?.email ?? 'Unknown user'}
+                  {detailItem.owner?.full_name ?? detailItem.owner?.email ?? 'Unknown user'}
                 </span>
                 <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
                   detailItem.status === 'favorite' ? 'bg-amber-100 dark:bg-amber-950/50 text-amber-600'

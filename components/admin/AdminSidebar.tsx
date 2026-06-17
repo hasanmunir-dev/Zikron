@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -17,6 +18,9 @@ import {
   FolderOpen,
   Contact,
   Table2,
+  PanelLeftClose,
+  PanelLeftOpen,
+  ChevronsRight,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 
@@ -108,6 +112,8 @@ const systemItems = [
   },
 ];
 
+type SidebarMode = "collapsed" | "expanded" | "auto";
+
 interface Props {
   open: boolean;
   onClose: () => void;
@@ -116,6 +122,7 @@ interface Props {
 export function AdminSidebar({ open, onClose }: Props) {
   const pathname = usePathname();
   const { user, signOut } = useAuth();
+  const [sidebarMode, setSidebarMode] = useState<SidebarMode>("auto");
 
   const initials = user?.user_metadata?.full_name
     ? user.user_metadata.full_name
@@ -126,6 +133,40 @@ export function AdminSidebar({ open, onClose }: Props) {
         .toUpperCase()
     : (user?.email?.[0]?.toUpperCase() ?? "A");
 
+  const isAuto = sidebarMode === "auto";
+  const isExpanded = sidebarMode === "expanded";
+  const isCollapsed = sidebarMode === "collapsed";
+
+  const sidebarWidth =
+    sidebarMode === "expanded"
+      ? "lg:w-60"
+      : sidebarMode === "collapsed"
+        ? "lg:w-[72px]"
+        : "lg:w-[72px] lg:hover:w-60";
+
+  const labelClass = `
+    whitespace-nowrap transition-all duration-200 lg:overflow-hidden
+    ${
+      isExpanded
+        ? "lg:max-w-40 lg:opacity-100"
+        : isAuto
+          ? "lg:max-w-0 lg:opacity-0 lg:group-hover:max-w-40 lg:group-hover:opacity-100"
+          : "lg:max-w-0 lg:opacity-0"
+    }
+  `;
+
+  const alignClass = isCollapsed ? "lg:justify-center" : "lg:justify-start";
+
+  const toggleSidebarMode = () => {
+    setSidebarMode((prev) =>
+      prev === "collapsed"
+        ? "expanded"
+        : prev === "expanded"
+          ? "auto"
+          : "collapsed",
+    );
+  };
+
   function navLink(
     href: string,
     icon: React.ElementType,
@@ -133,33 +174,55 @@ export function AdminSidebar({ open, onClose }: Props) {
     placeholder: boolean,
   ) {
     const Icon = icon;
-    const active = pathname === href;
+    const active = pathname === href || pathname.startsWith(`${href}/`);
+    const collapsedActive = isCollapsed && active;
+
     return (
       <Link
         key={href}
         href={href}
         onClick={onClose}
+        title={label}
         className={`
-                  flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors
-                  ${
-                    active
-                      ? "bg-blue-50 dark:bg-blue-950/50 text-blue-700 dark:text-blue-400"
-                      : "text-muted-foreground hover:bg-muted hover:text-foreground"
-                  }
-                  ${placeholder ? "opacity-50" : ""}
-                `}
-      >
-        <Icon
-          size={17}
-          className={
-            active
-              ? "text-blue-600 dark:text-blue-400"
-              : "text-muted-foreground"
+          relative flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all
+          ${alignClass}
+          ${
+            collapsedActive
+              ? "text-primary"
+              : active
+                ? "bg-primary/10 text-primary"
+                : "text-muted-foreground hover:bg-muted hover:text-foreground  hover:bg-primary/10 text-primary/10 "
           }
+          ${placeholder ? "opacity-50" : ""}
+        `}
+      >
+        {/* {collapsedActive && (
+          <span className="absolute left-0 top-1/2 h-6 w-1 -translate-y-1/2 rounded-r-full bg-primary shadow-[0_0_12px_hsl(var(--primary))]" />
+        )} */}
+
+        <Icon
+          size={18}
+          className={`
+            shrink-0 transition-all duration-200
+            ${
+              collapsedActive
+                ? "scale-110 text-primary drop-shadow-[0_0_10px_hsl(var(--primary))]"
+                : active
+                  ? "text-primary"
+                  : "text-muted-foreground"
+            }
+          `}
         />
-        <span className="flex-1">{label}</span>
-        {placeholder && (
-          <span className="text-[10px] font-medium bg-muted text-muted-foreground px-1.5 py-0.5 rounded">
+
+        <span className={`flex-1 ${labelClass}`}>{label}</span>
+
+        {placeholder && !isCollapsed && (
+          <span
+            className={`
+              rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground
+              ${labelClass}
+            `}
+          >
             Soon
           </span>
         )}
@@ -171,42 +234,60 @@ export function AdminSidebar({ open, onClose }: Props) {
     <>
       {open && (
         <div
-          className="fixed inset-0 bg-black/40 z-20 lg:hidden"
+          className="fixed inset-0 z-20 bg-black/40 lg:hidden"
           onClick={onClose}
         />
       )}
 
       <aside
         className={`
-          fixed top-0 left-0 h-full w-60 bg-card border-r border-border z-30 flex flex-col
-          transition-transform duration-200
+          group fixed left-0 top-0 z-30 flex h-full w-60 flex-col border-r border-border bg-card
+          transition-all duration-200 ease-out
           ${open ? "translate-x-0" : "-translate-x-full"}
-          lg:translate-x-0 lg:static lg:z-auto
+          ${sidebarWidth}
+          lg:static lg:z-auto lg:translate-x-0
         `}
       >
-        {/* Logo */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-border">
-          <div className="flex items-center gap-2">
-            <ShieldCheck size={18} className="text-blue-600" />
-            <span className="text-lg font-bold text-foreground">Admin</span>
+        <div className="flex h-16 items-center justify-between border-b border-border px-4">
+          <div className="flex min-w-0 items-center gap-3 overflow-hidden">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+              <ShieldCheck size={18} />
+            </div>
+
+            <span className={`text-lg font-bold text-foreground ${labelClass}`}>
+              Admin
+            </span>
           </div>
+
+          <button
+            type="button"
+            onClick={toggleSidebarMode}
+            title={`Sidebar mode: ${sidebarMode}`}
+            className="hidden h-8 w-8 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground lg:flex"
+          >
+            {sidebarMode === "collapsed" && <PanelLeftOpen size={16} />}
+            {sidebarMode === "expanded" && <PanelLeftClose size={16} />}
+            {sidebarMode === "auto" && <ChevronsRight size={16} />}
+          </button>
+
           <button
             type="button"
             onClick={onClose}
             aria-label="Close menu"
-            className="lg:hidden text-muted-foreground hover:text-foreground"
+            className="text-muted-foreground hover:text-foreground lg:hidden"
           >
             <X size={18} />
           </button>
         </div>
 
-        {/* Nav */}
-        <nav className="flex-1 px-3 py-4 overflow-y-auto space-y-4">
-          {/* My Space */}
+        <nav className="flex-1 space-y-4 overflow-y-auto px-3 py-4">
           <div>
-            <p className="px-3 mb-1 text-xs font-semibold text-muted-foreground/60 uppercase tracking-wider">
+            <p
+              className={`mb-1 px-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground/60 ${labelClass}`}
+            >
               My Space
             </p>
+
             <div className="space-y-0.5">
               {mySpaceItems.map(({ href, icon, label, placeholder }) =>
                 navLink(href, icon, label, placeholder),
@@ -214,11 +295,13 @@ export function AdminSidebar({ open, onClose }: Props) {
             </div>
           </div>
 
-          {/* System */}
           <div>
-            <p className="px-3 mb-1 text-xs font-semibold text-muted-foreground/60 uppercase tracking-wider">
+            <p
+              className={`mb-1 px-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground/60 ${labelClass}`}
+            >
               System
             </p>
+
             <div className="space-y-0.5">
               {systemItems.map(({ href, icon, label, placeholder }) =>
                 navLink(href, icon, label, placeholder),
@@ -227,38 +310,38 @@ export function AdminSidebar({ open, onClose }: Props) {
           </div>
         </nav>
 
-        {/* Bottom */}
-        <div className="border-t border-border px-3 py-3 space-y-0.5">
-          <Link
-            href="/admin/settings"
-            onClick={onClose}
-            className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors
-              ${
-                pathname === "/admin/settings"
-                  ? "bg-blue-50 dark:bg-blue-950/50 text-blue-700 dark:text-blue-400"
-                  : "text-muted-foreground hover:bg-muted hover:text-foreground"
-              }`}
-          >
-            <Settings size={17} className="text-muted-foreground" />
-            Settings
-          </Link>
+        <div className="space-y-1 border-t border-border px-3 py-3">
+          {navLink("/admin/settings", Settings, "Settings", false)}
 
-          <div className="flex items-center gap-3 px-3 py-2 mt-1">
-            <div className="w-7 h-7 rounded-full bg-blue-600 flex items-center justify-center text-white text-xs font-semibold shrink-0">
+          <div
+            className={`flex items-center gap-3 rounded-lg px-3 py-2 ${alignClass}`}
+          >
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-semibold text-primary-foreground">
               {initials}
             </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-xs font-medium text-foreground truncate">
+
+            <div className={`min-w-0 flex-1 ${labelClass}`}>
+              <p className="truncate text-xs font-medium text-foreground">
                 {user?.user_metadata?.full_name ?? "Admin"}
               </p>
-              <p className="text-xs text-muted-foreground truncate">
+              <p className="truncate text-xs text-muted-foreground">
                 {user?.email}
               </p>
             </div>
+
             <button
               type="button"
               onClick={signOut}
-              className="text-muted-foreground hover:text-red-500 transition-colors"
+              className={`
+                shrink-0 text-muted-foreground transition-colors hover:text-red-500
+                ${
+                  isExpanded
+                    ? "lg:block"
+                    : isAuto
+                      ? "lg:hidden lg:group-hover:block"
+                      : "lg:hidden"
+                }
+              `}
               title="Sign out"
             >
               <LogOut size={15} />

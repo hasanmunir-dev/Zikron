@@ -93,6 +93,15 @@ export interface Category {
 
 // ─── Admin types (server-side joined shapes) ──────────────────────────────────
 
+export interface AdminOwner {
+  user_id: string;
+  email: string | null;
+  full_name: string | null;
+  avatar_url: string | null;
+  role: string;
+  status: string;
+}
+
 export interface UserProfile {
   id: string;
   user_id: string;
@@ -113,7 +122,7 @@ export interface AdminList {
   is_archived: boolean;
   created_at: string;
   updated_at: string;
-  profiles: { email: string | null; full_name: string | null } | null;
+  owner: AdminOwner | null;
   row_count?: number;
   column_count?: number;
 }
@@ -128,5 +137,5 @@ export interface AdminNote {
   is_archived: boolean;
   created_at: string;
   updated_at: string;
-  profiles: { email: string | null; full_name: string | null } | null;
+  owner: AdminOwner | null;
 }

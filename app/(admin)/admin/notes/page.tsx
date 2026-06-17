@@ -28,8 +28,8 @@ export default function AdminNotesPage() {
     ? notes.filter(n =>
         n.title.toLowerCase().includes(search.toLowerCase()) ||
         n.content?.toLowerCase().includes(search.toLowerCase()) ||
-        (n.profiles?.email ?? '').toLowerCase().includes(search.toLowerCase()) ||
-        (n.profiles?.full_name ?? '').toLowerCase().includes(search.toLowerCase()),
+        (n.owner?.email ?? '').toLowerCase().includes(search.toLowerCase()) ||
+        (n.owner?.full_name ?? '').toLowerCase().includes(search.toLowerCase()),
       )
     : notes;
 
@@ -99,8 +99,8 @@ export default function AdminNotesPage() {
                     </div>
                   </td>
                   <td className="px-4 py-3 hidden sm:table-cell">
-                    <p className="relative z-10 text-foreground text-xs truncate">{note.profiles?.full_name ?? '—'}</p>
-                    <p className="relative z-10 text-muted-foreground text-xs truncate">{note.profiles?.email}</p>
+                    <p className="relative z-10 text-foreground text-xs truncate">{note.owner?.full_name ?? '—'}</p>
+                    <p className="relative z-10 text-muted-foreground text-xs truncate">{note.owner?.email}</p>
                   </td>
                   <td className="px-4 py-3 hidden md:table-cell">
                     <div className="relative z-10 flex flex-wrap gap-1">

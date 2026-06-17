@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { api } from '@/lib/api';
-import type { AdminNote, AdminList, UserProfile } from '@/types';
+import type { AdminNote, AdminList, AdminOwner, UserProfile } from '@/types';
 
 interface AdminStats {
   totalUsers: number;
@@ -24,7 +24,7 @@ interface AdminInboxItem {
   status: string;
   tags: string[];
   created_at: string;
-  profiles: { email: string | null; full_name: string | null } | null;
+  owner: AdminOwner | null;
 }
 
 interface AdminMessage {
@@ -33,7 +33,7 @@ interface AdminMessage {
   content: string;
   is_favorite: boolean;
   created_at: string;
-  profiles: { email: string | null; full_name: string | null } | null;
+  owner: AdminOwner | null;
 }
 
 export const adminKeys = {

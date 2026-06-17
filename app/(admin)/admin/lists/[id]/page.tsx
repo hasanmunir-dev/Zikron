@@ -67,7 +67,7 @@ export default function AdminListDetailPage() {
           )}
           <div className="flex items-center gap-3 text-xs text-muted-foreground flex-wrap">
             <span>
-              Owner: <span className="font-medium text-foreground">{list.profiles?.full_name ?? list.profiles?.email ?? 'Unknown'}</span>
+              Owner: <span className="font-medium text-foreground">{list.owner?.full_name ?? list.owner?.email ?? 'Unknown'}</span>
             </span>
             <span>·</span>
             <span>{list.columns.length} columns</span>

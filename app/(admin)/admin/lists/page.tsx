@@ -18,8 +18,8 @@ export default function AdminListsPage() {
     ? lists.filter(l =>
         l.title.toLowerCase().includes(search.toLowerCase()) ||
         l.description?.toLowerCase().includes(search.toLowerCase()) ||
-        (l.profiles?.email ?? '').toLowerCase().includes(search.toLowerCase()) ||
-        (l.profiles?.full_name ?? '').toLowerCase().includes(search.toLowerCase()),
+        (l.owner?.email ?? '').toLowerCase().includes(search.toLowerCase()) ||
+        (l.owner?.full_name ?? '').toLowerCase().includes(search.toLowerCase()),
       )
     : lists;
 
@@ -86,8 +86,8 @@ export default function AdminListsPage() {
                     </div>
                   </td>
                   <td className="px-4 py-3 hidden sm:table-cell">
-                    <p className="text-xs text-foreground truncate">{list.profiles?.full_name ?? '—'}</p>
-                    <p className="text-xs text-muted-foreground truncate">{list.profiles?.email ?? '—'}</p>
+                    <p className="text-xs text-foreground truncate">{list.owner?.full_name ?? '—'}</p>
+                    <p className="text-xs text-muted-foreground truncate">{list.owner?.email ?? '—'}</p>
                   </td>
                   <td className="px-4 py-3 hidden md:table-cell">
                     <span className="text-xs text-muted-foreground">{list.column_count ?? 0}</span>

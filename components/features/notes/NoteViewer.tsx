@@ -16,7 +16,7 @@ interface Props {
  * Displays note content without edit or delete capabilities.
  */
 export function NoteViewer({ note, onClose, fullPage = false }: Props) {
-  const author = note.profiles?.full_name ?? note.profiles?.email ?? 'Unknown user';
+  const author = note.owner?.full_name ?? note.owner?.email ?? 'Unknown user';
 
   const card = (
     <div className={`bg-card flex flex-col shadow-xl border border-border ${

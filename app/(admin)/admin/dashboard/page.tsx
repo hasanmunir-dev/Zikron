@@ -82,7 +82,7 @@ export default function AdminDashboardPage() {
                       </div>
                     </td>
                     <td className="px-4 py-2.5 hidden sm:table-cell">
-                      <span className="text-xs text-muted-foreground">{list.profiles?.email ?? '—'}</span>
+                      <span className="text-xs text-muted-foreground">{list.owner?.email ?? '—'}</span>
                     </td>
                     <td className="px-4 py-2.5 hidden md:table-cell">
                       <span className="text-xs text-muted-foreground">{list.row_count ?? 0}</span>

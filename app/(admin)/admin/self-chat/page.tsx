@@ -15,8 +15,8 @@ export default function AdminSelfChatPage() {
   const filtered = search
     ? messages.filter(m =>
         m.content.toLowerCase().includes(search.toLowerCase()) ||
-        (m.profiles?.email ?? '').toLowerCase().includes(search.toLowerCase()) ||
-        (m.profiles?.full_name ?? '').toLowerCase().includes(search.toLowerCase()),
+        (m.owner?.email ?? '').toLowerCase().includes(search.toLowerCase()) ||
+        (m.owner?.full_name ?? '').toLowerCase().includes(search.toLowerCase()),
       )
     : messages;
 
@@ -76,8 +76,8 @@ export default function AdminSelfChatPage() {
                     </div>
                   </td>
                   <td className="px-4 py-3 hidden sm:table-cell">
-                    <p className="text-foreground text-xs truncate">{msg.profiles?.full_name ?? '—'}</p>
-                    <p className="text-muted-foreground text-xs truncate">{msg.profiles?.email}</p>
+                    <p className="text-foreground text-xs truncate">{msg.owner?.full_name ?? '—'}</p>
+                    <p className="text-muted-foreground text-xs truncate">{msg.owner?.email}</p>
                   </td>
                   <td className="px-4 py-3 hidden md:table-cell">
                     <span className="text-xs text-muted-foreground flex items-center gap-1">
