@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { api } from '@/lib/api';
-import type { AdminNote, AdminList, AdminOwner, UserProfile } from '@/types';
+import type { AdminNote, AdminList, AdminReminder, AdminOwner, UserProfile } from '@/types';
 
 interface AdminStats {
   totalUsers: number;
@@ -10,6 +10,8 @@ interface AdminStats {
   totalMessages: number;
   totalLists: number;
   totalRows: number;
+  totalReminders: number;
+  overdueReminders: number;
   activeUsers: number;
   disabledUsers: number;
 }
@@ -44,6 +46,8 @@ export const adminKeys = {
   selfChat: () => ['admin', 'self-chat'] as const,
   lists: () => ['admin', 'lists'] as const,
   list: (id: string) => ['admin', 'list', id] as const,
+  reminders: () => ['admin', 'reminders'] as const,
+  reminder: (id: string) => ['admin', 'reminder', id] as const,
 };
 
 export function useAdminStats() {
@@ -228,6 +232,53 @@ export function useAdminDeleteMessage() {
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: adminKeys.selfChat() });
+      queryClient.invalidateQueries({ queryKey: adminKeys.stats() });
+    },
+  });
+}
+
+export function useAdminReminders() {
+  return useQuery({
+    queryKey: adminKeys.reminders(),
+    queryFn: () => api.get<AdminReminder[]>('/api/admin/reminders'),
+  });
+}
+
+export function useAdminReminder(id: string | undefined) {
+  const queryClient = useQueryClient();
+  return useQuery({
+    queryKey: adminKeys.reminder(id!),
+    queryFn: () => api.get<AdminReminder>(`/api/admin/reminders/${id}`),
+    enabled: !!id,
+    initialData: () => {
+      const all = queryClient.getQueryData<AdminReminder[]>(adminKeys.reminders());
+      return all?.find(r => r.id === id);
+    },
+    initialDataUpdatedAt: () => queryClient.getQueryState(adminKeys.reminders())?.dataUpdatedAt,
+  });
+}
+
+export function useAdminDeleteReminder() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => api.delete(`/api/admin/reminders/${id}`),
+    onMutate: async (id) => {
+      await queryClient.cancelQueries({ queryKey: adminKeys.reminders() });
+      const prev = queryClient.getQueryData<AdminReminder[]>(adminKeys.reminders());
+      queryClient.setQueryData<AdminReminder[]>(adminKeys.reminders(), old =>
+        (old ?? []).filter(r => r.id !== id),
+      );
+      return { prev };
+    },
+    onError: (_err, _id, context) => {
+      if (context?.prev) queryClient.setQueryData(adminKeys.reminders(), context.prev);
+      toast.error('Failed to delete reminder');
+    },
+    onSuccess: () => {
+      toast.success('Reminder deleted');
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: adminKeys.reminders() });
       queryClient.invalidateQueries({ queryKey: adminKeys.stats() });
     },
   });

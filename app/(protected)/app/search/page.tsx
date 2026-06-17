@@ -3,16 +3,17 @@
 import { useEffect, useState, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Search, BookOpen, Inbox, MessageSquare, X, Table2 } from 'lucide-react';
+import { Search, BookOpen, Inbox, MessageSquare, X, Table2, Bell } from 'lucide-react';
 import { api } from '@/lib/api';
 import { formatRelativeTime } from '@/utils/date';
-import type { Note, InboxItem, SelfChatMessage, List } from '@/types';
+import type { Note, InboxItem, SelfChatMessage, List, Reminder } from '@/types';
 
 type Result =
-  | { type: 'note';    item: Note }
-  | { type: 'inbox';   item: InboxItem }
-  | { type: 'message'; item: SelfChatMessage }
-  | { type: 'list';    item: List };
+  | { type: 'note';     item: Note }
+  | { type: 'inbox';    item: InboxItem }
+  | { type: 'message';  item: SelfChatMessage }
+  | { type: 'list';     item: List }
+  | { type: 'reminder'; item: Reminder };
 
 function SearchResults() {
   const searchParams = useSearchParams();
@@ -29,11 +30,12 @@ function SearchResults() {
     const q = query.toLowerCase();
 
     async function runSearch() {
-      const [notes, inbox, messages, lists] = await Promise.all([
+      const [notes, inbox, messages, lists, reminders] = await Promise.all([
         api.get<Note[]>('/api/notes'),
         api.get<InboxItem[]>('/api/inbox'),
         api.get<SelfChatMessage[]>('/api/self-chat'),
         api.get<List[]>('/api/lists'),
+        api.get<Reminder[]>('/api/reminders'),
       ]);
 
       const filteredNotes = notes.filter(n =>
@@ -58,12 +60,18 @@ function SearchResults() {
           l.tags.some(t => t.toLowerCase().includes(q))
         )
       );
+      const filteredReminders = reminders.filter(r =>
+        r.title.toLowerCase().includes(q) ||
+        (r.description ?? '').toLowerCase().includes(q) ||
+        r.tags.some(t => t.toLowerCase().includes(q))
+      );
 
       const all: Result[] = [
         ...filteredNotes.map(item => ({ type: 'note' as const, item })),
         ...filteredInbox.map(item => ({ type: 'inbox' as const, item })),
         ...filteredMessages.map(item => ({ type: 'message' as const, item })),
         ...filteredLists.map(item => ({ type: 'list' as const, item })),
+        ...filteredReminders.map(item => ({ type: 'reminder' as const, item })),
       ];
 
       type Dated = { created_at: string; updated_at?: string };
@@ -86,16 +94,17 @@ function SearchResults() {
   }
 
   const typeLabel: Record<Result['type'], string> = {
-    note: 'Note', inbox: 'Inbox', message: 'Chat', list: 'List',
+    note: 'Note', inbox: 'Inbox', message: 'Chat', list: 'List', reminder: 'Reminder',
   };
   const typeIcon: Record<Result['type'], React.ElementType> = {
-    note: BookOpen, inbox: Inbox, message: MessageSquare, list: Table2,
+    note: BookOpen, inbox: Inbox, message: MessageSquare, list: Table2, reminder: Bell,
   };
   const typeColor: Record<Result['type'], string> = {
     note: 'bg-violet-100 dark:bg-violet-950/60 text-violet-600',
     inbox: 'bg-blue-100 dark:bg-blue-950/60 text-blue-600',
     message: 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600',
     list: 'bg-indigo-100 dark:bg-indigo-950/60 text-indigo-600',
+    reminder: 'bg-amber-100 dark:bg-amber-950/60 text-amber-600',
   };
 
   function getHref(result: Result): string {
@@ -103,6 +112,7 @@ function SearchResults() {
     if (result.type === 'inbox') return `/app/inbox?detail=${result.item.id}`;
     if (result.type === 'message') return '/app/self-chat';
     if (result.type === 'list') return `/app/lists/${result.item.id}`;
+    if (result.type === 'reminder') return `/app/reminders?detail=${result.item.id}`;
     return '/app/dashboard';
   }
 
@@ -111,12 +121,14 @@ function SearchResults() {
     if (result.type === 'inbox') return result.item.title;
     if (result.type === 'message') return result.item.content;
     if (result.type === 'list') return result.item.title;
+    if (result.type === 'reminder') return result.item.title;
     return '';
   }
 
   function getSub(result: Result): string | null {
     if (result.type === 'note') return result.item.content;
     if (result.type === 'list') return result.item.description;
+    if (result.type === 'reminder') return result.item.description;
     return null;
   }
 
@@ -134,7 +146,7 @@ function SearchResults() {
     <div className="p-6 max-w-3xl mx-auto">
       <div className="mb-6">
         <h2 className="text-xl font-bold text-foreground">Search</h2>
-        <p className="text-sm text-muted-foreground mt-0.5">Search across notes, inbox, messages, and lists.</p>
+        <p className="text-sm text-muted-foreground mt-0.5">Search across notes, inbox, messages, lists, and reminders.</p>
       </div>
 
       <form onSubmit={handleSearch} className="relative mb-6">

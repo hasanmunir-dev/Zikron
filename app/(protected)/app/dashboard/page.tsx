@@ -20,8 +20,9 @@ import { noteKeys } from "@/hooks/queries/use-notes";
 import { inboxKeys } from "@/hooks/queries/use-inbox";
 import { selfChatKeys } from "@/hooks/queries/use-self-chat";
 import { listKeys } from "@/hooks/queries/use-lists";
+import { reminderKeys } from "@/hooks/queries/use-reminders";
 import { formatRelativeTime } from "@/utils/date";
-import type { Note, InboxItem, SelfChatMessage, List } from "@/types";
+import type { Note, InboxItem, SelfChatMessage, List, Reminder } from "@/types";
 
 const quickCapture = [
   {
@@ -80,6 +81,10 @@ export default function DashboardPage() {
   const { data: lists = [] } = useQuery({
     queryKey: listKeys.all(),
     queryFn: () => api.get<List[]>('/api/lists'),
+  });
+  const { data: reminders = [] } = useQuery({
+    queryKey: reminderKeys.all(),
+    queryFn: () => api.get<Reminder[]>('/api/reminders'),
   });
 
   const firstName = user?.user_metadata?.full_name?.split(" ")[0] ?? "there";
@@ -204,16 +209,57 @@ export default function DashboardPage() {
         </section>
       )}
 
-      {/* Reminders placeholder */}
-      <section className="bg-amber-50 dark:bg-amber-950/30 border border-amber-100 dark:border-amber-900/50 rounded-xl p-4 flex items-center gap-3">
-        <Bell size={20} className="text-amber-500 shrink-0" />
-        <div>
-          <p className="text-sm font-medium text-amber-800 dark:text-amber-400">Reminders coming soon</p>
-          <p className="text-xs text-amber-600 dark:text-amber-500 mt-0.5">
-            Set time-based reminders for your notes and inbox items.
-          </p>
-        </div>
-      </section>
+      {/* Reminders widget */}
+      {(() => {
+        const now = new Date();
+        const overdue = reminders.filter(r => r.status === 'pending' && r.due_at && new Date(r.due_at) < now);
+        const upcoming = reminders.filter(r => r.status === 'pending' && r.due_at && new Date(r.due_at) >= now).slice(0, 3);
+        const pending = reminders.filter(r => r.status === 'pending');
+        return (
+          <section>
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Reminders</h3>
+              <Link href="/app/reminders" className="text-xs text-blue-600 hover:underline flex items-center gap-1">
+                View all <ArrowRight size={12} />
+              </Link>
+            </div>
+            {pending.length === 0 ? (
+              <div className="flex items-center gap-3 bg-card border border-border rounded-xl p-4">
+                <Bell size={18} className="text-muted-foreground/40 shrink-0" />
+                <div>
+                  <p className="text-sm text-muted-foreground">No pending reminders.</p>
+                  <Link href="/app/reminders?create=true" className="text-xs text-blue-600 hover:underline">Create one</Link>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {overdue.length > 0 && (
+                  <Link href="/app/reminders?filter=overdue" className="flex items-center gap-3 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900/50 rounded-xl px-4 py-2.5 hover:shadow-sm transition-all">
+                    <Bell size={14} className="text-red-500 shrink-0" />
+                    <span className="text-sm text-red-600 dark:text-red-400 font-medium">{overdue.length} overdue reminder{overdue.length !== 1 ? 's' : ''}</span>
+                  </Link>
+                )}
+                {upcoming.map(r => (
+                  <Link
+                    key={r.id}
+                    href={`/app/reminders?detail=${r.id}`}
+                    className="flex items-center gap-3 bg-card border border-border rounded-lg px-4 py-3 hover:shadow-sm transition-all"
+                  >
+                    <Bell size={14} className="text-amber-500 shrink-0" />
+                    <span className="flex-1 text-sm text-foreground truncate">{r.title}</span>
+                    {r.due_at && <span className="text-xs text-muted-foreground shrink-0">{new Date(r.due_at).toLocaleDateString()}</span>}
+                  </Link>
+                ))}
+                {pending.length > upcoming.length + overdue.length && (
+                  <Link href="/app/reminders" className="block text-xs text-center text-muted-foreground hover:text-foreground py-1">
+                    +{pending.length - upcoming.length} more pending
+                  </Link>
+                )}
+              </div>
+            )}
+          </section>
+        );
+      })()}
 
       {/* Recent activity */}
       <section>

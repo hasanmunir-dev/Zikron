@@ -91,6 +91,27 @@ export interface Category {
   updated_at: string;
 }
 
+// ─── Reminder types ────────────────────────────────────────────────────────────
+
+export type ReminderStatus = 'pending' | 'completed' | 'cancelled';
+export type ReminderPriority = 'low' | 'medium' | 'high';
+export type ReminderLinkedType = 'none' | 'note' | 'inbox' | 'list' | 'self_chat';
+
+export interface Reminder {
+  id: string;
+  user_id: string;
+  title: string;
+  description: string | null;
+  due_at: string | null;
+  status: ReminderStatus;
+  priority: ReminderPriority;
+  linked_type: ReminderLinkedType;
+  linked_id: string | null;
+  tags: string[];
+  created_at: string;
+  updated_at: string;
+}
+
 // ─── Admin types (server-side joined shapes) ──────────────────────────────────
 
 export interface AdminOwner {
@@ -137,5 +158,9 @@ export interface AdminNote {
   is_archived: boolean;
   created_at: string;
   updated_at: string;
+  owner: AdminOwner | null;
+}
+
+export interface AdminReminder extends Reminder {
   owner: AdminOwner | null;
 }

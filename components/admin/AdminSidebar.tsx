@@ -90,7 +90,7 @@ const systemItems = [
     href: "/admin/reminders",
     icon: Bell,
     label: "Reminders",
-    placeholder: true,
+    placeholder: false,
   },
   {
     href: "/admin/collections",
