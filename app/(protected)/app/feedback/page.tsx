@@ -86,8 +86,8 @@ function CreateFeedbackDialog({ onClose }: { onClose: () => void }) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40">
-      <div className="bg-card border border-border rounded-2xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40" onClick={onClose}>
+      <div className="bg-card border border-border rounded-2xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between p-6 border-b border-border">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-xl bg-blue-600/10 flex items-center justify-center">
@@ -147,7 +147,7 @@ function CreateFeedbackDialog({ onClose }: { onClose: () => void }) {
               value={form.message}
               onChange={v => setForm(f => ({ ...f, message: v }))}
               placeholder="Describe in detail — steps to reproduce, what you expected, what happened…"
-              minHeight={140}
+              minHeight="140px"
             />
           </div>
 
@@ -219,8 +219,8 @@ function DetailDialog({ item, onClose }: { item: Feedback; onClose: () => void }
   const typeData = FEEDBACK_TYPES.find(t => t.value === item.type);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40">
-      <div className="bg-card border border-border rounded-2xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40" onClick={onClose}>
+      <div className="bg-card border border-border rounded-2xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
         <div className="flex items-start justify-between p-6 border-b border-border gap-4">
           <div className="flex items-start gap-3 min-w-0">
             {typeData && (
@@ -309,8 +309,22 @@ function FeedbackPageContent() {
   const [filterType, setFilterType] = useState<FeedbackType | 'all'>('all');
   const [filterStatus, setFilterStatus] = useState<FeedbackStatus | 'all'>('all');
 
-  const showCreate = searchParams.get('create') === 'true';
-  const detailId = searchParams.get('detail');
+  // URL params drive opening; local state drives closing (instant, no router wait)
+  const urlShowCreate = searchParams.get('create') === 'true';
+  const urlDetailId = searchParams.get('detail');
+  const [showCreate, setShowCreate] = useState(urlShowCreate);
+  const [detailId, setDetailId] = useState<string | null>(urlDetailId);
+  const [prevUrlShowCreate, setPrevUrlShowCreate] = useState(urlShowCreate);
+  const [prevUrlDetailId, setPrevUrlDetailId] = useState(urlDetailId);
+  if (prevUrlShowCreate !== urlShowCreate) {
+    setPrevUrlShowCreate(urlShowCreate);
+    setShowCreate(urlShowCreate);
+  }
+  if (prevUrlDetailId !== urlDetailId) {
+    setPrevUrlDetailId(urlDetailId);
+    setDetailId(urlDetailId);
+  }
+
   const detailItem = detailId ? items.find(f => f.id === detailId) : null;
 
   const filtered = items.filter(f => {
@@ -321,7 +335,9 @@ function FeedbackPageContent() {
   });
 
   function closeDialog() {
-    router.replace(BASE);
+    setShowCreate(false);
+    setDetailId(null);
+    router.replace(BASE, { scroll: false });
   }
 
   return (

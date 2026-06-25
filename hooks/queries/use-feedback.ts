@@ -96,7 +96,7 @@ export function useAdminFeedbackItem(id: string | undefined) {
 export function useAdminUpdateFeedback() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, ...body }: { id: string; status?: string; admin_response?: string; priority?: string }) =>
+    mutationFn: ({ id, ...body }: { id: string; status?: string; admin_response?: string | null; priority?: string }) =>
       api.patch<AdminFeedback>(`/api/admin/feedback/${id}`, body),
     onSuccess: () => {
       toast.success('Feedback updated');

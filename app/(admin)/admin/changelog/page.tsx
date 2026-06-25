@@ -153,7 +153,7 @@ function ChangelogEditorDialog({
               value={form.description}
               onChange={v => setForm(f => ({ ...f, description: v }))}
               placeholder="Optional summary (supports Markdown)…"
-              minHeight={100}
+              minHeight="100px"
             />
           </div>
 

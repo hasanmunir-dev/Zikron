@@ -62,8 +62,8 @@ function DetailPanel({ item, onClose }: { item: AdminFeedback; onClose: () => vo
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40">
-      <div className="bg-card border border-border rounded-2xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40" onClick={onClose}>
+      <div className="bg-card border border-border rounded-2xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
         {/* Header */}
         <div className="flex items-start justify-between p-6 border-b border-border gap-4">
           <div className="flex items-start gap-3 min-w-0">
@@ -174,7 +174,7 @@ function DetailPanel({ item, onClose }: { item: AdminFeedback; onClose: () => vo
         description="This will permanently remove this feedback entry."
         itemName={item.title}
         onConfirm={() => {
-          deleteFeedback.mutate(item.id, { onSuccess: () => { onClose(); router.replace(BASE); } });
+          deleteFeedback.mutate(item.id, { onSuccess: () => onClose() });
         }}
         isLoading={deleteFeedback.isPending}
       />
@@ -193,7 +193,14 @@ function AdminFeedbackContent() {
   const [filterType, setFilterType] = useState<FeedbackType | 'all'>('all');
   const [filterStatus, setFilterStatus] = useState<FeedbackStatus | 'all'>('all');
 
-  const detailId = searchParams.get('detail');
+  const urlDetailId = searchParams.get('detail');
+  const [detailId, setDetailId] = useState<string | null>(urlDetailId);
+  const [prevUrlDetailId, setPrevUrlDetailId] = useState(urlDetailId);
+  if (prevUrlDetailId !== urlDetailId) {
+    setPrevUrlDetailId(urlDetailId);
+    setDetailId(urlDetailId);
+  }
+
   const detailItem = detailId ? items.find(f => f.id === detailId) : null;
 
   const filtered = items.filter(f => {
@@ -333,7 +340,7 @@ function AdminFeedbackContent() {
         </div>
       )}
 
-      {detailItem && <DetailPanel item={detailItem} onClose={() => router.replace(BASE)} />}
+      {detailItem && <DetailPanel item={detailItem} onClose={() => { setDetailId(null); router.replace(BASE, { scroll: false }); }} />}
     </div>
   );
 }
