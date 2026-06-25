@@ -93,7 +93,7 @@ export function Footer() {
           </p>
           <div className="flex items-center gap-4">
             <a
-              href="https://github.com/hasanmunir406"
+              href="https://github.com/hasanmunir-dev"
               target="_blank"
               rel="noopener noreferrer"
               className="text-xs text-muted-foreground hover:text-foreground transition-colors"
@@ -101,7 +101,7 @@ export function Footer() {
               GitHub
             </a>
             <a
-              href="https://linkedin.com/in/hasanmunir406"
+              href="https://linkedin.com/in/hasanmunir-dev"
               target="_blank"
               rel="noopener noreferrer"
               className="text-xs text-muted-foreground hover:text-foreground transition-colors"
