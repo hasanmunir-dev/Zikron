@@ -2,8 +2,10 @@
 
 import { useState, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import { useQueryClient } from '@tanstack/react-query';
 import { Plus, Trash2, ChevronLeft, ChevronRight, Table2, Tag, X, Loader2 } from 'lucide-react';
 import { listsService } from '@/lib/services/lists';
+import { listKeys } from '@/hooks/queries/use-lists';
 import { useAuth } from '@/hooks/useAuth';
 import { MarkdownEditor } from '@/components/editor/markdown-editor';
 import { DeleteConfirmDialog } from '@/components/shared/delete-confirm-dialog';
@@ -46,6 +48,7 @@ function generateTempId() {
 
 export function ListEditor({ mode, initialData, backHref = '/app/lists' }: Props) {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const { user } = useAuth();
 
   const [title, setTitle] = useState(initialData?.title ?? '');
@@ -178,6 +181,7 @@ export function ListEditor({ mode, initialData, backHref = '/app/lists' }: Props
           await listsService.addRow(list.id, cellValues);
         }
 
+        await queryClient.invalidateQueries({ queryKey: listKeys.all() });
         router.push(`/app/lists/${list.id}`);
       } else if (initialData) {
         await listsService.update(initialData.id, {
@@ -185,6 +189,8 @@ export function ListEditor({ mode, initialData, backHref = '/app/lists' }: Props
           description: description.trim() || null,
           tags,
         });
+        await queryClient.invalidateQueries({ queryKey: listKeys.all() });
+        await queryClient.invalidateQueries({ queryKey: listKeys.detail(initialData.id) });
         router.push(`/app/lists/${initialData.id}`);
       }
     } catch (e) {

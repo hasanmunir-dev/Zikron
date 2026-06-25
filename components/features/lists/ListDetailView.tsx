@@ -1,14 +1,13 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ChevronLeft, Star, Archive, Pencil, Trash2, Table2, Loader2 } from 'lucide-react';
-import { listsService } from '@/lib/services/lists';
+import { useList, useUpdateList, useDeleteList } from '@/hooks/queries/use-lists';
 import { MarkdownViewer } from '@/components/editor/markdown-viewer';
 import { DeleteConfirmDialog } from '@/components/shared/delete-confirm-dialog';
 import { formatRelativeTime } from '@/utils/date';
-import type { FullList } from '@/types';
 
 interface Props {
   id: string;
@@ -16,38 +15,13 @@ interface Props {
 
 export function ListDetailView({ id }: Props) {
   const router = useRouter();
-  const [list, setList] = useState<FullList | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [deleting, setDeleting] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
 
-  useEffect(() => {
-    listsService.get(id).then(data => {
-      setList(data);
-      setLoading(false);
-    });
-  }, [id]);
+  const { data: list, isLoading } = useList(id);
+  const updateList = useUpdateList();
+  const deleteList = useDeleteList();
 
-  async function handleToggleFavorite() {
-    if (!list) return;
-    const updated = await listsService.update(list.id, { is_favorite: !list.is_favorite });
-    setList(prev => prev ? { ...prev, is_favorite: updated.is_favorite } : null);
-  }
-
-  async function handleToggleArchive() {
-    if (!list) return;
-    const updated = await listsService.update(list.id, { is_archived: !list.is_archived });
-    setList(prev => prev ? { ...prev, is_archived: updated.is_archived } : null);
-  }
-
-  async function handleDeleteConfirm() {
-    if (!list) return;
-    setDeleting(true);
-    await listsService.delete(list.id);
-    router.push('/app/lists');
-  }
-
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="p-6 max-w-6xl mx-auto">
         <div className="flex items-center gap-3 mb-6 animate-pulse">
@@ -112,7 +86,7 @@ export function ListDetailView({ id }: Props) {
         <div className="flex items-center gap-1.5 shrink-0">
           <button
             type="button"
-            onClick={handleToggleFavorite}
+            onClick={() => updateList.mutate({ id: list.id, data: { is_favorite: !list.is_favorite } })}
             className={`p-2 rounded-lg transition-colors ${list.is_favorite ? 'bg-amber-50 dark:bg-amber-950/40 text-amber-500' : 'hover:bg-muted text-muted-foreground'}`}
             title={list.is_favorite ? 'Remove from favorites' : 'Add to favorites'}
           >
@@ -120,7 +94,7 @@ export function ListDetailView({ id }: Props) {
           </button>
           <button
             type="button"
-            onClick={handleToggleArchive}
+            onClick={() => updateList.mutate({ id: list.id, data: { is_archived: !list.is_archived } })}
             className={`p-2 rounded-lg transition-colors ${list.is_archived ? 'bg-muted text-foreground' : 'hover:bg-muted text-muted-foreground'}`}
             title={list.is_archived ? 'Unarchive' : 'Archive'}
           >
@@ -135,10 +109,10 @@ export function ListDetailView({ id }: Props) {
           <button
             type="button"
             onClick={() => setConfirmDelete(true)}
-            disabled={deleting}
+            disabled={deleteList.isPending}
             className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40 rounded-lg transition-colors disabled:opacity-50"
           >
-            {deleting ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
+            {deleteList.isPending ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
             Delete
           </button>
         </div>
@@ -216,14 +190,19 @@ export function ListDetailView({ id }: Props) {
           </div>
         </div>
       )}
+
       <DeleteConfirmDialog
         open={confirmDelete}
         onOpenChange={setConfirmDelete}
         title="Delete List?"
         description="This action cannot be undone."
         itemName={list.title}
-        onConfirm={handleDeleteConfirm}
-        isLoading={deleting}
+        onConfirm={() => {
+          deleteList.mutate(list.id, {
+            onSuccess: () => router.push('/app/lists'),
+          });
+        }}
+        isLoading={deleteList.isPending}
       />
     </div>
   );

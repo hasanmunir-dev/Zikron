@@ -1,11 +1,10 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Plus, Table2, Search, X } from "lucide-react";
-import { listsService } from "@/lib/services/lists";
-import { onDataRefresh } from "@/lib/sync/events";
+import { useLists, useUpdateList, useDeleteList } from "@/hooks/queries/use-lists";
 import { formatRelativeTime } from "@/utils/date";
 import { ItemActions } from "@/components/shared/item-actions";
 import type { List } from "@/types";
@@ -13,34 +12,12 @@ import type { List } from "@/types";
 type Tab = "all" | "favorites" | "archived";
 
 export function ListsPage() {
-  const [lists, setLists] = useState<List[]>([]);
   const [tab, setTab] = useState<Tab>("all");
   const [search, setSearch] = useState("");
 
-  const load = useCallback(async () => {
-    const data = await listsService.list(tab);
-    setLists(data);
-  }, [tab]);
-
-  useEffect(() => {
-    load();
-  }, [load]);
-  useEffect(() => onDataRefresh("lists", load), [load]);
-
-  async function handleToggleFavorite(list: List) {
-    await listsService.update(list.id, { is_favorite: !list.is_favorite });
-    load();
-  }
-
-  async function handleArchive(list: List) {
-    await listsService.update(list.id, { is_archived: !list.is_archived });
-    load();
-  }
-
-  async function handleDelete(list: List) {
-    await listsService.delete(list.id);
-    load();
-  }
+  const { data: lists = [], isFetching } = useLists(tab);
+  const updateList = useUpdateList();
+  const deleteList = useDeleteList();
 
   const filtered = search
     ? lists.filter(
@@ -91,6 +68,11 @@ export function ListsPage() {
             {label}
           </button>
         ))}
+        {isFetching && (
+          <span className="ml-2 text-xs text-muted-foreground self-center animate-pulse">
+            Refreshing…
+          </span>
+        )}
       </div>
 
       <div className="relative mb-5">
@@ -143,9 +125,13 @@ export function ListsPage() {
             <ListCard
               key={list.id}
               list={list}
-              onToggleFavorite={() => handleToggleFavorite(list)}
-              onArchive={() => handleArchive(list)}
-              onDelete={() => handleDelete(list)}
+              onToggleFavorite={() =>
+                updateList.mutate({ id: list.id, data: { is_favorite: !list.is_favorite } })
+              }
+              onArchive={() =>
+                updateList.mutate({ id: list.id, data: { is_archived: !list.is_archived } })
+              }
+              onDelete={() => deleteList.mutate(list.id)}
             />
           ))}
         </div>
@@ -172,12 +158,6 @@ function ListCard({
       href={`/app/lists/${list.id}`}
       className="group relative bg-card border border-border rounded-xl p-4 hover:shadow-sm transition-all flex flex-col min-h-32"
     >
-      {/* <Link
-        href={`/app/lists/${list.id}`}
-        className="absolute inset-0 rounded-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
-        aria-label={`Open list: ${list.title}`}
-      /> */}
-
       <div className="relative z-10 flex items-start justify-between gap-2 mb-2">
         <div className="flex items-center gap-2 flex-1 min-w-0">
           <div className="w-7 h-7 rounded-lg bg-indigo-100 dark:bg-indigo-950/60 flex items-center justify-center shrink-0">
