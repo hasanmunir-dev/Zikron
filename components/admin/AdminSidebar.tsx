@@ -107,6 +107,12 @@ const systemItems = [
     placeholder: false,
   },
   {
+    href: "/admin/contacts",
+    icon: Contact,
+    label: "Contacts",
+    placeholder: false,
+  },
+  {
     href: "/admin/collections",
     icon: FolderOpen,
     label: "Collections",
@@ -116,12 +122,6 @@ const systemItems = [
     href: "/admin/shared",
     icon: LinkIcon,
     label: "Shared Links",
-    placeholder: true,
-  },
-  {
-    href: "/admin/contacts",
-    icon: Contact,
-    label: "Contacts",
     placeholder: true,
   },
 ];

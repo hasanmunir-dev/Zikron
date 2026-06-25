@@ -191,6 +191,18 @@ export interface AdminFeedback extends Feedback {
   owner: AdminOwner | null;
 }
 
+// ─── Contact message types ─────────────────────────────────────────────────────
+
+export interface ContactMessage {
+  id: string;
+  name: string;
+  email: string;
+  subject: string | null;
+  message: string;
+  read: boolean;
+  created_at: string;
+}
+
 // ─── Changelog types ───────────────────────────────────────────────────────────
 
 export type ChangelogType = 'feature' | 'improvement' | 'fix' | 'security' | 'announcement';

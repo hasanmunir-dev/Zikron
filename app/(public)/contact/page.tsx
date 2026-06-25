@@ -2,10 +2,11 @@
 
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Mail, Globe, Send, CheckCircle } from "lucide-react";
+import { Mail, Globe, Send, CheckCircle, Loader2 } from "lucide-react";
 import { FaGithub, FaLinkedin } from "react-icons/fa";
 import { Navbar } from "@/components/landing/navbar";
 import { Footer } from "@/components/landing/footer";
+import { useSubmitContact } from "@/hooks/queries/use-contact";
 
 const fadeUp = {
   hidden: { opacity: 0, y: 24 },
@@ -60,15 +61,12 @@ export default function ContactPage() {
     subject: "",
     message: "",
   });
+  const submit = useSubmitContact();
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     const { name, email, subject, message } = form;
-    const body = encodeURIComponent(
-      `Name: ${name}\nEmail: ${email}\n\n${message}`,
-    );
-    const mailtoUrl = `mailto:hasanmunir406@gmail.com?subject=${encodeURIComponent(subject || "Zikron Contact")}&body=${body}`;
-    window.location.href = mailtoUrl;
+    await submit.mutateAsync({ name, email, subject: subject || undefined, message });
     setSent(true);
   }
 
@@ -129,10 +127,10 @@ export default function ContactPage() {
               >
                 <CheckCircle size={40} className="text-green-500" />
                 <p className="font-semibold text-foreground">
-                  Your email client is opening.
+                  Message sent!
                 </p>
                 <p className="text-sm text-muted-foreground">
-                  Send the email from there to complete your message.
+                  Thanks for reaching out. I&apos;ll get back to you soon.
                 </p>
                 <button
                   onClick={() => {
@@ -229,10 +227,11 @@ export default function ContactPage() {
                 </div>
                 <button
                   type="submit"
-                  className="inline-flex items-center justify-center gap-2 px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-medium transition-colors shadow-sm"
+                  disabled={submit.isPending}
+                  className="inline-flex items-center justify-center gap-2 px-6 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white rounded-xl text-sm font-medium transition-colors shadow-sm"
                 >
-                  <Send size={14} />
-                  Send Message
+                  {submit.isPending ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
+                  {submit.isPending ? "Sending..." : "Send Message"}
                 </button>
               </motion.form>
             )}
