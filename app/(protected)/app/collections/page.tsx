@@ -7,7 +7,6 @@ import {
   FolderOpen, Plus, Search, X, Star, Archive, Pencil, Trash2,
   BookOpen, Inbox, Table2, MessageSquare, Bell, Hash,
 } from 'lucide-react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { DeleteConfirmDialog } from '@/components/shared/delete-confirm-dialog';
 import { MarkdownEditor } from '@/components/editor/markdown-editor';
 import { MarkdownViewer } from '@/components/editor/markdown-viewer';
@@ -264,6 +263,27 @@ function CollectionCard({ col, onDelete }: { col: Collection; onDelete: () => vo
   );
 }
 
+// ─── Modal (same instant pattern as reminders) ────────────────────────────────
+
+function Modal({ title, onClose, children, wide }: { title: string; onClose: () => void; children: React.ReactNode; wide?: boolean }) {
+  return (
+    <div className="fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4" onClick={onClose}>
+      <div
+        className={`bg-card flex flex-col shadow-xl border border-border w-full sm:rounded-2xl sm:w-[95vw] ${wide ? 'sm:max-w-2xl' : 'sm:max-w-xl'} max-h-[90vh]`}
+        onClick={e => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between px-5 py-3.5 border-b border-border shrink-0">
+          <h2 className="text-base font-semibold text-foreground">{title}</h2>
+          <button type="button" onClick={onClose} aria-label="Close" className="p-1.5 text-muted-foreground hover:text-foreground transition-colors">
+            <X size={18} />
+          </button>
+        </div>
+        <div className="flex-1 overflow-y-auto p-5">{children}</div>
+      </div>
+    </div>
+  );
+}
+
 // ─── Detail view ───────────────────────────────────────────────────────────────
 
 type ItemsByType = Partial<Record<CollectionItemType, CollectionItem[]>>;
@@ -278,15 +298,13 @@ function CollectionDetailDialog({ id }: { id: string }) {
 
   if (isLoading || !col) {
     return (
-      <Dialog open onOpenChange={close}>
-        <DialogContent className="max-w-2xl w-[95vw]">
-          <div className="space-y-3 py-4">
-            <Skeleton className="h-8 w-48" />
-            <Skeleton className="h-4 w-full" />
-            <Skeleton className="h-32 w-full" />
-          </div>
-        </DialogContent>
-      </Dialog>
+      <Modal title="Collection" onClose={close} wide>
+        <div className="space-y-3">
+          <Skeleton className="h-8 w-48" />
+          <Skeleton className="h-4 w-full" />
+          <Skeleton className="h-32 w-full" />
+        </div>
+      </Modal>
     );
   }
 
@@ -299,45 +317,44 @@ function CollectionDetailDialog({ id }: { id: string }) {
   const types: CollectionItemType[] = ['note', 'inbox', 'list', 'self_chat', 'reminder'];
 
   return (
-    <Dialog open onOpenChange={close}>
-      <DialogContent className="max-w-2xl w-[95vw] max-h-[85vh] overflow-y-auto">
-        <DialogHeader>
-          <div className="flex items-center gap-3">
-            <div className={`h-10 w-10 rounded-xl flex items-center justify-center text-xl ${colorClass(col.color)} text-white shrink-0`}>
-              {col.icon ?? '📁'}
-            </div>
-            <div className="min-w-0">
-              <DialogTitle className="text-lg font-bold">{col.title}</DialogTitle>
-              <p className="text-xs text-muted-foreground">{col.items.length} item{col.items.length !== 1 ? 's' : ''}</p>
-            </div>
-            <div className="ml-auto flex items-center gap-1">
-              <button
-                type="button"
-                onClick={() => update.mutate({ id: col.id, is_favorite: !col.is_favorite })}
-                className="p-1.5 rounded-lg text-muted-foreground hover:text-amber-400 hover:bg-muted transition-colors"
-                title={col.is_favorite ? 'Unfavorite' : 'Favorite'}
-              >
-                <Star size={14} className={col.is_favorite ? 'text-amber-400 fill-amber-400' : ''} />
-              </button>
-              <Link
-                href={`${BASE}?edit=${col.id}`}
-                className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-                title="Edit"
-              >
-                <Pencil size={14} />
-              </Link>
-            </div>
+    <Modal title={col.title} onClose={close} wide>
+      <div className="space-y-4">
+        {/* Header */}
+        <div className="flex items-center gap-3">
+          <div className={`h-10 w-10 rounded-xl flex items-center justify-center text-xl ${colorClass(col.color)} text-white shrink-0`}>
+            {col.icon ?? '📁'}
           </div>
-        </DialogHeader>
+          <div className="min-w-0 flex-1">
+            <p className="font-bold text-foreground text-base">{col.title}</p>
+            <p className="text-xs text-muted-foreground">{col.items.length} item{col.items.length !== 1 ? 's' : ''}</p>
+          </div>
+          <div className="flex items-center gap-1 shrink-0">
+            <button
+              type="button"
+              onClick={() => update.mutate({ id: col.id, is_favorite: !col.is_favorite })}
+              className="p-1.5 rounded-lg text-muted-foreground hover:text-amber-400 hover:bg-muted transition-colors"
+              title={col.is_favorite ? 'Unfavorite' : 'Favorite'}
+            >
+              <Star size={14} className={col.is_favorite ? 'text-amber-400 fill-amber-400' : ''} />
+            </button>
+            <Link
+              href={`${BASE}?edit=${col.id}`}
+              className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+              title="Edit"
+            >
+              <Pencil size={14} />
+            </Link>
+          </div>
+        </div>
 
         {col.description && (
-          <div className="bg-muted/40 rounded-xl p-4 mt-2">
+          <div className="bg-muted/40 rounded-xl p-4">
             <MarkdownViewer content={col.description} />
           </div>
         )}
 
         {/* Stats */}
-        <div className="flex flex-wrap gap-2 mt-3">
+        <div className="flex flex-wrap gap-2">
           {types.map(type => {
             const count = (byType[type] ?? []).length;
             if (count === 0) return null;
@@ -358,7 +375,7 @@ function CollectionDetailDialog({ id }: { id: string }) {
           const items = byType[type] ?? [];
           if (items.length === 0) return null;
           return (
-            <div key={type} className="mt-4">
+            <div key={type}>
               <div className="flex items-center gap-2 mb-2">
                 {itemTypeIcon(type)}
                 <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
@@ -398,8 +415,8 @@ function CollectionDetailDialog({ id }: { id: string }) {
             </div>
           );
         })}
-      </DialogContent>
-    </Dialog>
+      </div>
+    </Modal>
   );
 }
 
@@ -417,14 +434,9 @@ function CollectionCreateDialog() {
   }
 
   return (
-    <Dialog open onOpenChange={close}>
-      <DialogContent className="max-w-xl w-[95vw]">
-        <DialogHeader>
-          <DialogTitle>New Collection</DialogTitle>
-        </DialogHeader>
-        <CollectionForm onSave={handleSave} onCancel={close} saving={create.isPending} />
-      </DialogContent>
-    </Dialog>
+    <Modal title="New Collection" onClose={close}>
+      <CollectionForm onSave={handleSave} onCancel={close} saving={create.isPending} />
+    </Modal>
   );
 }
 
@@ -442,19 +454,14 @@ function CollectionEditDialog({ id }: { id: string }) {
   }
 
   return (
-    <Dialog open onOpenChange={close}>
-      <DialogContent className="max-w-xl w-[95vw]">
-        <DialogHeader>
-          <DialogTitle>Edit Collection</DialogTitle>
-        </DialogHeader>
-        <CollectionForm
-          initial={{ title: col.title, description: col.description ?? '', color: col.color ?? 'violet', icon: col.icon ?? '📁' }}
-          onSave={handleSave}
-          onCancel={close}
-          saving={update.isPending}
-        />
-      </DialogContent>
-    </Dialog>
+    <Modal title="Edit Collection" onClose={close}>
+      <CollectionForm
+        initial={{ title: col.title, description: col.description ?? '', color: col.color ?? 'violet', icon: col.icon ?? '📁' }}
+        onSave={handleSave}
+        onCancel={close}
+        saving={update.isPending}
+      />
+    </Modal>
   );
 }
 
