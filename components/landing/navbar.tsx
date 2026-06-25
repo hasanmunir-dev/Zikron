@@ -37,13 +37,8 @@ export function Navbar() {
         }`}
       >
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-          {/* <Link href="/" className="flex items-center gap-2.5 group"> */}
-          <Link href="/" className="">
-
-            {/* <div className=" shrink-0 overflow-hidden"> */}
-              <img src="/logo2.svg" alt="Zikron"  className="h-16 w-20 object-contain" />
-            {/* </div> */}
-            {/* <span className="text-[17px] font-bold text-foreground tracking-tight">Zikron</span> */}
+          <Link href="/" className="flex items-center shrink-0">
+            <Image src="/logo2.svg" alt="Zikron" width={80} height={36} className="h-9 w-auto object-contain" priority />
           </Link>
 
           <div className="hidden md:flex items-center gap-7">

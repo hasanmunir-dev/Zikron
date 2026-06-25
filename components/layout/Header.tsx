@@ -33,9 +33,9 @@ export function Header({ onMenuClick, title }: HeaderProps) {
         <Menu size={20} />
       </button>
 
-      <div className="h-7 w-7 shrink-0 overflow-hidden rounded-lg bg-white lg:hidden">
+      {/* <div className="h-7 w-7 shrink-0 overflow-hidden rounded-lg bg-white lg:hidden">
         <Image src="/logo.png" alt="Zikron" width={28} height={28} className="h-full w-full object-contain" priority />
-      </div>
+      </div> */}
 
       <h1 className="font-semibold text-foreground text-sm hidden sm:block">{title}</h1>
 
