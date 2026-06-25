@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Menu, Search, X } from 'lucide-react';
+import Image from 'next/image';
 import { ThemeToggle } from '@/components/ThemeToggle';
 
 interface HeaderProps {
@@ -31,6 +32,10 @@ export function Header({ onMenuClick, title }: HeaderProps) {
       >
         <Menu size={20} />
       </button>
+
+      <div className="h-7 w-7 shrink-0 overflow-hidden rounded-lg bg-white lg:hidden">
+        <Image src="/logo.png" alt="Zikron" width={28} height={28} className="h-full w-full object-contain" priority />
+      </div>
 
       <h1 className="font-semibold text-foreground text-sm hidden sm:block">{title}</h1>
 

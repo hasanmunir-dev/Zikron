@@ -20,6 +20,7 @@ import {
   ChevronsRight,
   MessageSquarePlus,
 } from "lucide-react";
+import Image from "next/image";
 import { useAuth } from "@/hooks/useAuth";
 
 const navItems = [
@@ -116,17 +117,24 @@ export function Sidebar({ open, onClose }: SidebarProps) {
         `}
       >
         {/* Logo */}
-        <div className="flex h-16 items-center justify-between border-b border-border px-4">
+        <div className="flex h-14 items-center justify-between border-b border-border px-4">
           <Link
             href="/app/dashboard"
             onClick={onClose}
             className="flex min-w-0 items-center gap-3 overflow-hidden"
           >
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-blue-600 text-sm font-bold text-white">
-              Z
+            <div className="h-7 w-9 shrink-0 overflow-hidden">
+              <Image
+                src="/icon.svg"
+                alt="Zikron"
+                width={36}
+                height={36}
+                className="h-full w-full object-contain"
+                priority
+              />
             </div>
 
-            <span className={`text-lg font-bold text-blue-600 ${labelClass}`}>
+            <span className={`text-lg font-bold dark:text-primary text-[#4076f5] ${labelClass}`}>
               Zikron
             </span>
           </Link>

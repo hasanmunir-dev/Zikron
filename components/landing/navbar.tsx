@@ -3,7 +3,8 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Layers, Menu, X } from 'lucide-react';
+import { Menu, X } from 'lucide-react';
+import Image from 'next/image';
 import { ThemeToggle } from '@/components/ThemeToggle';
 
 const navLinks = [
@@ -36,11 +37,13 @@ export function Navbar() {
         }`}
       >
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2.5 group">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center shadow-sm shrink-0">
-              <Layers size={15} className="text-white" />
-            </div>
-            <span className="text-[17px] font-bold text-foreground tracking-tight">Zikron</span>
+          {/* <Link href="/" className="flex items-center gap-2.5 group"> */}
+          <Link href="/" className="">
+
+            {/* <div className=" shrink-0 overflow-hidden"> */}
+              <img src="/logo2.svg" alt="Zikron"  className="h-16 w-20 object-contain" />
+            {/* </div> */}
+            {/* <span className="text-[17px] font-bold text-foreground tracking-tight">Zikron</span> */}
           </Link>
 
           <div className="hidden md:flex items-center gap-7">

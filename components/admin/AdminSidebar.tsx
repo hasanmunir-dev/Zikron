@@ -12,7 +12,6 @@ import {
   Settings,
   LogOut,
   X,
-  ShieldCheck,
   Bell,
   LinkIcon,
   FolderOpen,
@@ -24,6 +23,7 @@ import {
   MessageSquarePlus,
   GitCommit,
 } from "lucide-react";
+import Image from "next/image";
 import { useAuth } from "@/hooks/useAuth";
 
 const mySpaceItems = [
@@ -262,14 +262,21 @@ export function AdminSidebar({ open, onClose }: Props) {
           lg:static lg:z-auto lg:translate-x-0
         `}
       >
-        <div className="flex h-16 items-center justify-between border-b border-border px-4">
+        <div className="flex h-14 items-center justify-between border-b border-border px-4">
           <div className="flex min-w-0 items-center gap-3 overflow-hidden">
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
-              <ShieldCheck size={18} />
-            </div>
+            <div className="h-7 w-9 shrink-0 overflow-hidden">
+                          <Image
+                            src="/icon.svg"
+                            alt="Zikron"
+                            width={36}
+                            height={36}
+                            className="h-full w-full object-contain"
+                            priority
+                          />
+                        </div>
 
-            <span className={`text-lg font-bold text-foreground ${labelClass}`}>
-              Admin
+            <span className={`text-lg font-bold text-[#4076f5] dark:text-primary ${labelClass}`}>
+              Zikron
             </span>
           </div>
 

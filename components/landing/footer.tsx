@@ -27,12 +27,22 @@ export function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-10 mb-10">
           {/* Brand */}
           <div className="flex flex-col gap-3 md:col-span-1">
-            <div className="flex items-center gap-2.5">
+            {/* <div className="flex items-center gap-2.5">
               <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center">
                 <Layers size={13} className="text-white" />
               </div>
               <span className="text-sm font-bold text-foreground">Zikron</span>
-            </div>
+            </div> */}
+            <Link href="/" className="">
+                        {/* <div className=" shrink-0 overflow-hidden"> */}
+                        <img
+                          src="/logo2.svg"
+                          alt="Zikron"
+                          className="h-16 w-20 object-contain"
+                        />
+                        {/* </div> */}
+                        {/* <span className="text-[17px] font-bold text-foreground tracking-tight">Zikron</span> */}
+                      </Link>
             <p className="text-xs text-muted-foreground leading-relaxed max-w-[180px]">
               Personal knowledge and memory system.
             </p>

@@ -1,6 +1,7 @@
 'use client';
 
 import { Menu } from 'lucide-react';
+import Image from 'next/image';
 import { ThemeToggle } from '@/components/ThemeToggle';
 
 interface Props {
@@ -18,6 +19,10 @@ export function AdminHeader({ onMenuClick }: Props) {
       >
         <Menu size={20} />
       </button>
+
+      <div className="h-7 w-7 shrink-0 overflow-hidden rounded-lg bg-white lg:hidden">
+        <Image src="/logo.png" alt="Zikron" width={28} height={28} className="h-full w-full object-contain" priority />
+      </div>
 
       <span className="text-sm font-semibold text-muted-foreground hidden sm:block">Admin Panel</span>
 
