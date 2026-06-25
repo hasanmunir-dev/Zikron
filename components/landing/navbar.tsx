@@ -8,9 +8,9 @@ import { ThemeToggle } from '@/components/ThemeToggle';
 
 const navLinks = [
   { href: '#features', label: 'Features' },
-  { href: '#markdown', label: 'Markdown' },
-  { href: '#lists', label: 'Lists' },
-  { href: '#roadmap', label: 'Roadmap' },
+  { href: '/about', label: 'About' },
+  { href: '/roadmap', label: 'Roadmap' },
+  { href: '/contact', label: 'Contact' },
 ];
 
 export function Navbar() {
@@ -44,15 +44,25 @@ export function Navbar() {
           </Link>
 
           <div className="hidden md:flex items-center gap-7">
-            {navLinks.map(({ href, label }) => (
-              <a
-                key={href}
-                href={href}
-                className="text-sm text-muted-foreground hover:text-foreground transition-colors font-medium"
-              >
-                {label}
-              </a>
-            ))}
+            {navLinks.map(({ href, label }) =>
+              href.startsWith('#') ? (
+                <a
+                  key={href}
+                  href={href}
+                  className="text-sm text-muted-foreground hover:text-foreground transition-colors font-medium"
+                >
+                  {label}
+                </a>
+              ) : (
+                <Link
+                  key={href}
+                  href={href}
+                  className="text-sm text-muted-foreground hover:text-foreground transition-colors font-medium"
+                >
+                  {label}
+                </Link>
+              )
+            )}
           </div>
 
           <div className="hidden md:flex items-center gap-2">
@@ -96,16 +106,27 @@ export function Navbar() {
             className="fixed top-[65px] inset-x-0 z-40 bg-background/95 backdrop-blur-xl border-b border-border px-6 py-5 md:hidden"
           >
             <div className="flex flex-col gap-1">
-              {navLinks.map(({ href, label }) => (
-                <a
-                  key={href}
-                  href={href}
-                  onClick={() => setMobileOpen(false)}
-                  className="text-base text-foreground font-medium py-2"
-                >
-                  {label}
-                </a>
-              ))}
+              {navLinks.map(({ href, label }) =>
+                href.startsWith('#') ? (
+                  <a
+                    key={href}
+                    href={href}
+                    onClick={() => setMobileOpen(false)}
+                    className="text-base text-foreground font-medium py-2"
+                  >
+                    {label}
+                  </a>
+                ) : (
+                  <Link
+                    key={href}
+                    href={href}
+                    onClick={() => setMobileOpen(false)}
+                    className="text-base text-foreground font-medium py-2"
+                  >
+                    {label}
+                  </Link>
+                )
+              )}
               <div className="flex flex-col gap-2 pt-4 mt-2 border-t border-border">
                 <Link
                   href="/login"
