@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Users, BookOpen, Inbox, MessageSquare, UserCheck, UserX, Clock, Table2, ListChecks, Bell, AlertCircle } from 'lucide-react';
+import { Users, BookOpen, Inbox, MessageSquare, UserCheck, UserX, Clock, Table2, ListChecks, Bell, AlertCircle, MessageSquarePlus, GitCommit } from 'lucide-react';
 import { useAdminStats, useAdminUsers, useAdminLists } from '@/hooks/queries/use-admin';
 import { formatRelativeTime } from '@/utils/date';
 import type { AdminList } from '@/types';
@@ -20,10 +20,13 @@ export default function AdminDashboardPage() {
     { label: 'Total Notes',    value: stats?.totalNotes      ?? '—', icon: BookOpen,      color: 'text-violet-600 bg-violet-100 dark:bg-violet-950/60' },
     { label: 'Inbox Items',    value: stats?.totalInbox      ?? '—', icon: Inbox,         color: 'text-emerald-600 bg-emerald-100 dark:bg-emerald-950/60' },
     { label: 'Total Lists',    value: stats?.totalLists      ?? '—', icon: Table2,        color: 'text-indigo-600 bg-indigo-100 dark:bg-indigo-950/60' },
-    { label: 'Reminders',      value: stats?.totalReminders  ?? '—', icon: Bell,          color: 'text-amber-600 bg-amber-100 dark:bg-amber-950/60' },
-    { label: 'Overdue',        value: stats?.overdueReminders ?? '—', icon: AlertCircle,  color: 'text-red-500 bg-red-100 dark:bg-red-950/60' },
-    { label: 'Active Users',   value: stats?.activeUsers     ?? '—', icon: UserCheck,     color: 'text-green-600 bg-green-100 dark:bg-green-950/60' },
-    { label: 'Disabled',       value: stats?.disabledUsers   ?? '—', icon: UserX,         color: 'text-red-500 bg-red-100 dark:bg-red-950/60' },
+    { label: 'Reminders',      value: stats?.totalReminders  ?? '—', icon: Bell,               color: 'text-amber-600 bg-amber-100 dark:bg-amber-950/60' },
+    { label: 'Overdue',        value: stats?.overdueReminders ?? '—', icon: AlertCircle,       color: 'text-red-500 bg-red-100 dark:bg-red-950/60' },
+    { label: 'Feedback',       value: stats?.totalFeedback   ?? '—', icon: MessageSquarePlus,  color: 'text-purple-600 bg-purple-100 dark:bg-purple-950/60' },
+    { label: 'Open Feedback',  value: stats?.openFeedback    ?? '—', icon: MessageSquare,      color: 'text-blue-600 bg-blue-100 dark:bg-blue-950/60' },
+    { label: 'Changelogs',     value: stats?.publishedChangelogs ?? '—', icon: GitCommit,      color: 'text-emerald-600 bg-emerald-100 dark:bg-emerald-950/60' },
+    { label: 'Active Users',   value: stats?.activeUsers     ?? '—', icon: UserCheck,          color: 'text-green-600 bg-green-100 dark:bg-green-950/60' },
+    { label: 'Disabled',       value: stats?.disabledUsers   ?? '—', icon: UserX,              color: 'text-red-500 bg-red-100 dark:bg-red-950/60' },
   ];
 
   return (

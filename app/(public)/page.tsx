@@ -757,6 +757,67 @@ npm run dev
         </div>
       </section>
 
+      {/* ── Transparency & Feedback ── */}
+      <section className="py-20 border-t border-border">
+        <div className="max-w-4xl mx-auto px-6">
+          <motion.div
+            initial="hidden"
+            whileInView="show"
+            viewport={{ once: true, margin: '-60px' }}
+            variants={staggerContainer}
+            className="text-center mb-12"
+          >
+            <motion.h2 variants={{ hidden: { opacity: 0, y: 24 }, show: { opacity: 1, y: 0, transition: { duration: 0.5, ease: [0.25, 0.1, 0.25, 1] as const } } }} className="text-2xl md:text-3xl font-bold mb-3">
+              Built in public. Improving constantly.
+            </motion.h2>
+            <motion.p variants={{ hidden: { opacity: 0, y: 24 }, show: { opacity: 1, y: 0, transition: { duration: 0.5, ease: [0.25, 0.1, 0.25, 1] as const } } }} className="text-muted-foreground max-w-xl mx-auto">
+              Zikron is actively improving. Users can send feedback directly from the app and follow every update from the changelog.
+            </motion.p>
+          </motion.div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+            {/* Feedback card */}
+            <motion.div
+              {...fadeUp}
+              className="p-6 rounded-2xl border border-border bg-card flex flex-col gap-3"
+            >
+              <div className="w-10 h-10 rounded-xl bg-purple-600/10 flex items-center justify-center">
+                <MessageSquare size={18} className="text-purple-600" />
+              </div>
+              <h3 className="text-base font-bold text-foreground">Send Feedback</h3>
+              <p className="text-sm text-muted-foreground leading-relaxed flex-1">
+                Report bugs, suggest features, or share what you love. Every piece of feedback is read and considered.
+              </p>
+              <Link
+                href="/contact"
+                className="text-sm font-medium text-blue-600 hover:underline mt-auto"
+              >
+                Get in touch →
+              </Link>
+            </motion.div>
+
+            {/* Changelog card */}
+            <motion.div
+              {...fadeUp}
+              className="p-6 rounded-2xl border border-border bg-card flex flex-col gap-3"
+            >
+              <div className="w-10 h-10 rounded-xl bg-emerald-600/10 flex items-center justify-center">
+                <CheckCircle2 size={18} className="text-emerald-600" />
+              </div>
+              <h3 className="text-base font-bold text-foreground">Follow Updates</h3>
+              <p className="text-sm text-muted-foreground leading-relaxed flex-1">
+                Every new feature, improvement, and fix is documented. See exactly what changed and when.
+              </p>
+              <Link
+                href="/changelog"
+                className="text-sm font-medium text-blue-600 hover:underline mt-auto"
+              >
+                View changelog →
+              </Link>
+            </motion.div>
+          </div>
+        </div>
+      </section>
+
       {/* ── CTA ── */}
       <section className="bg-blue-600 py-20">
         <div className="max-w-2xl mx-auto px-6 text-center">

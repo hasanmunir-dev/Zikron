@@ -3,6 +3,7 @@
 import { useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Bell, Clock, Search, X, AlertCircle, CheckCircle2, XCircle, Circle, Trash2 } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useAdminReminders, useAdminDeleteReminder } from '@/hooks/queries/use-admin';
 import { DeleteConfirmDialog } from '@/components/shared/delete-confirm-dialog';
 import { MarkdownViewer } from '@/components/editor/markdown-viewer';
@@ -100,18 +101,18 @@ function AdminRemindersContent() {
             </button>
           )}
         </div>
-        <select
-          value={statusFilter}
-          onChange={e => setStatusFilter(e.target.value as StatusFilter)}
-          aria-label="Filter by status"
-          className="px-3 py-2 text-sm border border-border rounded-lg bg-muted text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500"
-        >
-          <option value="all">All statuses</option>
-          <option value="overdue">Overdue</option>
-          <option value="pending">Pending</option>
-          <option value="completed">Completed</option>
-          <option value="cancelled">Cancelled</option>
-        </select>
+        <Select value={statusFilter} onValueChange={v => setStatusFilter(v as StatusFilter)}>
+          <SelectTrigger className="min-w-36">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All statuses</SelectItem>
+            <SelectItem value="overdue">Overdue</SelectItem>
+            <SelectItem value="pending">Pending</SelectItem>
+            <SelectItem value="completed">Completed</SelectItem>
+            <SelectItem value="cancelled">Cancelled</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
       <div className="bg-card border border-border rounded-xl overflow-hidden">

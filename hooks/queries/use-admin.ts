@@ -14,6 +14,10 @@ interface AdminStats {
   overdueReminders: number;
   activeUsers: number;
   disabledUsers: number;
+  totalFeedback: number;
+  openFeedback: number;
+  resolvedFeedback: number;
+  publishedChangelogs: number;
 }
 
 interface AdminInboxItem {

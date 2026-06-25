@@ -18,6 +18,7 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   ChevronsRight,
+  MessageSquarePlus,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 
@@ -29,6 +30,7 @@ const navItems = [
   { href: "/app/self-chat", icon: MessageSquare, label: "Self Chat" },
   { href: "/app/reminders", icon: Bell, label: "Reminders" },
   { href: "/app/collections", icon: FolderOpen, label: "Collections" },
+  { href: "/app/feedback", icon: MessageSquarePlus, label: "Feedback" },
 ];
 
 type SidebarMode = "collapsed" | "expanded" | "auto";
@@ -41,7 +43,12 @@ interface SidebarProps {
 export function Sidebar({ open, onClose }: SidebarProps) {
   const pathname = usePathname();
   const { user, role, signOut } = useAuth();
-  const [sidebarMode, setSidebarMode] = useState<SidebarMode>("auto");
+  const [sidebarMode, setSidebarMode] = useState<SidebarMode>(() => {
+    if (typeof window !== "undefined") {
+      return (localStorage.getItem("sidebarMode") as SidebarMode) ?? "auto";
+    }
+    return "auto";
+  });
 
   const initials = user?.user_metadata?.full_name
     ? user.user_metadata.full_name
@@ -63,13 +70,16 @@ export function Sidebar({ open, onClose }: SidebarProps) {
         : "lg:w-[72px] lg:hover:w-60";
 
   const toggleSidebarMode = () => {
-    setSidebarMode((prev) =>
-      prev === "collapsed"
-        ? "expanded"
-        : prev === "expanded"
-          ? "auto"
-          : "collapsed",
-    );
+    setSidebarMode((prev) => {
+      const next =
+        prev === "collapsed"
+          ? "expanded"
+          : prev === "expanded"
+            ? "auto"
+            : "collapsed";
+      localStorage.setItem("sidebarMode", next);
+      return next;
+    });
   };
 
   const labelClass = `

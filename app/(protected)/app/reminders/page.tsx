@@ -5,9 +5,13 @@ import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
   Bell, Plus, Search, X, Clock, CheckCircle2, XCircle,
-  AlertCircle, ChevronDown, Trash2, Pencil, Circle,
+  AlertCircle, Trash2, Pencil, Circle,
   BookOpen, Inbox, Table2, MessageSquare, Link2, RotateCcw,
 } from 'lucide-react';
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from '@/components/ui/select';
+import { DateTimePicker } from '@/components/ui/date-time-picker';
 import {
   useReminders, useReminder, useCreateReminder,
   useUpdateReminder, useDeleteReminder, useUpdateReminderStatus,
@@ -218,19 +222,26 @@ function ReminderForm({ initial, onSubmit, onCancel, isLoading, submitLabel }: R
       <div className="grid grid-cols-2 gap-3">
         <div>
           <label className="block text-xs font-medium text-muted-foreground mb-1">Due date & time</label>
-          <input type="datetime-local" value={form.due_at} onChange={e => set('due_at', e.target.value)} className={inputCls(errors.due_at)} />
+          <DateTimePicker
+            value={form.due_at}
+            onChange={v => set('due_at', v)}
+            placeholder="Pick date & time"
+            error={!!errors.due_at}
+          />
           {errors.due_at && <p className="text-xs text-red-500 mt-1">{errors.due_at}</p>}
         </div>
         <div>
           <label className="block text-xs font-medium text-muted-foreground mb-1">Priority</label>
-          <div className="relative">
-            <select value={form.priority} onChange={e => set('priority', e.target.value as ReminderPriority)} className="w-full appearance-none px-3 py-2 text-sm border border-border rounded-lg bg-muted text-foreground focus:bg-background focus:outline-none focus:ring-2 focus:ring-blue-500 pr-8">
-              <option value="low">Low</option>
-              <option value="medium">Medium</option>
-              <option value="high">High</option>
-            </select>
-            <ChevronDown size={14} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
-          </div>
+          <Select value={form.priority} onValueChange={v => set('priority', v as ReminderPriority)}>
+            <SelectTrigger className="w-full h-9">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="low">Low</SelectItem>
+              <SelectItem value="medium">Medium</SelectItem>
+              <SelectItem value="high">High</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
       </div>
 
@@ -242,27 +253,30 @@ function ReminderForm({ initial, onSubmit, onCancel, isLoading, submitLabel }: R
       <div className="grid grid-cols-2 gap-3">
         <div>
           <label className="block text-xs font-medium text-muted-foreground mb-1">Link to</label>
-          <div className="relative">
-            <select value={form.linked_type} onChange={e => { set('linked_type', e.target.value as ReminderLinkedType); set('linked_id', ''); }} className="w-full appearance-none px-3 py-2 text-sm border border-border rounded-lg bg-muted text-foreground focus:bg-background focus:outline-none focus:ring-2 focus:ring-blue-500 pr-8">
-              <option value="none">None</option>
-              <option value="note">Note</option>
-              <option value="inbox">Inbox item</option>
-              <option value="list">List</option>
-              <option value="self_chat">Self Chat</option>
-            </select>
-            <ChevronDown size={14} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
-          </div>
+          <Select value={form.linked_type} onValueChange={v => { set('linked_type', v as ReminderLinkedType); set('linked_id', ''); }}>
+            <SelectTrigger className="w-full h-9">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="none">None</SelectItem>
+              <SelectItem value="note">Note</SelectItem>
+              <SelectItem value="inbox">Inbox item</SelectItem>
+              <SelectItem value="list">List</SelectItem>
+              <SelectItem value="self_chat">Self Chat</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
         {form.linked_type !== 'none' && form.linked_type !== 'self_chat' && (
           <div>
             <label className="block text-xs font-medium text-muted-foreground mb-1">Select item</label>
-            <div className="relative">
-              <select value={form.linked_id} onChange={e => set('linked_id', e.target.value)} className={`w-full appearance-none px-3 py-2 text-sm border rounded-lg bg-muted text-foreground focus:bg-background focus:outline-none focus:ring-2 focus:ring-blue-500 pr-8 ${errors.linked_id ? 'border-red-400' : 'border-border'}`}>
-                <option value="">Select…</option>
-                {linkedOptions.map(o => <option key={o.id} value={o.id}>{o.label}</option>)}
-              </select>
-              <ChevronDown size={14} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
-            </div>
+            <Select value={form.linked_id} onValueChange={v => set('linked_id', v ?? '')}>
+              <SelectTrigger className={`w-full h-9 ${errors.linked_id ? 'border-red-400' : ''}`}>
+                <SelectValue placeholder="Select…" />
+              </SelectTrigger>
+              <SelectContent>
+                {linkedOptions.map(o => <SelectItem key={o.id} value={o.id}>{o.label}</SelectItem>)}
+              </SelectContent>
+            </Select>
             {errors.linked_id && <p className="text-xs text-red-500 mt-1">{errors.linked_id}</p>}
           </div>
         )}

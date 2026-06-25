@@ -1,9 +1,12 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { Clock, CheckCircle2, Layers } from 'lucide-react';
+import { GitCommit, Clock, CheckCircle2, Zap, Wrench, Shield, Megaphone, Loader2 } from 'lucide-react';
+import Link from 'next/link';
 import { Navbar } from '@/components/landing/navbar';
 import { Footer } from '@/components/landing/footer';
+import { usePublishedChangelogs } from '@/hooks/queries/use-changelog';
+import type { ChangelogType, ChangelogChange } from '@/types';
 
 const fadeUp = {
   hidden: { opacity: 0, y: 24 },
@@ -15,62 +18,34 @@ const stagger = {
   visible: { transition: { staggerChildren: 0.08 } },
 };
 
-const releases = [
-  {
-    version: 'Version 1.2',
-    date: 'June 2025',
-    status: 'latest',
-    summary: 'Push notifications, reminders overhaul, and global search improvements.',
-    changes: [
-      { type: 'new', text: 'Browser push notifications for due reminders' },
-      { type: 'new', text: 'Reminder priority levels: low, medium, high' },
-      { type: 'new', text: 'Reminder linking to notes, inbox items, lists, or self-chat messages' },
-      { type: 'new', text: 'Admin reminders management page' },
-      { type: 'improved', text: 'Global search now includes reminders' },
-      { type: 'improved', text: 'Dashboard reminders widget shows overdue and upcoming items' },
-    ],
-  },
-  {
-    version: 'Version 1.1',
-    date: 'May 2025',
-    status: 'released',
-    summary: 'Lists module, Markdown editor, and admin panel.',
-    changes: [
-      { type: 'new', text: 'Lists module with custom columns, rows, and cells' },
-      { type: 'new', text: 'Markdown editor with live preview and format toolbar' },
-      { type: 'new', text: 'Syntax highlighting in code blocks' },
-      { type: 'new', text: 'Admin panel: users, notes, inbox, lists, self-chat management' },
-      { type: 'new', text: 'Role-based access control (user / admin)' },
-      { type: 'new', text: 'Google OAuth login' },
-      { type: 'improved', text: 'All content dialogs now URL-driven (shareable, back-button safe)' },
-      { type: 'improved', text: 'React Query caching layer — instant navigation, no full reloads' },
-    ],
-  },
-  {
-    version: 'Version 1.0',
-    date: 'April 2025',
-    status: 'released',
-    summary: 'Initial release — the core personal knowledge system.',
-    changes: [
-      { type: 'new', text: 'Notes: create, edit, delete, favorite, archive' },
-      { type: 'new', text: 'Inbox: capture text and links, tabs, search' },
-      { type: 'new', text: 'Self Chat: send messages to yourself, search, favorite, delete' },
-      { type: 'new', text: 'Global Search across notes, inbox, and self-chat' },
-      { type: 'new', text: 'Light / Dark / System theme toggle' },
-      { type: 'new', text: 'Email + password authentication' },
-      { type: 'new', text: 'User dashboard with stats and recent activity' },
-      { type: 'new', text: 'Responsive sidebar navigation' },
-    ],
-  },
-];
-
-const tagColors: Record<string, string> = {
-  new: 'bg-blue-600/10 text-blue-600 border-blue-600/20',
-  improved: 'bg-green-600/10 text-green-600 border-green-600/20',
-  fixed: 'bg-yellow-600/10 text-yellow-600 border-yellow-600/20',
+const TYPE_CONFIG: Record<ChangelogType, { label: string; badgeClass: string; Icon: React.ElementType }> = {
+  feature:      { label: 'New',          badgeClass: 'bg-blue-100 dark:bg-blue-950/40 text-blue-700 dark:text-blue-400',     Icon: Zap },
+  improvement:  { label: 'Improved',     badgeClass: 'bg-purple-100 dark:bg-purple-950/40 text-purple-700 dark:text-purple-400', Icon: CheckCircle2 },
+  fix:          { label: 'Fix',          badgeClass: 'bg-red-100 dark:bg-red-950/40 text-red-700 dark:text-red-400',         Icon: Wrench },
+  security:     { label: 'Security',     badgeClass: 'bg-amber-100 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400', Icon: Shield },
+  announcement: { label: 'Announcement', badgeClass: 'bg-emerald-100 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400', Icon: Megaphone },
 };
 
+function ChangeBadge({ change }: { change: ChangelogChange }) {
+  const cfg = TYPE_CONFIG[change.tag] ?? TYPE_CONFIG.feature;
+  return (
+    <div className="flex items-start gap-2.5">
+      <span className={`text-xs px-2 py-0.5 rounded font-medium shrink-0 mt-0.5 ${cfg.badgeClass}`}>
+        {cfg.label}
+      </span>
+      <span className="text-sm text-muted-foreground leading-relaxed">{change.text}</span>
+    </div>
+  );
+}
+
+function formatDate(iso: string | null): string {
+  if (!iso) return '';
+  return new Date(iso).toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+}
+
 export default function ChangelogPage() {
+  const { data: releases = [], isLoading } = usePublishedChangelogs();
+
   return (
     <div className="min-h-screen bg-background text-foreground">
       <Navbar />
@@ -88,13 +63,13 @@ export default function ChangelogPage() {
               variants={fadeUp}
               className="w-14 h-14 rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center shadow-lg"
             >
-              <Clock size={24} className="text-white" />
+              <GitCommit size={24} className="text-white" />
             </motion.div>
             <motion.h1 variants={fadeUp} className="text-4xl md:text-5xl font-bold tracking-tight">
               Changelog
             </motion.h1>
             <motion.p variants={fadeUp} className="text-muted-foreground max-w-xl leading-relaxed">
-              A history of updates and improvements to Zikron.
+              Every feature, improvement, and fix — documented. See exactly what changed and when.
             </motion.p>
           </motion.div>
         </div>
@@ -103,100 +78,106 @@ export default function ChangelogPage() {
       {/* Releases */}
       <section className="pb-24 px-6">
         <div className="max-w-3xl mx-auto">
-          <div className="relative">
-            <div className="absolute left-5 top-0 bottom-0 w-px bg-border hidden sm:block" />
-
-            <div className="flex flex-col gap-12">
-              {releases.map((release) => (
-                <motion.div
-                  key={release.version}
-                  initial="hidden"
-                  whileInView="visible"
-                  viewport={{ once: true, margin: '-80px' }}
-                  variants={stagger}
-                  className="sm:pl-16 relative"
-                >
-                  {/* Dot */}
-                  <div className="hidden sm:flex absolute left-0 top-1 w-10 h-10 rounded-full bg-card border border-border items-center justify-center shadow-sm">
-                    {release.status === 'latest' ? (
-                      <div className="w-3 h-3 rounded-full bg-blue-600" />
-                    ) : (
-                      <CheckCircle2 size={16} className="text-muted-foreground" />
-                    )}
-                  </div>
-
-                  <motion.div variants={fadeUp} className="flex items-center gap-3 mb-2">
-                    <h2 className="text-xl font-bold">{release.version}</h2>
-                    {release.status === 'latest' && (
-                      <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-blue-600/10 text-blue-600 border border-blue-600/20">
-                        Latest
-                      </span>
-                    )}
-                  </motion.div>
-
-                  <motion.p variants={fadeUp} className="text-xs text-muted-foreground mb-1">
-                    {release.date}
-                  </motion.p>
-                  <motion.p variants={fadeUp} className="text-sm text-muted-foreground mb-5">
-                    {release.summary}
-                  </motion.p>
-
-                  <motion.ul variants={stagger} className="flex flex-col gap-2.5">
-                    {release.changes.map((change) => (
-                      <motion.li
-                        key={change.text}
-                        variants={fadeUp}
-                        className="flex items-start gap-3"
-                      >
-                        <span
-                          className={`shrink-0 mt-0.5 px-2 py-0.5 text-[10px] font-bold uppercase rounded border ${tagColors[change.type]}`}
-                        >
-                          {change.type}
-                        </span>
-                        <span className="text-sm text-muted-foreground leading-relaxed">{change.text}</span>
-                      </motion.li>
-                    ))}
-                  </motion.ul>
-                </motion.div>
-              ))}
+          {isLoading ? (
+            <div className="flex items-center justify-center py-20">
+              <Loader2 size={24} className="animate-spin text-muted-foreground" />
             </div>
-          </div>
-        </div>
-      </section>
+          ) : releases.length === 0 ? (
+            <div className="text-center py-20">
+              <Clock size={28} className="text-muted-foreground/30 mx-auto mb-3" />
+              <p className="text-muted-foreground">No releases published yet. Check back soon.</p>
+            </div>
+          ) : (
+            <div className="relative">
+              {/* Timeline line */}
+              <div className="absolute left-5 top-2 bottom-2 w-px bg-border hidden sm:block" />
 
-      {/* CTA */}
-      <section className="py-20 px-6 border-t border-border">
-        <div className="max-w-2xl mx-auto text-center">
+              <div className="flex flex-col gap-10">
+                {releases.map((release, idx) => (
+                  <motion.div
+                    key={release.id}
+                    initial="hidden"
+                    whileInView="visible"
+                    viewport={{ once: true, margin: '-60px' }}
+                    variants={stagger}
+                    className="sm:pl-14 relative"
+                  >
+                    {/* Timeline dot */}
+                    <div className="absolute left-3.5 top-2 w-3 h-3 rounded-full bg-blue-600 border-2 border-background hidden sm:block" />
+
+                    {/* Card */}
+                    <div className="bg-card border border-border rounded-2xl p-6">
+                      <motion.div variants={fadeUp} className="flex items-start justify-between gap-4 mb-4">
+                        <div>
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="text-lg font-bold font-mono text-foreground">{release.version}</span>
+                            {idx === 0 && (
+                              <span className="text-xs px-2 py-0.5 rounded-full bg-blue-600 text-white font-medium">Latest</span>
+                            )}
+                            <span className={`text-xs px-1.5 py-0.5 rounded font-medium capitalize ${TYPE_CONFIG[release.type]?.badgeClass}`}>
+                              {release.type}
+                            </span>
+                          </div>
+                          <h2 className="text-base font-semibold text-foreground mt-1">{release.title}</h2>
+                        </div>
+                        {release.deployed_at && (
+                          <span className="text-xs text-muted-foreground whitespace-nowrap shrink-0 flex items-center gap-1">
+                            <Clock size={11} /> {formatDate(release.deployed_at)}
+                          </span>
+                        )}
+                      </motion.div>
+
+                      {release.description && (
+                        <motion.p variants={fadeUp} className="text-sm text-muted-foreground leading-relaxed mb-4">
+                          {release.description}
+                        </motion.p>
+                      )}
+
+                      {release.changes.length > 0 && (
+                        <motion.div variants={fadeUp} className="flex flex-col gap-2 pt-4 border-t border-border">
+                          {release.changes.map((change, i) => (
+                            <ChangeBadge key={i} change={change} />
+                          ))}
+                        </motion.div>
+                      )}
+
+                      {release.commit_sha && (
+                        <motion.p variants={fadeUp} className="text-xs text-muted-foreground/50 mt-4 font-mono">
+                          {release.commit_sha.slice(0, 7)}
+                        </motion.p>
+                      )}
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* CTA */}
           <motion.div
             initial="hidden"
             whileInView="visible"
-            viewport={{ once: true }}
-            variants={stagger}
-            className="flex flex-col items-center gap-6"
+            viewport={{ once: true, margin: '-60px' }}
+            variants={fadeUp}
+            className="mt-16 p-6 rounded-2xl border border-border bg-card text-center"
           >
-            <motion.div variants={fadeUp} className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center shadow-md">
-              <Layers size={20} className="text-white" />
-            </motion.div>
-            <motion.h2 variants={fadeUp} className="text-2xl md:text-3xl font-bold">
-              Start using Zikron today
-            </motion.h2>
-            <motion.p variants={fadeUp} className="text-muted-foreground">
-              Free to use. No credit card required.
-            </motion.p>
-            <motion.div variants={fadeUp} className="flex flex-col sm:flex-row gap-3">
-              <a
-                href="/signup"
-                className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-medium transition-colors shadow-sm"
+            <p className="text-sm text-muted-foreground mb-4">
+              Have a suggestion or found a bug? Let us know.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-3 justify-center">
+              <Link
+                href="/contact"
+                className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-medium transition-colors"
               >
-                Get started free
-              </a>
-              <a
-                href="/about"
-                className="px-6 py-2.5 border border-border hover:bg-muted text-foreground rounded-xl text-sm font-medium transition-colors"
+                Send Feedback
+              </Link>
+              <Link
+                href="/roadmap"
+                className="px-5 py-2.5 border border-border hover:bg-muted text-foreground rounded-xl text-sm font-medium transition-colors"
               >
-                About Zikron
-              </a>
-            </motion.div>
+                View Roadmap
+              </Link>
+            </div>
           </motion.div>
         </div>
       </section>

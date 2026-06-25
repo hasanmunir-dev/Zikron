@@ -164,3 +164,52 @@ export interface AdminNote {
 export interface AdminReminder extends Reminder {
   owner: AdminOwner | null;
 }
+
+// ─── Feedback types ────────────────────────────────────────────────────────────
+
+export type FeedbackType = 'ui' | 'ux' | 'functionality' | 'bug' | 'performance' | 'suggestion' | 'other';
+export type FeedbackStatus = 'open' | 'reviewed' | 'planned' | 'resolved' | 'rejected';
+export type FeedbackLinkedType = 'none' | 'note' | 'inbox' | 'list' | 'self_chat' | 'reminder' | 'general';
+export type FeedbackPriority = 'low' | 'medium' | 'high';
+
+export interface Feedback {
+  id: string;
+  user_id: string;
+  type: FeedbackType;
+  title: string;
+  message: string;
+  linked_type: FeedbackLinkedType;
+  linked_id: string | null;
+  priority: FeedbackPriority;
+  status: FeedbackStatus;
+  admin_response: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface AdminFeedback extends Feedback {
+  owner: AdminOwner | null;
+}
+
+// ─── Changelog types ───────────────────────────────────────────────────────────
+
+export type ChangelogType = 'feature' | 'improvement' | 'fix' | 'security' | 'announcement';
+
+export interface ChangelogChange {
+  tag: ChangelogType;
+  text: string;
+}
+
+export interface Changelog {
+  id: string;
+  version: string;
+  title: string;
+  description: string | null;
+  changes: ChangelogChange[];
+  type: ChangelogType;
+  published: boolean;
+  deployed_at: string | null;
+  commit_sha: string | null;
+  created_at: string;
+  updated_at: string;
+}

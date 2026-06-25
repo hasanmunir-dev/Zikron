@@ -21,6 +21,8 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   ChevronsRight,
+  MessageSquarePlus,
+  GitCommit,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 
@@ -90,6 +92,18 @@ const systemItems = [
     href: "/admin/reminders",
     icon: Bell,
     label: "Reminders",
+    placeholder: false,
+  },
+  {
+    href: "/admin/feedback",
+    icon: MessageSquarePlus,
+    label: "Feedback",
+    placeholder: false,
+  },
+  {
+    href: "/admin/changelog",
+    icon: GitCommit,
+    label: "Changelog",
     placeholder: false,
   },
   {
