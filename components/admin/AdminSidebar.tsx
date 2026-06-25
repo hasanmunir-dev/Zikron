@@ -116,7 +116,7 @@ const systemItems = [
     href: "/admin/collections",
     icon: FolderOpen,
     label: "Collections",
-    placeholder: true,
+    placeholder: false,
   },
   {
     href: "/admin/shared",

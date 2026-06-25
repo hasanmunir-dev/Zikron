@@ -6,7 +6,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import {
   Bell, Plus, Search, X, Clock, CheckCircle2, XCircle,
   AlertCircle, Trash2, Pencil, Circle,
-  BookOpen, Inbox, Table2, MessageSquare, Link2, RotateCcw,
+  BookOpen, Inbox, Table2, MessageSquare, Link2, RotateCcw, FolderOpen,
 } from 'lucide-react';
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
@@ -20,6 +20,7 @@ import { useNotes } from '@/hooks/queries/use-notes';
 import { useInbox } from '@/hooks/queries/use-inbox';
 import { useLists } from '@/hooks/queries/use-lists';
 import { DeleteConfirmDialog } from '@/components/shared/delete-confirm-dialog';
+import { AddToCollectionDialog } from '@/components/features/collections/AddToCollectionDialog';
 import { MarkdownEditor } from '@/components/editor/markdown-editor';
 import { MarkdownViewer } from '@/components/editor/markdown-viewer';
 import { closeDialogUrl } from '@/lib/dialog-url';
@@ -298,6 +299,7 @@ function ReminderCard({ r, onStatus }: { r: Reminder; onStatus: (id: string, s: 
   const cs = getComputedStatus(r);
   const cfg = statusConfig[cs];
   const { Icon } = cfg;
+  const [addToCollection, setAddToCollection] = useState(false);
 
   function toggleStatus() {
     if (r.status === 'cancelled') return;
@@ -349,6 +351,14 @@ function ReminderCard({ r, onStatus }: { r: Reminder; onStatus: (id: string, s: 
         </div>
 
         <div className="flex items-center gap-1 shrink-0">
+          <button
+            type="button"
+            onClick={() => setAddToCollection(true)}
+            title="Add to Collection"
+            className="p-1.5 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <FolderOpen size={14} />
+          </button>
           <Link href={`${BASE}?edit=${r.id}`} title="Edit" className="p-1.5 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground transition-colors">
             <Pencil size={14} />
           </Link>
@@ -357,6 +367,13 @@ function ReminderCard({ r, onStatus }: { r: Reminder; onStatus: (id: string, s: 
           </Link>
         </div>
       </div>
+
+      <AddToCollectionDialog
+        open={addToCollection}
+        onOpenChange={setAddToCollection}
+        itemType="reminder"
+        itemId={r.id}
+      />
     </div>
   );
 }

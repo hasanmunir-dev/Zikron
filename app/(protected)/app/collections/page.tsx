@@ -1,44 +1,617 @@
-import { FolderOpen, Tags, Link as LinkIcon, Share2 } from 'lucide-react';
+'use client';
 
-const upcoming = [
-  { icon: FolderOpen, title: 'Smart collections', desc: 'Group notes, inbox items, and messages into named collections.' },
-  { icon: Tags, title: 'Tag-based organization', desc: 'Auto-collect items by tag for instant organization.' },
-  { icon: LinkIcon, title: 'Linked content', desc: 'Connect related notes and items across your workspace.' },
-  { icon: Share2, title: 'Shareable collections', desc: 'Share a curated collection with a link.' },
+import { useState, Suspense } from 'react';
+import Link from 'next/link';
+import { useRouter, useSearchParams } from 'next/navigation';
+import {
+  FolderOpen, Plus, Search, X, Star, Archive, Pencil, Trash2,
+  BookOpen, Inbox, Table2, MessageSquare, Bell, Hash,
+} from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { DeleteConfirmDialog } from '@/components/shared/delete-confirm-dialog';
+import { MarkdownEditor } from '@/components/editor/markdown-editor';
+import { MarkdownViewer } from '@/components/editor/markdown-viewer';
+import { Skeleton } from '@/components/ui/skeleton';
+import {
+  useCollections, useCollection, useCreateCollection,
+  useUpdateCollection, useDeleteCollection, useRemoveCollectionItem,
+} from '@/hooks/queries/use-collections';
+import { formatRelativeTime } from '@/utils/date';
+import type { Collection, CollectionWithItems, CollectionItem, CollectionItemType } from '@/types';
+
+const BASE = '/app/collections';
+
+const COLLECTION_COLORS = [
+  { label: 'Blue',   value: 'blue',   cls: 'bg-blue-500' },
+  { label: 'Violet', value: 'violet', cls: 'bg-violet-500' },
+  { label: 'Green',  value: 'green',  cls: 'bg-emerald-500' },
+  { label: 'Rose',   value: 'rose',   cls: 'bg-rose-500' },
+  { label: 'Amber',  value: 'amber',  cls: 'bg-amber-500' },
+  { label: 'Cyan',   value: 'cyan',   cls: 'bg-cyan-500' },
+  { label: 'Slate',  value: 'slate',  cls: 'bg-slate-500' },
 ];
+
+const COLLECTION_ICONS = ['📁', '📚', '🎯', '💡', '🔖', '🧠', '🗂️', '⭐', '🚀', '🔬', '💼', '🎨'];
+
+function colorClass(color: string | null) {
+  const found = COLLECTION_COLORS.find(c => c.value === color);
+  return found?.cls ?? 'bg-violet-500';
+}
+
+function itemTypeIcon(type: CollectionItemType) {
+  switch (type) {
+    case 'note': return <BookOpen size={14} className="text-violet-500" />;
+    case 'inbox': return <Inbox size={14} className="text-blue-500" />;
+    case 'list': return <Table2 size={14} className="text-indigo-500" />;
+    case 'self_chat': return <MessageSquare size={14} className="text-emerald-500" />;
+    case 'reminder': return <Bell size={14} className="text-amber-500" />;
+  }
+}
+
+function itemTypeLabel(type: CollectionItemType) {
+  switch (type) {
+    case 'note': return 'Note';
+    case 'inbox': return 'Inbox';
+    case 'list': return 'List';
+    case 'self_chat': return 'Chat';
+    case 'reminder': return 'Reminder';
+  }
+}
+
+function itemHref(type: CollectionItemType, id: string) {
+  switch (type) {
+    case 'note': return `/app/notes?detail=${id}`;
+    case 'inbox': return `/app/inbox?detail=${id}`;
+    case 'list': return `/app/lists/${id}`;
+    case 'self_chat': return `/app/self-chat`;
+    case 'reminder': return `/app/reminders?detail=${id}`;
+  }
+}
+
+// ─── Form ──────────────────────────────────────────────────────────────────────
+
+interface CollectionFormData {
+  title: string;
+  description: string;
+  color: string;
+  icon: string;
+}
+
+const defaultForm: CollectionFormData = { title: '', description: '', color: 'violet', icon: '📁' };
+
+function CollectionForm({
+  initial,
+  onSave,
+  onCancel,
+  saving,
+}: {
+  initial?: CollectionFormData;
+  onSave: (data: CollectionFormData) => void;
+  onCancel: () => void;
+  saving: boolean;
+}) {
+  const [form, setForm] = useState<CollectionFormData>(initial ?? defaultForm);
+
+  return (
+    <div className="space-y-4 py-2">
+      {/* Icon + color row */}
+      <div className="flex items-start gap-4">
+        <div className="space-y-1.5">
+          <p className="text-xs font-medium text-muted-foreground">Icon</p>
+          <div className="grid grid-cols-6 gap-1.5">
+            {COLLECTION_ICONS.map(ic => (
+              <button
+                key={ic}
+                type="button"
+                onClick={() => setForm(f => ({ ...f, icon: ic }))}
+                className={`h-8 w-8 rounded-lg flex items-center justify-center text-base transition-all border ${
+                  form.icon === ic
+                    ? 'border-primary bg-primary/10'
+                    : 'border-border hover:bg-muted'
+                }`}
+              >
+                {ic}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="flex-1 space-y-1.5">
+          <p className="text-xs font-medium text-muted-foreground">Color</p>
+          <div className="flex flex-wrap gap-2">
+            {COLLECTION_COLORS.map(({ value, cls }) => (
+              <button
+                key={value}
+                type="button"
+                onClick={() => setForm(f => ({ ...f, color: value }))}
+                className={`h-7 w-7 rounded-full ${cls} transition-all ${
+                  form.color === value ? 'ring-2 ring-offset-2 ring-primary' : ''
+                }`}
+              />
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Title */}
+      <div className="space-y-1.5">
+        <label className="text-xs font-medium text-muted-foreground">Title *</label>
+        <input
+          autoFocus
+          value={form.title}
+          onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
+          placeholder="My Collection"
+          className="w-full px-3 py-2 text-sm bg-muted border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:bg-background transition-all text-foreground placeholder:text-muted-foreground"
+        />
+      </div>
+
+      {/* Description */}
+      <div className="space-y-1.5">
+        <label className="text-xs font-medium text-muted-foreground">Description (Markdown)</label>
+        <MarkdownEditor
+          value={form.description}
+          onChange={v => setForm(f => ({ ...f, description: v }))}
+          minHeight="120px"
+          placeholder="Describe this collection..."
+        />
+      </div>
+
+      <div className="flex justify-end gap-2 pt-2">
+        <button
+          type="button"
+          onClick={onCancel}
+          className="px-4 py-2 text-sm rounded-lg border border-border hover:bg-muted transition-colors text-foreground"
+        >
+          Cancel
+        </button>
+        <button
+          type="button"
+          onClick={() => onSave(form)}
+          disabled={!form.title.trim() || saving}
+          className="px-4 py-2 text-sm rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50"
+        >
+          {saving ? 'Saving…' : 'Save'}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ─── Collection card ───────────────────────────────────────────────────────────
+
+function CollectionCard({ col, onDelete }: { col: Collection; onDelete: () => void }) {
+  const update = useUpdateCollection();
+  const [confirmDelete, setConfirmDelete] = useState(false);
+
+  return (
+    <div className="relative group bg-card border border-border rounded-xl overflow-hidden hover:border-primary/40 transition-all hover:shadow-sm">
+      {/* Color bar */}
+      <div className={`h-1 w-full ${colorClass(col.color)}`} />
+
+      <div className="p-4">
+        <div className="flex items-start justify-between gap-2 mb-2">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <span className="text-xl shrink-0">{col.icon ?? '📁'}</span>
+            <div className="min-w-0">
+              <Link
+                href={`${BASE}?detail=${col.id}`}
+                className="block text-sm font-semibold text-foreground truncate hover:text-primary transition-colors"
+              >
+                {col.title}
+              </Link>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-1 shrink-0">
+            <button
+              type="button"
+              onClick={() => update.mutate({ id: col.id, is_favorite: !col.is_favorite })}
+              className="p-1.5 rounded-lg text-muted-foreground hover:text-amber-400 hover:bg-muted transition-colors"
+              title={col.is_favorite ? 'Unfavorite' : 'Favorite'}
+            >
+              <Star size={13} className={col.is_favorite ? 'text-amber-400 fill-amber-400' : ''} />
+            </button>
+            <Link
+              href={`${BASE}?edit=${col.id}`}
+              className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+              title="Edit"
+            >
+              <Pencil size={13} />
+            </Link>
+            <button
+              type="button"
+              onClick={() => setConfirmDelete(true)}
+              className="p-1.5 rounded-lg text-muted-foreground hover:text-destructive hover:bg-muted transition-colors"
+              title="Delete"
+            >
+              <Trash2 size={13} />
+            </button>
+          </div>
+        </div>
+
+        {col.description && (
+          <p className="text-xs text-muted-foreground line-clamp-2 mb-3">
+            {col.description.replace(/[#*`_[\]]/g, '').trim()}
+          </p>
+        )}
+
+        {col.is_archived && (
+          <span className="inline-flex items-center gap-1 text-[10px] font-medium bg-muted text-muted-foreground px-2 py-0.5 rounded-full">
+            <Archive size={10} /> Archived
+          </span>
+        )}
+
+        <div className="mt-3 flex items-center justify-between">
+          <span className="text-xs text-muted-foreground">{formatRelativeTime(col.updated_at)}</span>
+          <Link
+            href={`${BASE}?detail=${col.id}`}
+            className="text-xs text-primary hover:underline font-medium"
+          >
+            Open →
+          </Link>
+        </div>
+      </div>
+
+      <DeleteConfirmDialog
+        open={confirmDelete}
+        onOpenChange={setConfirmDelete}
+        title="Delete collection?"
+        description="This removes the collection and all its item links. Items themselves are not deleted."
+        itemName={col.title}
+        onConfirm={() => { setConfirmDelete(false); onDelete(); }}
+      />
+    </div>
+  );
+}
+
+// ─── Detail view ───────────────────────────────────────────────────────────────
+
+type ItemsByType = Partial<Record<CollectionItemType, CollectionItem[]>>;
+
+function CollectionDetailDialog({ id }: { id: string }) {
+  const router = useRouter();
+  const { data: col, isLoading } = useCollection(id);
+  const removeItem = useRemoveCollectionItem();
+  const update = useUpdateCollection();
+
+  function close() { router.replace(BASE); }
+
+  if (isLoading || !col) {
+    return (
+      <Dialog open onOpenChange={close}>
+        <DialogContent className="max-w-2xl w-[95vw]">
+          <div className="space-y-3 py-4">
+            <Skeleton className="h-8 w-48" />
+            <Skeleton className="h-4 w-full" />
+            <Skeleton className="h-32 w-full" />
+          </div>
+        </DialogContent>
+      </Dialog>
+    );
+  }
+
+  const byType: ItemsByType = {};
+  for (const item of col.items) {
+    if (!byType[item.item_type]) byType[item.item_type] = [];
+    byType[item.item_type]!.push(item);
+  }
+
+  const types: CollectionItemType[] = ['note', 'inbox', 'list', 'self_chat', 'reminder'];
+
+  return (
+    <Dialog open onOpenChange={close}>
+      <DialogContent className="max-w-2xl w-[95vw] max-h-[85vh] overflow-y-auto">
+        <DialogHeader>
+          <div className="flex items-center gap-3">
+            <div className={`h-10 w-10 rounded-xl flex items-center justify-center text-xl ${colorClass(col.color)} text-white shrink-0`}>
+              {col.icon ?? '📁'}
+            </div>
+            <div className="min-w-0">
+              <DialogTitle className="text-lg font-bold">{col.title}</DialogTitle>
+              <p className="text-xs text-muted-foreground">{col.items.length} item{col.items.length !== 1 ? 's' : ''}</p>
+            </div>
+            <div className="ml-auto flex items-center gap-1">
+              <button
+                type="button"
+                onClick={() => update.mutate({ id: col.id, is_favorite: !col.is_favorite })}
+                className="p-1.5 rounded-lg text-muted-foreground hover:text-amber-400 hover:bg-muted transition-colors"
+                title={col.is_favorite ? 'Unfavorite' : 'Favorite'}
+              >
+                <Star size={14} className={col.is_favorite ? 'text-amber-400 fill-amber-400' : ''} />
+              </button>
+              <Link
+                href={`${BASE}?edit=${col.id}`}
+                className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                title="Edit"
+              >
+                <Pencil size={14} />
+              </Link>
+            </div>
+          </div>
+        </DialogHeader>
+
+        {col.description && (
+          <div className="bg-muted/40 rounded-xl p-4 mt-2">
+            <MarkdownViewer content={col.description} />
+          </div>
+        )}
+
+        {/* Stats */}
+        <div className="flex flex-wrap gap-2 mt-3">
+          {types.map(type => {
+            const count = (byType[type] ?? []).length;
+            if (count === 0) return null;
+            return (
+              <div key={type} className="flex items-center gap-1.5 bg-muted rounded-lg px-2.5 py-1.5 text-xs font-medium text-foreground">
+                {itemTypeIcon(type)}
+                <span>{count} {itemTypeLabel(type)}{count !== 1 ? 's' : ''}</span>
+              </div>
+            );
+          })}
+          {col.items.length === 0 && (
+            <p className="text-sm text-muted-foreground">No items in this collection yet.</p>
+          )}
+        </div>
+
+        {/* Grouped sections */}
+        {types.map(type => {
+          const items = byType[type] ?? [];
+          if (items.length === 0) return null;
+          return (
+            <div key={type} className="mt-4">
+              <div className="flex items-center gap-2 mb-2">
+                {itemTypeIcon(type)}
+                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  {itemTypeLabel(type)}s
+                </p>
+              </div>
+              <div className="space-y-1.5">
+                {items.map(item => (
+                  <div key={item.id} className="flex items-center gap-2 p-2.5 bg-muted/30 rounded-lg group/item border border-border/50">
+                    <Hash size={12} className="text-muted-foreground shrink-0" />
+                    <Link
+                      href={itemHref(item.item_type, item.item_id)}
+                      className="flex-1 text-sm text-foreground hover:text-primary transition-colors truncate"
+                    >
+                      {item.item_id.slice(0, 8)}…
+                    </Link>
+                    <div className="flex items-center gap-1 opacity-0 group-hover/item:opacity-100 transition-opacity">
+                      <Link
+                        href={itemHref(item.item_type, item.item_id)}
+                        className="p-1 rounded text-xs text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                        title="Open item"
+                      >
+                        Open
+                      </Link>
+                      <button
+                        type="button"
+                        onClick={() => removeItem.mutate({ collectionId: col.id, itemId: item.id })}
+                        className="p-1 rounded text-xs text-muted-foreground hover:text-destructive hover:bg-muted transition-colors"
+                        title="Remove from collection"
+                      >
+                        <X size={12} />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          );
+        })}
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// ─── Create / edit dialog ──────────────────────────────────────────────────────
+
+function CollectionCreateDialog() {
+  const router = useRouter();
+  const create = useCreateCollection();
+  function close() { router.replace(BASE); }
+
+  async function handleSave(data: CollectionFormData) {
+    if (!data.title.trim()) return;
+    await create.mutateAsync({ title: data.title.trim(), description: data.description || undefined, color: data.color, icon: data.icon });
+    close();
+  }
+
+  return (
+    <Dialog open onOpenChange={close}>
+      <DialogContent className="max-w-xl w-[95vw]">
+        <DialogHeader>
+          <DialogTitle>New Collection</DialogTitle>
+        </DialogHeader>
+        <CollectionForm onSave={handleSave} onCancel={close} saving={create.isPending} />
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function CollectionEditDialog({ id }: { id: string }) {
+  const router = useRouter();
+  const { data: col } = useCollection(id);
+  const update = useUpdateCollection();
+  function close() { router.replace(BASE); }
+
+  if (!col) return null;
+
+  async function handleSave(data: CollectionFormData) {
+    await update.mutateAsync({ id: col!.id, title: data.title.trim(), description: data.description || undefined, color: data.color, icon: data.icon });
+    close();
+  }
+
+  return (
+    <Dialog open onOpenChange={close}>
+      <DialogContent className="max-w-xl w-[95vw]">
+        <DialogHeader>
+          <DialogTitle>Edit Collection</DialogTitle>
+        </DialogHeader>
+        <CollectionForm
+          initial={{ title: col.title, description: col.description ?? '', color: col.color ?? 'violet', icon: col.icon ?? '📁' }}
+          onSave={handleSave}
+          onCancel={close}
+          saving={update.isPending}
+        />
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// ─── Main page ─────────────────────────────────────────────────────────────────
+
+function CollectionsContent() {
+  const searchParams = useSearchParams();
+  const [query, setQuery] = useState('');
+  const [tab, setTab] = useState<'all' | 'favorites' | 'archived'>('all');
+
+  const create = searchParams.get('create');
+  const detail = searchParams.get('detail');
+  const edit = searchParams.get('edit');
+
+  const { data: collections = [], isLoading } = useCollections();
+  const deleteCollection = useDeleteCollection();
+  const update = useUpdateCollection();
+
+  const filtered = collections
+    .filter(c => {
+      if (tab === 'favorites') return c.is_favorite;
+      if (tab === 'archived') return c.is_archived;
+      return !c.is_archived;
+    })
+    .filter(c => {
+      if (!query) return true;
+      const q = query.toLowerCase();
+      return c.title.toLowerCase().includes(q) || (c.description ?? '').toLowerCase().includes(q);
+    });
+
+  const tabs = [
+    { key: 'all' as const, label: 'All', count: collections.filter(c => !c.is_archived).length },
+    { key: 'favorites' as const, label: 'Favorites', count: collections.filter(c => c.is_favorite).length },
+    { key: 'archived' as const, label: 'Archived', count: collections.filter(c => c.is_archived).length },
+  ];
+
+  return (
+    <div className="flex-1 min-h-0 flex flex-col">
+      {/* Header */}
+      <div className="px-6 pt-6 pb-4">
+        <div className="flex items-center justify-between gap-4 mb-4">
+          <div>
+            <h1 className="text-xl font-bold text-foreground">Collections</h1>
+            <p className="text-sm text-muted-foreground mt-0.5">Organize your knowledge into smart workspaces</p>
+          </div>
+          <Link
+            href={`${BASE}?create=true`}
+            className="flex items-center gap-1.5 bg-primary text-primary-foreground hover:bg-primary/90 text-sm font-medium px-3 py-2 rounded-lg transition-colors"
+          >
+            <Plus size={15} />
+            New
+          </Link>
+        </div>
+
+        {/* Tabs */}
+        <div className="flex items-center gap-1 mb-4">
+          {tabs.map(t => (
+            <button
+              key={t.key}
+              type="button"
+              onClick={() => setTab(t.key)}
+              className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
+                tab === t.key
+                  ? 'bg-primary/10 text-primary'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+              }`}
+            >
+              {t.label}
+              {t.count > 0 && (
+                <span className={`ml-1.5 text-xs px-1.5 py-0.5 rounded-full ${
+                  tab === t.key ? 'bg-primary/20 text-primary' : 'bg-muted text-muted-foreground'
+                }`}>
+                  {t.count}
+                </span>
+              )}
+            </button>
+          ))}
+        </div>
+
+        {/* Search */}
+        <div className="relative">
+          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+          <input
+            value={query}
+            onChange={e => setQuery(e.target.value)}
+            placeholder="Search collections…"
+            className="w-full pl-9 pr-8 py-2 text-sm bg-muted border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:bg-background transition-all text-foreground placeholder:text-muted-foreground"
+          />
+          {query && (
+            <button type="button" onClick={() => setQuery('')} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+              <X size={13} />
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Content */}
+      <div className="flex-1 overflow-y-auto px-6 pb-6">
+        {isLoading ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {[...Array(6)].map((_, i) => (
+              <div key={i} className="bg-card border border-border rounded-xl overflow-hidden">
+                <Skeleton className="h-1 w-full" />
+                <div className="p-4 space-y-2">
+                  <Skeleton className="h-5 w-3/4" />
+                  <Skeleton className="h-3 w-full" />
+                  <Skeleton className="h-3 w-2/3" />
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : filtered.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-16 text-center">
+            <div className="w-14 h-14 bg-violet-100 dark:bg-violet-900/40 rounded-2xl flex items-center justify-center mb-4">
+              <FolderOpen size={24} className="text-violet-500" />
+            </div>
+            <p className="text-sm font-semibold text-foreground mb-1">
+              {query ? 'No collections match your search' : 'No collections yet'}
+            </p>
+            <p className="text-xs text-muted-foreground mb-4">
+              {query ? 'Try a different search term' : 'Create your first collection to organize your knowledge'}
+            </p>
+            {!query && (
+              <Link
+                href={`${BASE}?create=true`}
+                className="flex items-center gap-1.5 bg-primary text-primary-foreground hover:bg-primary/90 text-sm font-medium px-4 py-2 rounded-lg transition-colors"
+              >
+                <Plus size={15} />
+                New Collection
+              </Link>
+            )}
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {filtered.map(col => (
+              <CollectionCard
+                key={col.id}
+                col={col}
+                onDelete={() => deleteCollection.mutate(col.id)}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Dialogs */}
+      {create === 'true' && <CollectionCreateDialog />}
+      {detail && <CollectionDetailDialog id={detail} />}
+      {edit && <CollectionEditDialog id={edit} />}
+    </div>
+  );
+}
 
 export default function CollectionsPage() {
   return (
-    <div className="p-6 max-w-2xl mx-auto">
-      <div className="mb-8">
-        <h2 className="text-xl font-bold text-foreground">Collections</h2>
-        <p className="text-sm text-muted-foreground mt-0.5">Organize your knowledge into curated groups.</p>
-      </div>
-
-      <div className="bg-violet-50 dark:bg-violet-950/30 border border-violet-100 dark:border-violet-900/50 rounded-2xl p-8 text-center mb-8">
-        <div className="w-16 h-16 bg-violet-100 dark:bg-violet-900/50 rounded-2xl flex items-center justify-center mx-auto mb-4">
-          <FolderOpen size={28} className="text-violet-500" />
-        </div>
-        <h3 className="text-lg font-semibold text-foreground mb-2">Coming in Phase 2</h3>
-        <p className="text-sm text-muted-foreground max-w-sm mx-auto leading-relaxed">
-          Collections let you curate and group your saved content by project, topic, or anything you choose.
-        </p>
-      </div>
-
-      <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-4">What's coming</h4>
-      <div className="space-y-3">
-        {upcoming.map(({ icon: Icon, title, desc }) => (
-          <div key={title} className="flex items-start gap-4 bg-card border border-border rounded-xl p-4">
-            <div className="w-9 h-9 bg-violet-50 dark:bg-violet-950/40 rounded-lg flex items-center justify-center shrink-0">
-              <Icon size={17} className="text-violet-500" />
-            </div>
-            <div>
-              <p className="text-sm font-semibold text-foreground">{title}</p>
-              <p className="text-xs text-muted-foreground mt-0.5">{desc}</p>
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
+    <Suspense>
+      <CollectionsContent />
+    </Suspense>
   );
 }

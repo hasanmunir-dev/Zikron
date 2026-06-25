@@ -8,6 +8,7 @@ import {
   Star,
   Archive,
   Trash2,
+  FolderOpen,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -17,6 +18,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { DeleteConfirmDialog } from "./delete-confirm-dialog";
+import { AddToCollectionDialog } from "@/components/features/collections/AddToCollectionDialog";
+import type { CollectionItemType } from "@/types";
 
 interface Props {
   onView?: () => void;
@@ -29,6 +32,8 @@ interface Props {
   deleteTitle?: string;
   itemName?: string;
   className?: string;
+  collectionItemType?: CollectionItemType;
+  collectionItemId?: string;
 }
 
 export function ItemActions({
@@ -42,8 +47,11 @@ export function ItemActions({
   deleteTitle = "Delete?",
   itemName,
   className,
+  collectionItemType,
+  collectionItemId,
 }: Props) {
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [addToCollection, setAddToCollection] = useState(false);
 
   return (
     <>
@@ -103,6 +111,12 @@ export function ItemActions({
               {isArchived ? "Unarchive" : "Archive"}
             </DropdownMenuItem>
           )}
+          {collectionItemType && collectionItemId && (
+            <DropdownMenuItem onClick={() => setAddToCollection(true)}>
+              <FolderOpen size={14} className="mr-2 shrink-0" />
+              Add to Collection
+            </DropdownMenuItem>
+          )}
           {onDelete && (
             <>
               <DropdownMenuSeparator />
@@ -129,6 +143,14 @@ export function ItemActions({
             setConfirmDelete(false);
             onDelete();
           }}
+        />
+      )}
+      {collectionItemType && collectionItemId && (
+        <AddToCollectionDialog
+          open={addToCollection}
+          onOpenChange={setAddToCollection}
+          itemType={collectionItemType}
+          itemId={collectionItemId}
         />
       )}
     </>

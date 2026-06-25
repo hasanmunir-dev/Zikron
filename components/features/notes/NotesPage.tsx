@@ -243,6 +243,8 @@ function NoteCard({
           onDelete={onDelete}
           deleteTitle="Delete Note?"
           itemName={note.title}
+          collectionItemType="note"
+          collectionItemId={note.id}
         />
       </div>
 

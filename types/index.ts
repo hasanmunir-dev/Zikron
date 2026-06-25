@@ -203,6 +203,43 @@ export interface ContactMessage {
   created_at: string;
 }
 
+// ─── Collection types ──────────────────────────────────────────────────────────
+
+export type CollectionItemType = 'note' | 'inbox' | 'list' | 'self_chat' | 'reminder';
+
+export interface Collection {
+  id: string;
+  user_id: string;
+  title: string;
+  description: string | null;
+  color: string | null;
+  icon: string | null;
+  cover_image: string | null;
+  is_favorite: boolean;
+  is_archived: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CollectionItem {
+  id: string;
+  collection_id: string;
+  user_id: string;
+  item_type: CollectionItemType;
+  item_id: string;
+  sort_order: number;
+  created_at: string;
+}
+
+export interface CollectionWithItems extends Collection {
+  items: CollectionItem[];
+}
+
+export interface AdminCollection extends Collection {
+  owner: AdminOwner | null;
+  item_count: number;
+}
+
 // ─── Changelog types ───────────────────────────────────────────────────────────
 
 export type ChangelogType = 'feature' | 'improvement' | 'fix' | 'security' | 'announcement';

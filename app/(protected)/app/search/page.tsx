@@ -3,17 +3,18 @@
 import { useEffect, useState, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Search, BookOpen, Inbox, MessageSquare, X, Table2, Bell } from 'lucide-react';
+import { Search, BookOpen, Inbox, MessageSquare, X, Table2, Bell, FolderOpen } from 'lucide-react';
 import { api } from '@/lib/api';
 import { formatRelativeTime } from '@/utils/date';
-import type { Note, InboxItem, SelfChatMessage, List, Reminder } from '@/types';
+import type { Note, InboxItem, SelfChatMessage, List, Reminder, Collection } from '@/types';
 
 type Result =
-  | { type: 'note';     item: Note }
-  | { type: 'inbox';    item: InboxItem }
-  | { type: 'message';  item: SelfChatMessage }
-  | { type: 'list';     item: List }
-  | { type: 'reminder'; item: Reminder };
+  | { type: 'note';       item: Note }
+  | { type: 'inbox';      item: InboxItem }
+  | { type: 'message';    item: SelfChatMessage }
+  | { type: 'list';       item: List }
+  | { type: 'reminder';   item: Reminder }
+  | { type: 'collection'; item: Collection };
 
 function SearchResults() {
   const searchParams = useSearchParams();
@@ -30,12 +31,13 @@ function SearchResults() {
     const q = query.toLowerCase();
 
     async function runSearch() {
-      const [notes, inbox, messages, lists, reminders] = await Promise.all([
+      const [notes, inbox, messages, lists, reminders, collections] = await Promise.all([
         api.get<Note[]>('/api/notes'),
         api.get<InboxItem[]>('/api/inbox'),
         api.get<SelfChatMessage[]>('/api/self-chat'),
         api.get<List[]>('/api/lists'),
         api.get<Reminder[]>('/api/reminders'),
+        api.get<Collection[]>('/api/collections'),
       ]);
 
       const filteredNotes = notes.filter(n =>
@@ -65,6 +67,12 @@ function SearchResults() {
         (r.description ?? '').toLowerCase().includes(q) ||
         r.tags.some(t => t.toLowerCase().includes(q))
       );
+      const filteredCollections = collections.filter(c =>
+        !c.is_archived && (
+          c.title.toLowerCase().includes(q) ||
+          (c.description ?? '').toLowerCase().includes(q)
+        )
+      );
 
       const all: Result[] = [
         ...filteredNotes.map(item => ({ type: 'note' as const, item })),
@@ -72,6 +80,7 @@ function SearchResults() {
         ...filteredMessages.map(item => ({ type: 'message' as const, item })),
         ...filteredLists.map(item => ({ type: 'list' as const, item })),
         ...filteredReminders.map(item => ({ type: 'reminder' as const, item })),
+        ...filteredCollections.map(item => ({ type: 'collection' as const, item })),
       ];
 
       type Dated = { created_at: string; updated_at?: string };
@@ -94,10 +103,10 @@ function SearchResults() {
   }
 
   const typeLabel: Record<Result['type'], string> = {
-    note: 'Note', inbox: 'Inbox', message: 'Chat', list: 'List', reminder: 'Reminder',
+    note: 'Note', inbox: 'Inbox', message: 'Chat', list: 'List', reminder: 'Reminder', collection: 'Collection',
   };
   const typeIcon: Record<Result['type'], React.ElementType> = {
-    note: BookOpen, inbox: Inbox, message: MessageSquare, list: Table2, reminder: Bell,
+    note: BookOpen, inbox: Inbox, message: MessageSquare, list: Table2, reminder: Bell, collection: FolderOpen,
   };
   const typeColor: Record<Result['type'], string> = {
     note: 'bg-violet-100 dark:bg-violet-950/60 text-violet-600',
@@ -105,6 +114,7 @@ function SearchResults() {
     message: 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600',
     list: 'bg-indigo-100 dark:bg-indigo-950/60 text-indigo-600',
     reminder: 'bg-amber-100 dark:bg-amber-950/60 text-amber-600',
+    collection: 'bg-fuchsia-100 dark:bg-fuchsia-950/60 text-fuchsia-600',
   };
 
   function getHref(result: Result): string {
@@ -113,6 +123,7 @@ function SearchResults() {
     if (result.type === 'message') return '/app/self-chat';
     if (result.type === 'list') return `/app/lists/${result.item.id}`;
     if (result.type === 'reminder') return `/app/reminders?detail=${result.item.id}`;
+    if (result.type === 'collection') return `/app/collections?detail=${result.item.id}`;
     return '/app/dashboard';
   }
 
@@ -122,6 +133,7 @@ function SearchResults() {
     if (result.type === 'message') return result.item.content;
     if (result.type === 'list') return result.item.title;
     if (result.type === 'reminder') return result.item.title;
+    if (result.type === 'collection') return result.item.title;
     return '';
   }
 
@@ -129,6 +141,7 @@ function SearchResults() {
     if (result.type === 'note') return result.item.content;
     if (result.type === 'list') return result.item.description;
     if (result.type === 'reminder') return result.item.description;
+    if (result.type === 'collection') return result.item.description;
     return null;
   }
 
@@ -146,7 +159,7 @@ function SearchResults() {
     <div className="p-6 max-w-3xl mx-auto">
       <div className="mb-6">
         <h2 className="text-xl font-bold text-foreground">Search</h2>
-        <p className="text-sm text-muted-foreground mt-0.5">Search across notes, inbox, messages, lists, and reminders.</p>
+        <p className="text-sm text-muted-foreground mt-0.5">Search across notes, inbox, messages, lists, reminders, and collections.</p>
       </div>
 
       <form onSubmit={handleSearch} className="relative mb-6">

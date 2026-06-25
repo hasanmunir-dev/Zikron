@@ -179,6 +179,8 @@ function ListCard({
           onDelete={onDelete}
           deleteTitle="Delete List?"
           itemName={list.title}
+          collectionItemType="list"
+          collectionItemId={list.id}
         />
       </div>
 

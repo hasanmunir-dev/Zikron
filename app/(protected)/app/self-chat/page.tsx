@@ -199,6 +199,8 @@ function MessageBubble({ msg, onToggleFavorite, onDelete }: {
             onDelete={onDelete}
             deleteTitle="Delete Message?"
             className="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+            collectionItemType="self_chat"
+            collectionItemId={msg.id}
           />
           <span className="text-xs text-muted-foreground">{formatRelativeTime(msg.created_at)}</span>
         </div>

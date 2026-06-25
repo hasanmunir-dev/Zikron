@@ -81,6 +81,8 @@ export function InboxItemCard({
             onDelete={() => onDelete(item.id)}
             deleteTitle="Delete Inbox Item?"
             itemName={item.title}
+            collectionItemType="inbox"
+            collectionItemId={item.id}
           />
         </div>
       </div>

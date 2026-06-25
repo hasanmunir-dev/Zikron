@@ -12,6 +12,7 @@ import {
   ArrowRight,
   Zap,
   Table2,
+  FolderOpen,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { api } from "@/lib/api";
@@ -21,8 +22,9 @@ import { inboxKeys } from "@/hooks/queries/use-inbox";
 import { selfChatKeys } from "@/hooks/queries/use-self-chat";
 import { listKeys } from "@/hooks/queries/use-lists";
 import { reminderKeys } from "@/hooks/queries/use-reminders";
+import { collectionKeys } from "@/hooks/queries/use-collections";
 import { formatRelativeTime } from "@/utils/date";
-import type { Note, InboxItem, SelfChatMessage, List, Reminder } from "@/types";
+import type { Note, InboxItem, SelfChatMessage, List, Reminder, Collection } from "@/types";
 
 const quickCapture = [
   {
@@ -85,6 +87,10 @@ export default function DashboardPage() {
   const { data: reminders = [] } = useQuery({
     queryKey: reminderKeys.all(),
     queryFn: () => api.get<Reminder[]>('/api/reminders'),
+  });
+  const { data: collections = [] } = useQuery({
+    queryKey: collectionKeys.all(),
+    queryFn: () => api.get<Collection[]>('/api/collections'),
   });
 
   const firstName = user?.user_metadata?.full_name?.split(" ")[0] ?? "there";
@@ -208,6 +214,41 @@ export default function DashboardPage() {
           </div>
         </section>
       )}
+
+      {/* Recent Collections */}
+      {collections.length > 0 && (() => {
+        const recent = [...collections].filter(c => !c.is_archived).slice(0, 3);
+        const favorites = collections.filter(c => c.is_favorite);
+        if (recent.length === 0) return null;
+        const COLORS: Record<string, string> = { blue: 'bg-blue-500', violet: 'bg-violet-500', green: 'bg-emerald-500', rose: 'bg-rose-500', amber: 'bg-amber-500', cyan: 'bg-cyan-500', slate: 'bg-slate-500' };
+        return (
+          <section>
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Collections</h3>
+              <Link href="/app/collections" className="text-xs text-blue-600 hover:underline flex items-center gap-1">
+                View all <ArrowRight size={12} />
+              </Link>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              {recent.map(col => (
+                <Link
+                  key={col.id}
+                  href={`/app/collections?detail=${col.id}`}
+                  className="flex items-center gap-3 bg-card border border-border rounded-xl px-4 py-3 hover:shadow-sm transition-all"
+                >
+                  <div className={`h-8 w-8 rounded-lg flex items-center justify-center text-base ${COLORS[col.color ?? ''] ?? 'bg-violet-500'} text-white shrink-0`}>
+                    {col.icon ?? '📁'}
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium text-foreground truncate">{col.title}</p>
+                    {col.is_favorite && <Star size={10} className="text-amber-400 fill-amber-400 inline" />}
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </section>
+        );
+      })()}
 
       {/* Reminders widget */}
       {(() => {
