@@ -6,13 +6,15 @@ import { toast } from 'sonner';
 import { supabase } from '@/lib/supabase';
 
 const CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
 const SCRIPT_ID = 'google-gis-script';
 
 
 /**
  * Activates Google One Tap when `enabled` is true.
- * Uses supabase.auth.signInWithIdToken() — no custom backend endpoint needed.
- * The existing useAuth onAuthStateChange listener picks up the new session.
+ * Sends the Google credential to Express (POST /api/auth/google-one-tap).
+ * Express calls Supabase, returns session tokens, frontend stores them via
+ * supabase.auth.setSession() so useAuth's onAuthStateChange picks up the user.
  *
  * Handles:
  * - Script deduplication (safe across React Strict Mode double-mounts)
@@ -39,11 +41,27 @@ export function useGoogleOneTap(enabled: boolean): void {
           void (async () => {
             if (cancelled) return;
             try {
-              const { error } = await supabase.auth.signInWithIdToken({
-                provider: 'google',
-                token: r.credential,
+              // Send the Google credential to Express; Express calls Supabase.
+              const res = await fetch(`${API_URL}/api/auth/google-one-tap`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ credential: r.credential }),
               });
-              if (error) throw error;
+              if (!res.ok) {
+                const { error } = await res.json() as { error?: string };
+                throw new Error(error ?? `Request failed: ${res.status}`);
+              }
+              const { access_token, refresh_token } = await res.json() as {
+                access_token: string;
+                refresh_token: string;
+              };
+              // Store the Supabase session locally so onAuthStateChange fires
+              // and useAuth picks up the new user — no direct signInWithIdToken.
+              const { error: sessionError } = await supabase.auth.setSession({
+                access_token,
+                refresh_token,
+              });
+              if (sessionError) throw sessionError;
               router.push('/app/dashboard');
             } catch (err) {
               console.error('[GoogleOneTap] sign-in failed:', err);
