@@ -3,18 +3,20 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Plus, Inbox, Archive, Star, Search, X } from 'lucide-react';
+import { Plus, Inbox, Archive, Star, Search, X, Users } from 'lucide-react';
 import { savePageState, getPageState } from '@/lib/page-state';
 import { dialogUrl, closeDialogUrl, parseDialogState } from '@/lib/dialog-url';
 import { useInbox, useUpdateInboxItem, useDeleteInboxItem } from '@/hooks/queries/use-inbox';
+import { useSharedWithMe } from '@/hooks/queries/use-shared-links';
 import { InboxItemCard } from '@/components/features/inbox/InboxItem';
 import { InboxDialog } from '@/components/features/inbox/InboxDialog';
 import { ShareDialog } from '@/components/features/sharing/ShareDialog';
-import type { InboxItem } from '@/types';
+import { SharedItemDetailDialog } from '@/components/features/sharing/SharedItemDetailDialog';
+import type { InboxItem, SharedWithMeItem } from '@/types';
 
 const BASE_PATH = '/app/inbox';
 
-type Tab = 'inbox' | 'favorite' | 'archived';
+type Tab = 'inbox' | 'favorite' | 'archived' | 'shared';
 type SavedState = { tab: Tab; search: string };
 
 export default function InboxPage() {
@@ -24,7 +26,10 @@ export default function InboxPage() {
   const saved = getPageState<SavedState>('inbox');
 
   const [tab, setTab] = useState<Tab>(saved?.tab ?? 'inbox');
-  const { data: items = [], isLoading, isFetching } = useInbox(tab);
+  const inboxTab = tab === 'shared' ? 'inbox' : tab;
+  const { data: items = [], isLoading, isFetching } = useInbox(inboxTab);
+  const { data: sharedItems = [] } = useSharedWithMe();
+  const sharedInboxItems = sharedItems.filter(i => i.item_type === 'inbox');
 
   // const saved = getPageState<SavedState>('inbox');
   // const [tab, setTab] = useState<Tab>(saved?.tab ?? 'inbox');
@@ -32,6 +37,14 @@ export default function InboxPage() {
 
   const dialog = parseDialogState(searchParams);
   const closeUrl = closeDialogUrl(BASE_PATH, searchParams);
+  const sharedViewId = searchParams.get('shared_view');
+  const sharedViewItem = sharedViewId ? sharedInboxItems.find(i => i.share_id === sharedViewId) : null;
+  const closeSharedViewUrl = (() => {
+    const p = new URLSearchParams(searchParams.toString());
+    p.delete('shared_view');
+    const qs = p.toString();
+    return qs ? `${BASE_PATH}?${qs}` : BASE_PATH;
+  })();
   const shareId = searchParams.get('share');
   const shareItem = shareId ? items.find((i: InboxItem) => i.id === shareId) : null;
   const closeShareUrl = (() => {
@@ -77,10 +90,15 @@ export default function InboxPage() {
       )
     : items;
 
-  const tabs: { id: Tab; label: string; icon: React.ElementType }[] = [
+  const filteredShared = search
+    ? sharedInboxItems.filter(i => i.title.toLowerCase().includes(search.toLowerCase()))
+    : sharedInboxItems;
+
+  const tabs: { id: Tab; label: string; icon: React.ElementType; count?: number }[] = [
     { id: 'inbox', label: 'Inbox', icon: Inbox },
     { id: 'favorite', label: 'Favorites', icon: Star },
     { id: 'archived', label: 'Archived', icon: Archive },
+    { id: 'shared', label: 'Shared with me', icon: Users, count: sharedInboxItems.length },
   ];
 
   return (
@@ -99,17 +117,22 @@ export default function InboxPage() {
         </Link>
       </div>
 
-      <div className="flex gap-1 bg-muted rounded-lg p-1 mb-5">
-        {tabs.map(({ id, label, icon: Icon }) => (
+      <div className="flex gap-1 bg-muted rounded-lg p-1 mb-5 flex-wrap">
+        {tabs.map(({ id, label, icon: Icon, count }) => (
           <button
             type="button"
             key={id}
             onClick={() => setTab(id)}
-            className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-md text-sm font-medium transition-colors
+            className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-md text-sm font-medium transition-colors min-w-fit
               ${tab === id ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
           >
             <Icon size={14} />
             {label}
+            {count !== undefined && count > 0 && (
+              <span className="text-[10px] bg-blue-100 dark:bg-blue-950/60 text-blue-600 px-1 py-0.5 rounded-full font-medium leading-none">
+                {count}
+              </span>
+            )}
           </button>
         ))}
         {isFetching && items.length > 0 && (
@@ -132,7 +155,28 @@ export default function InboxPage() {
         )}
       </div>
 
-      {isLoading && items.length === 0 ? (
+      {tab === 'shared' ? (
+        filteredShared.length === 0 ? (
+          <div className="text-center py-16">
+            <div className="w-12 h-12 bg-muted rounded-xl flex items-center justify-center mx-auto mb-3">
+              <Inbox size={22} className="text-muted-foreground/40" />
+            </div>
+            <p className="text-sm font-medium text-muted-foreground">
+              {search ? 'No shared items match your search' : 'No inbox items shared with you yet'}
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {filteredShared.map(item => (
+              <SharedInboxCard
+                key={item.share_id}
+                item={item}
+                onClick={() => router.push(`${BASE_PATH}?shared_view=${item.share_id}`)}
+              />
+            ))}
+          </div>
+        )
+      ) : isLoading && items.length === 0 ? (
         <div className="space-y-3">
           {[1, 2, 3].map(i => (
             <div key={i} className="bg-card border border-border rounded-xl p-4 h-20 animate-pulse" />
@@ -169,6 +213,13 @@ export default function InboxPage() {
               onShare={() => router.push(`${BASE_PATH}?share=${item.id}`)}
             />
           ))}
+          {tab === 'inbox' && filteredShared.map(item => (
+            <SharedInboxCard
+              key={item.share_id}
+              item={item}
+              onClick={() => router.push(`${BASE_PATH}?shared_view=${item.share_id}`)}
+            />
+          ))}
         </div>
       )}
 
@@ -189,6 +240,34 @@ export default function InboxPage() {
           onClose={() => router.push(closeShareUrl)}
         />
       )}
+      {sharedViewItem && (
+        <SharedItemDetailDialog
+          item={sharedViewItem}
+          onClose={() => router.push(closeSharedViewUrl)}
+        />
+      )}
     </div>
+  );
+}
+
+function SharedInboxCard({ item, onClick }: { item: SharedWithMeItem; onClick: () => void }) {
+  const ownerLabel = item.owner?.full_name ?? item.owner?.email ?? 'Unknown';
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="w-full text-left flex items-center gap-3 bg-card border border-blue-200 dark:border-blue-900/50 rounded-xl p-4 hover:shadow-sm transition-all"
+    >
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2 mb-1">
+          <span className="text-[10px] font-medium text-blue-600 bg-blue-50 dark:bg-blue-950/40 px-1.5 py-0.5 rounded-full">Shared</span>
+        </div>
+        <p className="text-sm font-semibold text-foreground truncate">{item.title}</p>
+        <div className="flex items-center gap-1.5 mt-1">
+          <Users size={11} className="text-muted-foreground shrink-0" />
+          <span className="text-xs text-muted-foreground truncate">By {ownerLabel}</span>
+        </div>
+      </div>
+    </button>
   );
 }

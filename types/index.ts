@@ -315,6 +315,8 @@ export interface SharedLink {
   created_at: string;
   updated_at: string;
   shared_link_recipients?: SharedLinkRecipient[];
+  item_title: string | null;
+  item_preview: string | null;
 }
 
 export interface AdminSharedLink extends SharedLink {
@@ -335,6 +337,36 @@ export interface ShareAccessLog {
   reason: string | null;
   created_at: string;
 }
+
+// ─── Shared-with-me types ─────────────────────────────────────────────────────
+
+export interface SharedWithMeOwner {
+  user_id: string;
+  email: string | null;
+  full_name: string | null;
+  avatar_url: string | null;
+}
+
+export interface SharedWithMeItem {
+  share_id: string;
+  recipient_id: string;
+  item_type: ItemType;
+  item_id: string;
+  share_type: ShareType;
+  permission: 'viewer';
+  shared_at: string;
+  expires_at: string | null;
+  requires_password: boolean;
+  owner: SharedWithMeOwner | null;
+  title: string;
+  preview: string | null;
+  link_token: string | null;
+}
+
+export type SharedWithMeResponse =
+  | { status: 'ok'; item_type: ItemType; share_type: ShareType; content: unknown; viewer_role?: 'owner' | 'recipient' }
+  | { status: 'password_required'; item_type: ItemType; share_type: ShareType }
+  | { status: 'denied' | 'revoked' | 'expired' | 'not_found' };
 
 // ─── Changelog types ───────────────────────────────────────────────────────────
 

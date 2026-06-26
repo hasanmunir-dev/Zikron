@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { api } from '@/lib/api';
-import type { SharedLink, AdminSharedLink, ShareAccessLog, ShareType, ItemType } from '@/types';
+import type { SharedLink, AdminSharedLink, ShareAccessLog, ShareType, ItemType, SharedWithMeItem, SharedWithMeResponse } from '@/types';
 
 export const shareKeys = {
   all: () => ['shared-links'] as const,
@@ -112,6 +112,37 @@ export function useDeleteSharedLink() {
       toast.error('Failed to delete link');
     },
     onSuccess: () => toast.success('Share link deleted'),
+  });
+}
+
+// ─── Shared-with-me hooks ─────────────────────────────────────────────────────
+
+export function useSharedWithMe() {
+  return useQuery({
+    queryKey: ['shared-with-me'],
+    queryFn: () => api.get<SharedWithMeItem[]>('/api/shared-with-me'),
+    staleTime: 2 * 60 * 1000,
+  });
+}
+
+export function useSharedWithMeItem(shareId: string | undefined) {
+  return useQuery({
+    queryKey: ['shared-with-me-item', shareId],
+    queryFn: () => api.get<SharedWithMeResponse>(`/api/shared-with-me/${shareId}`),
+    enabled: !!shareId,
+    retry: false,
+  });
+}
+
+export function useVerifySharedWithMePassword() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ shareId, password }: { shareId: string; password: string }) =>
+      api.post<SharedWithMeResponse>(`/api/shared-with-me/${shareId}/verify-password`, { password }),
+    onSuccess: (_data, { shareId }) => {
+      queryClient.setQueryData(['shared-with-me-item', shareId], _data);
+    },
+    onError: () => toast.error('Incorrect password'),
   });
 }
 

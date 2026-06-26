@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   LayoutDashboard,
+  NotebookTabs,
   Users,
   BookOpen,
   Inbox,
@@ -272,17 +273,19 @@ export function AdminSidebar({ open, onClose }: Props) {
         <div className="flex h-14 items-center justify-between border-b border-border px-4">
           <div className="flex min-w-0 items-center gap-3 overflow-hidden">
             <div className="h-7 w-9 shrink-0 overflow-hidden">
-                          <Image
-                            src="/icon.svg"
-                            alt="Zikron"
-                            width={36}
-                            height={36}
-                            className="h-full w-full object-contain"
-                            priority
-                          />
-                        </div>
+              <Image
+                src="/icon.svg"
+                alt="Zikron"
+                width={36}
+                height={36}
+                className="h-full w-full object-contain"
+                priority
+              />
+            </div>
 
-            <span className={`text-lg font-bold text-[#4076f5] dark:text-primary ${labelClass}`}>
+            <span
+              className={`text-lg font-bold text-[#4076f5] dark:text-primary ${labelClass}`}
+            >
               Zikron
             </span>
           </div>
@@ -339,6 +342,19 @@ export function AdminSidebar({ open, onClose }: Props) {
         </nav>
 
         <div className="space-y-1 border-t border-border px-3 py-3">
+          <Link
+            href="/app/dashboard"
+            onClick={onClose}
+            title="Admin Panel"
+            className={`
+                          flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-blue-600 transition-colors
+                          hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-950/40
+                          ${alignClass}
+                        `}
+          >
+            <NotebookTabs size={18} className="shrink-0" />
+            <span className={labelClass}>App Panel</span>
+          </Link>
           {navLink("/admin/settings", Settings, "Settings", false)}
 
           <div

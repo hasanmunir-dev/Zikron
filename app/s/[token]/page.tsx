@@ -6,6 +6,7 @@ import Link from 'next/link';
 import {
   Lock, Globe, AlertTriangle, Eye, EyeOff, XCircle,
   Clock, FileText, Link as LinkIcon, ArrowLeft,
+  Inbox, Table2, FolderOpen, Bell, ExternalLink,
 } from 'lucide-react';
 import { MarkdownViewer } from '@/components/editor/markdown-viewer';
 import { supabase } from '@/lib/supabase';
@@ -23,7 +24,36 @@ interface ShareResponse {
   allow_download?: boolean;
   content?: Record<string, unknown>;
   suspicious?: boolean;
+  viewer_role?: 'owner' | 'recipient' | 'public';
 }
+
+// ─── Item type metadata ───────────────────────────────────────────────────────
+
+type ItemType = 'note' | 'inbox' | 'list' | 'collection' | 'reminder';
+
+const ITEM_ICONS: Record<ItemType, React.ElementType> = {
+  note: FileText,
+  inbox: Inbox,
+  list: Table2,
+  collection: FolderOpen,
+  reminder: Bell,
+};
+
+const ITEM_LABELS: Record<ItemType, string> = {
+  note: 'Note',
+  inbox: 'Inbox item',
+  list: 'List',
+  collection: 'Collection',
+  reminder: 'Reminder',
+};
+
+const MODULE_BASE: Record<ItemType, string> = {
+  note: '/app/notes',
+  inbox: '/app/inbox',
+  list: '/app/lists',
+  collection: '/app/collections',
+  reminder: '/app/reminders',
+};
 
 // ─── Content renderers ────────────────────────────────────────────────────────
 
@@ -301,6 +331,7 @@ export default function PublicSharePage({ params }: { params: Promise<{ token: s
   const [shareData, setShareData] = useState<ShareResponse | null>(null);
   const [status, setStatus] = useState<ShareStatus>('loading');
   const [currentUrl, setCurrentUrl] = useState('');
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -315,6 +346,7 @@ export default function PublicSharePage({ params }: { params: Promise<{ token: s
         const { data: { session } } = await supabase.auth.getSession();
         if (session?.access_token) {
           headers['Authorization'] = `Bearer ${session.access_token}`;
+          setIsLoggedIn(true);
         }
 
         const res = await fetch(`${API_URL}/api/public/share/${token}`, { headers });
@@ -328,18 +360,40 @@ export default function PublicSharePage({ params }: { params: Promise<{ token: s
     load();
   }, [token]);
 
+  const itemType = (shareData?.item_type ?? null) as ItemType | null;
+  const ItemIcon = itemType ? ITEM_ICONS[itemType] : Globe;
+  const itemLabel = itemType ? ITEM_LABELS[itemType] : 'content';
+  const itemId = shareData?.content?.id as string | undefined;
+  const openInDashboardUrl = itemType && itemId ? `${MODULE_BASE[itemType]}?detail=${itemId}` : '/app/shared';
+
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="border-b border-border bg-card/80 backdrop-blur sticky top-0 z-10">
-        <div className="max-w-3xl mx-auto px-4 py-3 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
+        <div className="max-w-3xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
+          <Link href="/" className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors shrink-0">
             <ArrowLeft size={14} />
             Zikron
           </Link>
-          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-            <Globe size={12} />
-            Shared content
+          <div className="flex items-center gap-2 flex-wrap justify-end">
+            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              <ItemIcon size={12} />
+              Shared {itemLabel}
+            </div>
+            {shareData?.viewer_role === 'owner' && (
+              <span className="text-xs font-medium text-amber-700 bg-amber-50 dark:bg-amber-950/40 px-2 py-0.5 rounded-full border border-amber-200 dark:border-amber-800">
+                Owner Preview
+              </span>
+            )}
+            {isLoggedIn && status === 'ok' && (
+              <Link
+                href={openInDashboardUrl}
+                className="flex items-center gap-1.5 rounded-lg border border-border bg-card px-2.5 py-1 text-xs font-medium text-foreground hover:bg-muted transition-colors"
+              >
+                <ExternalLink size={11} />
+                Open in Dashboard
+              </Link>
+            )}
           </div>
         </div>
       </header>
@@ -356,6 +410,12 @@ export default function PublicSharePage({ params }: { params: Promise<{ token: s
 
         {status === 'password_required' && shareData && (
           <div className="max-w-sm mx-auto bg-card border border-border rounded-2xl p-6 shadow-sm">
+            {itemType && (
+              <div className="flex items-center gap-2 mb-4 pb-3 border-b border-border">
+                <ItemIcon size={14} className="text-muted-foreground" />
+                <span className="text-xs font-medium text-muted-foreground">{ITEM_LABELS[itemType]}</span>
+              </div>
+            )}
             <PasswordForm
               token={token}
               onSuccess={data => { setShareData(data); setStatus('ok'); }}
@@ -365,8 +425,17 @@ export default function PublicSharePage({ params }: { params: Promise<{ token: s
         )}
 
         {status === 'ok' && shareData?.content && shareData.item_type && (
-          <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
-            <ContentRenderer itemType={shareData.item_type} content={shareData.content} />
+          <div className="bg-card border border-border rounded-2xl shadow-sm overflow-hidden">
+            {/* Item type badge bar */}
+            <div className="flex items-center gap-2 px-6 py-3 border-b border-border bg-muted/30">
+              <ItemIcon size={13} className="text-muted-foreground" />
+              <span className="text-xs font-medium text-muted-foreground">
+                {shareData.viewer_role === 'owner' ? `${itemLabel} · Owner Preview` : `Shared ${itemLabel}`}
+              </span>
+            </div>
+            <div className="p-6">
+              <ContentRenderer itemType={shareData.item_type} content={shareData.content} />
+            </div>
           </div>
         )}
 

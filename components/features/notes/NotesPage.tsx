@@ -3,17 +3,19 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Plus, BookOpen, Search, X } from "lucide-react";
+import { Plus, BookOpen, Search, X, Users } from "lucide-react";
 import { savePageState, getPageState, cacheItem } from "@/lib/page-state";
 import { dialogUrl, closeDialogUrl, parseDialogState } from "@/lib/dialog-url";
 import { formatRelativeTime } from "@/utils/date";
 import { useNotes, useUpdateNote, useDeleteNote } from "@/hooks/queries/use-notes";
+import { useSharedWithMe } from "@/hooks/queries/use-shared-links";
 import { ItemActions } from "@/components/shared/item-actions";
 import { NoteDialog } from "./NoteDialog";
 import { ShareDialog } from "@/components/features/sharing/ShareDialog";
-import type { Note } from "@/types";
+import { SharedItemDetailDialog } from "@/components/features/sharing/SharedItemDetailDialog";
+import type { Note, SharedWithMeItem } from "@/types";
 
-type Tab = "all" | "favorites" | "archived";
+type Tab = "all" | "favorites" | "archived" | "shared";
 type SavedState = { tab: Tab; search: string };
 
 interface Props {
@@ -27,7 +29,10 @@ export function NotesPage({ basePath }: Props) {
   
   const saved = getPageState<SavedState>(stateKey);
   const [tab, setTab] = useState<Tab>(saved?.tab ?? "all");
-  const { data: notes = [], isLoading, isFetching } = useNotes(tab);
+  const notesTab = tab === 'shared' ? 'all' : tab;
+  const { data: notes = [], isLoading, isFetching } = useNotes(notesTab);
+  const { data: sharedItems = [] } = useSharedWithMe();
+  const sharedNotes = sharedItems.filter(i => i.item_type === 'note');
 
   // const saved = getPageState<SavedState>(stateKey);
   // const [tab, setTab] = useState<Tab>(saved?.tab ?? "all");
@@ -35,6 +40,14 @@ export function NotesPage({ basePath }: Props) {
 
   const dialog = parseDialogState(searchParams);
   const closeUrl = closeDialogUrl(basePath, searchParams);
+  const sharedViewId = searchParams.get("shared_view");
+  const sharedViewItem = sharedViewId ? sharedNotes.find(i => i.share_id === sharedViewId) : null;
+  const closeSharedViewUrl = (() => {
+    const p = new URLSearchParams(searchParams.toString());
+    p.delete("shared_view");
+    const qs = p.toString();
+    return qs ? `${basePath}?${qs}` : basePath;
+  })();
   const shareId = searchParams.get("share");
   const shareNote = shareId ? notes.find(n => n.id === shareId) : null;
   const closeShareUrl = (() => {
@@ -70,7 +83,7 @@ export function NotesPage({ basePath }: Props) {
     deleteNote.mutate(note.id);
   }
 
-  const filtered = search
+  const filteredOwned = search
     ? notes.filter(
         (n) =>
           n.title.toLowerCase().includes(search.toLowerCase()) ||
@@ -79,10 +92,18 @@ export function NotesPage({ basePath }: Props) {
       )
     : notes;
 
-  const tabs: { id: Tab; label: string }[] = [
+  const filteredShared = search
+    ? sharedNotes.filter(i => i.title.toLowerCase().includes(search.toLowerCase()))
+    : sharedNotes;
+
+  // "all" tab merges owned + shared (shared appear after owned)
+  const filtered = tab === 'shared' ? [] : filteredOwned;
+
+  const tabs: { id: Tab; label: string; count?: number }[] = [
     { id: "all", label: "All notes" },
     { id: "favorites", label: "Favorites" },
     { id: "archived", label: "Archived" },
+    { id: "shared", label: "Shared with me", count: sharedNotes.length },
   ];
 
   return (
@@ -103,13 +124,13 @@ export function NotesPage({ basePath }: Props) {
         </Link>
       </div>
 
-      <div className="flex gap-1 mb-5">
-        {tabs.map(({ id, label }) => (
+      <div className="flex gap-1 mb-5 flex-wrap">
+        {tabs.map(({ id, label, count }) => (
           <button
             type="button"
             key={id}
             onClick={() => setTab(id)}
-            className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors
               ${
                 tab === id
                   ? "bg-blue-50 dark:bg-blue-950/50 text-blue-700 dark:text-blue-400"
@@ -117,6 +138,11 @@ export function NotesPage({ basePath }: Props) {
               }`}
           >
             {label}
+            {count !== undefined && count > 0 && (
+              <span className="text-[10px] bg-blue-100 dark:bg-blue-950/60 text-blue-600 px-1.5 py-0.5 rounded-full font-medium">
+                {count}
+              </span>
+            )}
           </button>
         ))}
         {isFetching && notes.length > 0 && (
@@ -147,7 +173,29 @@ export function NotesPage({ basePath }: Props) {
         )}
       </div>
 
-      {isLoading && notes.length === 0 ? (
+      {tab === 'shared' ? (
+        /* ── Shared with me view ── */
+        filteredShared.length === 0 ? (
+          <div className="text-center py-16">
+            <div className="w-12 h-12 bg-muted rounded-xl flex items-center justify-center mx-auto mb-3">
+              <BookOpen size={22} className="text-muted-foreground/40" />
+            </div>
+            <p className="text-sm font-medium text-muted-foreground">
+              {search ? "No shared notes match your search" : "No notes shared with you yet"}
+            </p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {filteredShared.map(item => (
+              <SharedNoteCard
+                key={item.share_id}
+                item={item}
+                onClick={() => router.push(`${basePath}?shared_view=${item.share_id}`)}
+              />
+            ))}
+          </div>
+        )
+      ) : isLoading && notes.length === 0 ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {[1, 2, 3].map((i) => (
             <div
@@ -156,7 +204,7 @@ export function NotesPage({ basePath }: Props) {
             />
           ))}
         </div>
-      ) : filtered.length === 0 ? (
+      ) : filtered.length === 0 && (tab !== 'all' || filteredShared.length === 0) ? (
         <div className="text-center py-16">
           <div className="w-12 h-12 bg-muted rounded-xl flex items-center justify-center mx-auto mb-3">
             <BookOpen size={22} className="text-muted-foreground/40" />
@@ -188,6 +236,14 @@ export function NotesPage({ basePath }: Props) {
               onShare={() => router.push(`${basePath}?share=${note.id}`)}
             />
           ))}
+          {/* Shared notes appear in "all" tab after owned notes */}
+          {tab === 'all' && filteredShared.map(item => (
+            <SharedNoteCard
+              key={item.share_id}
+              item={item}
+              onClick={() => router.push(`${basePath}?shared_view=${item.share_id}`)}
+            />
+          ))}
         </div>
       )}
 
@@ -216,6 +272,12 @@ export function NotesPage({ basePath }: Props) {
           itemId={shareId}
           itemTitle={shareNote.title}
           onClose={() => router.push(closeShareUrl)}
+        />
+      )}
+      {sharedViewItem && (
+        <SharedItemDetailDialog
+          item={sharedViewItem}
+          onClose={() => router.push(closeSharedViewUrl)}
         />
       )}
     </div>
@@ -295,5 +357,27 @@ function NoteCard({
         </span>
       </div>
     </Link>
+  );
+}
+
+function SharedNoteCard({ item, onClick }: { item: SharedWithMeItem; onClick: () => void }) {
+  const ownerLabel = item.owner?.full_name ?? item.owner?.email ?? 'Unknown';
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="group relative bg-card border border-blue-200 dark:border-blue-900/50 rounded-xl p-4 hover:shadow-sm transition-all flex flex-col min-h-[140px] text-left w-full"
+    >
+      <div className="flex items-start justify-between gap-2 mb-2">
+        <h3 className="font-semibold text-foreground text-sm line-clamp-2 flex-1">{item.title}</h3>
+        <span className="shrink-0 text-[10px] font-medium text-blue-600 bg-blue-50 dark:bg-blue-950/40 px-1.5 py-0.5 rounded-full">
+          Shared
+        </span>
+      </div>
+      <div className="flex items-center gap-1.5 mt-auto pt-2">
+        <Users size={11} className="text-muted-foreground shrink-0" />
+        <span className="text-xs text-muted-foreground truncate">By {ownerLabel}</span>
+      </div>
+    </button>
   );
 }

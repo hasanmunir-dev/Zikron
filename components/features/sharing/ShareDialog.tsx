@@ -15,11 +15,16 @@ import {
   Eye,
   EyeOff,
   AlertTriangle,
+  Share2,
+  ExternalLink,
 } from 'lucide-react';
 import { useCreateSharedLink, useRevokeSharedLink, useSharedLinks } from '@/hooks/queries/use-shared-links';
 import { useAuth } from '@/hooks/useAuth';
 import { PrivateRecipientPicker } from './PrivateRecipientPicker';
 import { DateTimePicker } from '@/components/ui/date-time-picker';
+import { copyToClipboard } from '@/lib/share/copy-link';
+import { shareUrl as nativeShare } from '@/lib/share/native-share';
+import { getAppUrl } from '@/lib/share/url';
 import type { ItemType, ShareType, SharedLink, PrivateRecipient } from '@/types';
 
 // ─── Share type definitions ───────────────────────────────────────────────────
@@ -63,12 +68,12 @@ const SHARE_TYPES: ShareTypeOption[] = [
   },
 ];
 
-// ─── Copy button ──────────────────────────────────────────────────────────────
+// ─── Copy button (with local check-mark state) ────────────────────────────────
 
 function CopyButton({ text }: { text: string }) {
   const [copied, setCopied] = useState(false);
   async function copy() {
-    await navigator.clipboard.writeText(text);
+    await copyToClipboard(text);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   }
@@ -84,34 +89,80 @@ function CopyButton({ text }: { text: string }) {
   );
 }
 
+// ─── Share button (native share / clipboard fallback) ─────────────────────────
+
+function ShareButton({ url, title }: { url: string; title: string }) {
+  return (
+    <button
+      type="button"
+      onClick={() => nativeShare({ title, text: title, url })}
+      className="flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted transition-colors shrink-0"
+    >
+      <Share2 size={12} />
+      Share
+    </button>
+  );
+}
+
+// ─── Open button ──────────────────────────────────────────────────────────────
+
+function OpenButton({ url }: { url: string }) {
+  return (
+    <a
+      href={url}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted transition-colors shrink-0"
+    >
+      <ExternalLink size={12} />
+      Open
+    </a>
+  );
+}
+
 // ─── Existing link row ────────────────────────────────────────────────────────
 
 function ExistingLinkRow({
   link,
-  baseUrl,
+  appUrl,
+  itemTitle,
   onRevoke,
+  isNew,
 }: {
   link: SharedLink;
-  baseUrl: string;
+  appUrl: string;
+  itemTitle: string;
   onRevoke: (id: string) => void;
+  isNew?: boolean;
 }) {
   const typeInfo = SHARE_TYPES.find(t => t.value === link.share_type)!;
   const Icon = typeInfo.icon;
   const shareUrl = link.share_type === 'tracked_protected'
     ? null
-    : `${baseUrl}/s/${link.token}`;
+    : `${appUrl}/s/${link.token}`;
 
   const isActive = !link.is_revoked &&
     (!link.expires_at || new Date(link.expires_at) > new Date()) &&
     (link.view_limit === null || link.view_count < link.view_limit);
 
   return (
-    <div className={`rounded-xl border p-3 space-y-2 ${link.is_revoked ? 'border-border opacity-50' : 'border-border'}`}>
+    <div className={`rounded-xl border p-3 space-y-2 transition-colors ${
+      isNew
+        ? 'border-emerald-500 bg-emerald-50/50 dark:bg-emerald-950/20'
+        : link.is_revoked
+        ? 'border-border opacity-50'
+        : 'border-border'
+    }`}>
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-2">
           <Icon size={14} className={typeInfo.color} />
           <span className="text-xs font-medium text-foreground">{typeInfo.label}</span>
-          {!isActive && (
+          {isNew && (
+            <span className="text-[10px] bg-emerald-100 dark:bg-emerald-950/40 text-emerald-700 rounded-full px-1.5 py-0.5 font-medium">
+              Created
+            </span>
+          )}
+          {!isActive && !isNew && (
             <span className="text-[10px] bg-red-100 dark:bg-red-950/40 text-red-600 rounded-full px-1.5 py-0.5 font-medium">
               {link.is_revoked ? 'Revoked' : 'Expired'}
             </span>
@@ -124,31 +175,36 @@ function ExistingLinkRow({
       </div>
 
       {shareUrl && isActive && (
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <div className="flex-1 min-w-0 rounded-lg bg-muted/50 border border-border px-2.5 py-1.5 text-xs text-muted-foreground font-mono truncate">
             {shareUrl}
           </div>
-          <CopyButton text={shareUrl} />
+          <div className="flex items-center gap-1 shrink-0">
+            <CopyButton text={shareUrl} />
+            <ShareButton url={shareUrl} title={itemTitle} />
+            <OpenButton url={shareUrl} />
+          </div>
         </div>
       )}
 
       {link.share_type === 'tracked_protected' && link.shared_link_recipients && (
         <div className="space-y-1">
           {link.shared_link_recipients.map(r => {
-            const rUrl = r.individual_token ? `${baseUrl}/s/r/${r.individual_token}` : null;
+            const rUrl = r.individual_token ? `${appUrl}/s/r/${r.individual_token}` : null;
             return (
-              <div key={r.id} className="flex items-center gap-2">
+              <div key={r.id} className="flex items-center gap-2 flex-wrap">
                 <span className="text-xs text-muted-foreground min-w-[80px] truncate">{r.recipient_name ?? r.recipient_email ?? 'Recipient'}</span>
                 {r.suspicious_access_count > 0 && (
                   <span className="flex items-center gap-1 text-[10px] text-amber-600 bg-amber-100 dark:bg-amber-950/40 rounded-full px-1.5 py-0.5">
                     <AlertTriangle size={9} />
-                    Suspicious access
+                    Suspicious
                   </span>
                 )}
                 {rUrl && isActive && !r.is_revoked && (
-                  <div className="flex items-center gap-1.5 ml-auto">
-                    <span className="text-xs font-mono text-muted-foreground truncate max-w-[140px]">{rUrl}</span>
+                  <div className="flex items-center gap-1 ml-auto flex-wrap">
+                    <span className="text-xs font-mono text-muted-foreground truncate max-w-[120px]">{rUrl}</span>
                     <CopyButton text={rUrl} />
+                    <ShareButton url={rUrl} title={`${itemTitle} — ${r.recipient_name ?? r.recipient_email ?? 'Recipient'}`} />
                   </div>
                 )}
               </div>
@@ -188,6 +244,7 @@ export function ShareDialog({ itemType, itemId, itemTitle, onClose }: ShareDialo
   const [allowDownload, setAllowDownload] = useState(false);
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [privateRecipients, setPrivateRecipients] = useState<PrivateRecipient[]>([]);
+  const [newlyCreatedLinkId, setNewlyCreatedLinkId] = useState<string | null>(null);
 
   const { user } = useAuth();
   const { data: allLinks = [] } = useSharedLinks();
@@ -196,14 +253,14 @@ export function ShareDialog({ itemType, itemId, itemTitle, onClose }: ShareDialo
 
   const existingLinks = allLinks.filter(l => l.item_type === itemType && l.item_id === itemId);
 
-  const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
+  const appUrl = getAppUrl();
 
   const needsPassword = shareType === 'protected' || shareType === 'tracked_protected';
   const isPrivate = shareType === 'private';
   const canCreate = !isPrivate || privateRecipients.length > 0;
 
   async function handleCreate() {
-    await createLink.mutateAsync({
+    const created = await createLink.mutateAsync({
       item_type: itemType,
       item_id: itemId,
       share_type: shareType,
@@ -219,6 +276,9 @@ export function ShareDialog({ itemType, itemId, itemTitle, onClose }: ShareDialo
           }))
         : undefined,
     });
+    if (created?.id) {
+      setNewlyCreatedLinkId(created.id);
+    }
     setPassword('');
     setExpiresAt('');
     setViewLimit('');
@@ -378,8 +438,10 @@ export function ShareDialog({ itemType, itemId, itemTitle, onClose }: ShareDialo
                   <ExistingLinkRow
                     key={link.id}
                     link={link}
-                    baseUrl={baseUrl}
+                    appUrl={appUrl}
+                    itemTitle={itemTitle}
                     onRevoke={id => revokeLink.mutate(id)}
+                    isNew={link.id === newlyCreatedLinkId}
                   />
                 ))}
               </div>

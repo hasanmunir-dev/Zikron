@@ -3,14 +3,16 @@
 import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { Plus, Table2, Search, X } from "lucide-react";
+import { Plus, Table2, Search, X, Users } from "lucide-react";
 import { useLists, useUpdateList, useDeleteList } from "@/hooks/queries/use-lists";
+import { useSharedWithMe } from "@/hooks/queries/use-shared-links";
 import { formatRelativeTime } from "@/utils/date";
 import { ItemActions } from "@/components/shared/item-actions";
 import { ShareDialog } from "@/components/features/sharing/ShareDialog";
-import type { List } from "@/types";
+import { SharedItemDetailDialog } from "@/components/features/sharing/SharedItemDetailDialog";
+import type { List, SharedWithMeItem } from "@/types";
 
-type Tab = "all" | "favorites" | "archived";
+type Tab = "all" | "favorites" | "archived" | "shared";
 
 export function ListsPage() {
   const router = useRouter();
@@ -18,7 +20,10 @@ export function ListsPage() {
   const [tab, setTab] = useState<Tab>("all");
   const [search, setSearch] = useState("");
 
-  const { data: lists = [], isFetching } = useLists(tab);
+  const listsTab = tab === 'shared' ? 'all' : tab;
+  const { data: lists = [], isFetching } = useLists(listsTab);
+  const { data: sharedItems = [] } = useSharedWithMe();
+  const sharedLists = sharedItems.filter(i => i.item_type === 'list');
   const updateList = useUpdateList();
   const deleteList = useDeleteList();
 
@@ -27,6 +32,15 @@ export function ListsPage() {
   const closeShareUrl = (() => {
     const p = new URLSearchParams(searchParams.toString());
     p.delete("share");
+    const qs = p.toString();
+    return qs ? `/app/lists?${qs}` : '/app/lists';
+  })();
+
+  const sharedViewId = searchParams.get("shared_view");
+  const sharedViewItem = sharedViewId ? sharedLists.find(i => i.share_id === sharedViewId) : null;
+  const closeSharedViewUrl = (() => {
+    const p = new URLSearchParams(searchParams.toString());
+    p.delete("shared_view");
     const qs = p.toString();
     return qs ? `/app/lists?${qs}` : '/app/lists';
   })();
@@ -40,10 +54,15 @@ export function ListsPage() {
       )
     : lists;
 
-  const tabs: { id: Tab; label: string }[] = [
+  const filteredShared = search
+    ? sharedLists.filter(i => i.title.toLowerCase().includes(search.toLowerCase()))
+    : sharedLists;
+
+  const tabs: { id: Tab; label: string; count?: number }[] = [
     { id: "all", label: "All lists" },
     { id: "favorites", label: "Favorites" },
     { id: "archived", label: "Archived" },
+    { id: "shared", label: "Shared with me", count: sharedLists.length },
   ];
 
   return (
@@ -64,13 +83,13 @@ export function ListsPage() {
         </Link>
       </div>
 
-      <div className="flex gap-1 mb-5">
-        {tabs.map(({ id, label }) => (
+      <div className="flex gap-1 mb-5 flex-wrap">
+        {tabs.map(({ id, label, count }) => (
           <button
             type="button"
             key={id}
             onClick={() => setTab(id)}
-            className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors
               ${
                 tab === id
                   ? "bg-blue-50 dark:bg-blue-950/50 text-blue-700 dark:text-blue-400"
@@ -78,6 +97,9 @@ export function ListsPage() {
               }`}
           >
             {label}
+            {count !== undefined && count > 0 && (
+              <span className="text-[10px] bg-blue-100 dark:bg-blue-950/60 text-blue-600 px-1.5 py-0.5 rounded-full font-medium">{count}</span>
+            )}
           </button>
         ))}
         {isFetching && (
@@ -110,7 +132,28 @@ export function ListsPage() {
         )}
       </div>
 
-      {filtered.length === 0 ? (
+      {tab === 'shared' ? (
+        filteredShared.length === 0 ? (
+          <div className="text-center py-20">
+            <div className="w-14 h-14 bg-muted rounded-2xl flex items-center justify-center mx-auto mb-4">
+              <Table2 size={26} className="text-muted-foreground/30" />
+            </div>
+            <p className="text-base font-semibold text-foreground mb-1">
+              {search ? "No shared lists match your search" : "No lists shared with you yet"}
+            </p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {filteredShared.map(item => (
+              <SharedListCard
+                key={item.share_id}
+                item={item}
+                onClick={() => router.push(`/app/lists?shared_view=${item.share_id}`)}
+              />
+            ))}
+          </div>
+        )
+      ) : filtered.length === 0 && (tab !== 'all' || filteredShared.length === 0) ? (
         <div className="text-center py-20">
           <div className="w-14 h-14 bg-muted rounded-2xl flex items-center justify-center mx-auto mb-4">
             <Table2 size={26} className="text-muted-foreground/30" />
@@ -147,6 +190,13 @@ export function ListsPage() {
               onShare={() => router.push(`/app/lists?share=${list.id}`)}
             />
           ))}
+          {tab === 'all' && filteredShared.map(item => (
+            <SharedListCard
+              key={item.share_id}
+              item={item}
+              onClick={() => router.push(`/app/lists?shared_view=${item.share_id}`)}
+            />
+          ))}
         </div>
       )}
       {shareId && shareList && (
@@ -157,7 +207,38 @@ export function ListsPage() {
           onClose={() => router.push(closeShareUrl)}
         />
       )}
+      {sharedViewItem && (
+        <SharedItemDetailDialog
+          item={sharedViewItem}
+          onClose={() => router.push(closeSharedViewUrl)}
+        />
+      )}
     </div>
+  );
+}
+
+function SharedListCard({ item, onClick }: { item: SharedWithMeItem; onClick: () => void }) {
+  const ownerLabel = item.owner?.full_name ?? item.owner?.email ?? 'Unknown';
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="group relative bg-card border border-blue-200 dark:border-blue-900/50 rounded-xl p-4 hover:shadow-sm transition-all flex flex-col min-h-32 text-left w-full"
+    >
+      <div className="flex items-start justify-between gap-2 mb-2">
+        <div className="flex items-center gap-2 flex-1 min-w-0">
+          <div className="w-7 h-7 rounded-lg bg-blue-50 dark:bg-blue-950/40 flex items-center justify-center shrink-0">
+            <Table2 size={13} className="text-blue-600" />
+          </div>
+          <h3 className="font-semibold text-foreground text-sm line-clamp-2 flex-1">{item.title}</h3>
+        </div>
+        <span className="shrink-0 text-[10px] font-medium text-blue-600 bg-blue-50 dark:bg-blue-950/40 px-1.5 py-0.5 rounded-full">Shared</span>
+      </div>
+      <div className="flex items-center gap-1.5 mt-auto">
+        <Users size={11} className="text-muted-foreground shrink-0" />
+        <span className="text-xs text-muted-foreground truncate">By {ownerLabel}</span>
+      </div>
+    </button>
   );
 }
 

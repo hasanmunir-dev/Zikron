@@ -5,10 +5,11 @@ import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
   FolderOpen, Plus, Search, X, Star, Archive, Pencil, Trash2,
-  BookOpen, Inbox, Table2, MessageSquare, Bell, Hash, Share2,
+  BookOpen, Inbox, Table2, MessageSquare, Bell, Hash, Share2, Users,
 } from 'lucide-react';
 import { DeleteConfirmDialog } from '@/components/shared/delete-confirm-dialog';
 import { ShareDialog } from '@/components/features/sharing/ShareDialog';
+import { SharedItemDetailDialog } from '@/components/features/sharing/SharedItemDetailDialog';
 import { MarkdownEditor } from '@/components/editor/markdown-editor';
 import { MarkdownViewer } from '@/components/editor/markdown-viewer';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -16,8 +17,9 @@ import {
   useCollections, useCollection, useCreateCollection,
   useUpdateCollection, useDeleteCollection, useRemoveCollectionItem,
 } from '@/hooks/queries/use-collections';
+import { useSharedWithMe } from '@/hooks/queries/use-shared-links';
 import { formatRelativeTime } from '@/utils/date';
-import type { Collection, CollectionWithItems, CollectionItem, CollectionItemType } from '@/types';
+import type { Collection, CollectionWithItems, CollectionItem, CollectionItemType, SharedWithMeItem } from '@/types';
 
 const BASE = '/app/collections';
 
@@ -480,14 +482,17 @@ function CollectionsContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [query, setQuery] = useState('');
-  const [tab, setTab] = useState<'all' | 'favorites' | 'archived'>('all');
+  const [tab, setTab] = useState<'all' | 'favorites' | 'archived' | 'shared'>('all');
 
   const create = searchParams.get('create');
   const detail = searchParams.get('detail');
   const edit = searchParams.get('edit');
   const shareId = searchParams.get('share');
+  const sharedViewId = searchParams.get('shared_view');
 
   const { data: collections = [], isLoading } = useCollections();
+  const { data: sharedItems = [] } = useSharedWithMe();
+  const sharedCollections = sharedItems.filter(i => i.item_type === 'collection');
   const deleteCollection = useDeleteCollection();
   const update = useUpdateCollection();
 
@@ -495,6 +500,14 @@ function CollectionsContent() {
   const closeShareUrl = (() => {
     const p = new URLSearchParams(searchParams.toString());
     p.delete('share');
+    const qs = p.toString();
+    return qs ? `${BASE}?${qs}` : BASE;
+  })();
+
+  const sharedViewItem = sharedViewId ? sharedCollections.find(i => i.share_id === sharedViewId) : null;
+  const closeSharedViewUrl = (() => {
+    const p = new URLSearchParams(searchParams.toString());
+    p.delete('shared_view');
     const qs = p.toString();
     return qs ? `${BASE}?${qs}` : BASE;
   })();
@@ -511,10 +524,15 @@ function CollectionsContent() {
       return c.title.toLowerCase().includes(q) || (c.description ?? '').toLowerCase().includes(q);
     });
 
+  const filteredShared = query
+    ? sharedCollections.filter(i => i.title.toLowerCase().includes(query.toLowerCase()))
+    : sharedCollections;
+
   const tabs = [
     { key: 'all' as const, label: 'All', count: collections.filter(c => !c.is_archived).length },
     { key: 'favorites' as const, label: 'Favorites', count: collections.filter(c => c.is_favorite).length },
     { key: 'archived' as const, label: 'Archived', count: collections.filter(c => c.is_archived).length },
+    { key: 'shared' as const, label: 'Shared with me', count: sharedCollections.length },
   ];
 
   return (
@@ -579,7 +597,28 @@ function CollectionsContent() {
 
       {/* Content */}
       <div className="flex-1 overflow-y-auto px-6 pb-6">
-        {isLoading ? (
+        {tab === 'shared' ? (
+          filteredShared.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-16 text-center">
+              <div className="w-14 h-14 bg-violet-100 dark:bg-violet-900/40 rounded-2xl flex items-center justify-center mb-4">
+                <FolderOpen size={24} className="text-violet-500" />
+              </div>
+              <p className="text-sm font-semibold text-foreground mb-1">
+                {query ? 'No shared collections match your search' : 'No collections shared with you yet'}
+              </p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {filteredShared.map(item => (
+                <SharedCollectionCard
+                  key={item.share_id}
+                  item={item}
+                  onClick={() => router.push(`${BASE}?shared_view=${item.share_id}`)}
+                />
+              ))}
+            </div>
+          )
+        ) : isLoading ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {[...Array(6)].map((_, i) => (
               <div key={i} className="bg-card border border-border rounded-xl overflow-hidden">
@@ -592,7 +631,7 @@ function CollectionsContent() {
               </div>
             ))}
           </div>
-        ) : filtered.length === 0 ? (
+        ) : filtered.length === 0 && (tab !== 'all' || filteredShared.length === 0) ? (
           <div className="flex flex-col items-center justify-center py-16 text-center">
             <div className="w-14 h-14 bg-violet-100 dark:bg-violet-900/40 rounded-2xl flex items-center justify-center mb-4">
               <FolderOpen size={24} className="text-violet-500" />
@@ -623,6 +662,13 @@ function CollectionsContent() {
                 onShare={() => router.push(`${BASE}?share=${col.id}`)}
               />
             ))}
+            {tab === 'all' && filteredShared.map(item => (
+              <SharedCollectionCard
+                key={item.share_id}
+                item={item}
+                onClick={() => router.push(`${BASE}?shared_view=${item.share_id}`)}
+              />
+            ))}
           </div>
         )}
       </div>
@@ -639,7 +685,39 @@ function CollectionsContent() {
           onClose={() => router.replace(closeShareUrl)}
         />
       )}
+      {sharedViewItem && (
+        <SharedItemDetailDialog
+          item={sharedViewItem}
+          onClose={() => router.push(closeSharedViewUrl)}
+        />
+      )}
     </div>
+  );
+}
+
+function SharedCollectionCard({ item, onClick }: { item: SharedWithMeItem; onClick: () => void }) {
+  const ownerLabel = item.owner?.full_name ?? item.owner?.email ?? 'Unknown';
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="relative group bg-card border border-blue-200 dark:border-blue-900/50 rounded-xl overflow-hidden hover:shadow-sm transition-all text-left w-full"
+    >
+      <div className="h-1 w-full bg-blue-400" />
+      <div className="p-4">
+        <div className="flex items-start justify-between gap-2 mb-2">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <span className="text-xl shrink-0">📁</span>
+            <p className="text-sm font-semibold text-foreground truncate">{item.title}</p>
+          </div>
+          <span className="shrink-0 text-[10px] font-medium text-blue-600 bg-blue-50 dark:bg-blue-950/40 px-1.5 py-0.5 rounded-full">Shared</span>
+        </div>
+        <div className="flex items-center gap-1.5 mt-2">
+          <Users size={11} className="text-muted-foreground shrink-0" />
+          <span className="text-xs text-muted-foreground truncate">By {ownerLabel}</span>
+        </div>
+      </div>
+    </button>
   );
 }
 

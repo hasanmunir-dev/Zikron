@@ -6,7 +6,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import {
   Bell, Plus, Search, X, Clock, CheckCircle2, XCircle,
   AlertCircle, Trash2, Pencil, Circle,
-  BookOpen, Inbox, Table2, MessageSquare, Link2, RotateCcw, FolderOpen, Share2,
+  BookOpen, Inbox, Table2, MessageSquare, Link2, RotateCcw, FolderOpen, Share2, Users,
 } from 'lucide-react';
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
@@ -22,16 +22,18 @@ import { useLists } from '@/hooks/queries/use-lists';
 import { DeleteConfirmDialog } from '@/components/shared/delete-confirm-dialog';
 import { AddToCollectionDialog } from '@/components/features/collections/AddToCollectionDialog';
 import { ShareDialog } from '@/components/features/sharing/ShareDialog';
+import { SharedItemDetailDialog } from '@/components/features/sharing/SharedItemDetailDialog';
 import { MarkdownEditor } from '@/components/editor/markdown-editor';
 import { MarkdownViewer } from '@/components/editor/markdown-viewer';
+import { useSharedWithMe } from '@/hooks/queries/use-shared-links';
 import { closeDialogUrl } from '@/lib/dialog-url';
 import { formatRelativeTime } from '@/utils/date';
 import { usePushNotifications } from '@/hooks/use-push-notifications';
-import type { Reminder, ReminderStatus, ReminderPriority, ReminderLinkedType } from '@/types';
+import type { Reminder, ReminderStatus, ReminderPriority, ReminderLinkedType, SharedWithMeItem } from '@/types';
 
 const BASE = '/app/reminders';
 
-type FilterTab = 'all' | 'today' | 'upcoming' | 'overdue' | 'completed' | 'cancelled';
+type FilterTab = 'all' | 'today' | 'upcoming' | 'overdue' | 'completed' | 'cancelled' | 'shared';
 type ComputedStatus = 'overdue' | 'today' | 'upcoming' | 'pending' | 'completed' | 'cancelled';
 
 // ─── Date helpers ─────────────────────────────────────────────────────────────
@@ -569,11 +571,13 @@ function RemindersContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { data: rawReminders = [], isLoading } = useReminders();
+  const { data: sharedItems = [] } = useSharedWithMe();
+  const sharedReminders = sharedItems.filter(i => i.item_type === 'reminder');
   const updateStatus = useUpdateReminderStatus();
   const push = usePushNotifications();
 
   const reminders = sortReminders(rawReminders);
- 
+
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState<FilterTab>('all');
   const [notificationDismissed, setNotificationDismissed] = useState(false);
@@ -582,6 +586,7 @@ function RemindersContent() {
   const editId    = searchParams.get('edit');
   const deleteId  = searchParams.get('delete');
   const shareId   = searchParams.get('share');
+  const sharedViewId = searchParams.get('shared_view');
   const isCreate  = searchParams.get('create') === 'true';
   const closeUrl  = closeDialogUrl(BASE, searchParams);
   const shareReminder = shareId ? reminders.find(r => r.id === shareId) : null;
@@ -591,10 +596,16 @@ function RemindersContent() {
     const qs = p.toString();
     return qs ? `${BASE}?${qs}` : BASE;
   })();
-
-  // const reminders = sortReminders(rawReminders);
+  const sharedViewItem = sharedViewId ? sharedReminders.find(i => i.share_id === sharedViewId) : null;
+  const closeSharedViewUrl = (() => {
+    const p = new URLSearchParams(searchParams.toString());
+    p.delete('shared_view');
+    const qs = p.toString();
+    return qs ? `${BASE}?${qs}` : BASE;
+  })();
 
   const filtered = reminders.filter(r => {
+    if (filter === 'shared') return false;
     if (search) {
       const q = search.toLowerCase();
       if (!r.title.toLowerCase().includes(q) && !(r.description ?? '').toLowerCase().includes(q) && !r.tags.some(t => t.toLowerCase().includes(q))) return false;
@@ -609,6 +620,10 @@ function RemindersContent() {
     return true;
   });
 
+  const filteredShared = search
+    ? sharedReminders.filter(i => i.title.toLowerCase().includes(search.toLowerCase()))
+    : sharedReminders;
+
   const counts: Record<FilterTab, number> = {
     all:       reminders.length,
     today:     reminders.filter(r => getComputedStatus(r) === 'today').length,
@@ -616,6 +631,7 @@ function RemindersContent() {
     overdue:   reminders.filter(r => getComputedStatus(r) === 'overdue').length,
     completed: reminders.filter(r => r.status === 'completed').length,
     cancelled: reminders.filter(r => r.status === 'cancelled').length,
+    shared:    sharedReminders.length,
   };
 
   const tabs: { key: FilterTab; label: string }[] = [
@@ -625,6 +641,7 @@ function RemindersContent() {
     { key: 'overdue', label: 'Overdue' },
     { key: 'completed', label: 'Completed' },
     { key: 'cancelled', label: 'Cancelled' },
+    { key: 'shared', label: 'Shared with me' },
   ];
 
   return (
@@ -681,9 +698,30 @@ function RemindersContent() {
         ))}
       </div>
 
-      {isLoading ? (
+      {filter === 'shared' ? (
+        filteredShared.length === 0 ? (
+          <div className="bg-card border border-dashed border-border rounded-2xl p-12 text-center">
+            <div className="w-12 h-12 bg-amber-100 dark:bg-amber-950/40 rounded-xl flex items-center justify-center mx-auto mb-4">
+              <Bell size={22} className="text-amber-500" />
+            </div>
+            <p className="text-sm font-medium text-foreground mb-1">
+              {search ? 'No shared reminders match your search.' : 'No reminders shared with you yet.'}
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {filteredShared.map(item => (
+              <SharedReminderCard
+                key={item.share_id}
+                item={item}
+                onClick={() => router.push(`${BASE}?shared_view=${item.share_id}`)}
+              />
+            ))}
+          </div>
+        )
+      ) : isLoading ? (
         <div className="space-y-3">{[...Array(4)].map((_, i) => <div key={i} className="h-20 bg-muted rounded-xl animate-pulse" />)}</div>
-      ) : filtered.length === 0 ? (
+      ) : filtered.length === 0 && (filter !== 'all' || filteredShared.length === 0) ? (
         <div className="bg-card border border-dashed border-border rounded-2xl p-12 text-center">
           <div className="w-12 h-12 bg-amber-100 dark:bg-amber-950/40 rounded-xl flex items-center justify-center mx-auto mb-4">
             <Bell size={22} className="text-amber-500" />
@@ -705,6 +743,13 @@ function RemindersContent() {
           {filtered.map(r => (
             <ReminderCard key={r.id} r={r} onStatus={(id, status) => updateStatus.mutate({ id, status })} />
           ))}
+          {filter === 'all' && filteredShared.map(item => (
+            <SharedReminderCard
+              key={item.share_id}
+              item={item}
+              onClick={() => router.push(`${BASE}?shared_view=${item.share_id}`)}
+            />
+          ))}
         </div>
       )}
 
@@ -720,7 +765,40 @@ function RemindersContent() {
           onClose={() => router.replace(closeShareUrl)}
         />
       )}
+      {sharedViewItem && (
+        <SharedItemDetailDialog
+          item={sharedViewItem}
+          onClose={() => router.push(closeSharedViewUrl)}
+        />
+      )}
     </div>
+  );
+}
+
+function SharedReminderCard({ item, onClick }: { item: SharedWithMeItem; onClick: () => void }) {
+  const ownerLabel = item.owner?.full_name ?? item.owner?.email ?? 'Unknown';
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="w-full text-left bg-card border border-blue-200 dark:border-blue-900/50 rounded-xl p-4 hover:shadow-sm transition-all"
+    >
+      <div className="flex items-start gap-3">
+        <div className="mt-0.5 shrink-0 text-blue-500">
+          <Bell size={18} />
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 mb-1">
+            <p className="text-sm font-medium text-foreground truncate">{item.title}</p>
+            <span className="shrink-0 text-[10px] font-medium text-blue-600 bg-blue-50 dark:bg-blue-950/40 px-1.5 py-0.5 rounded-full">Shared</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <Users size={11} className="text-muted-foreground shrink-0" />
+            <span className="text-xs text-muted-foreground truncate">By {ownerLabel}</span>
+          </div>
+        </div>
+      </div>
+    </button>
   );
 }
 
