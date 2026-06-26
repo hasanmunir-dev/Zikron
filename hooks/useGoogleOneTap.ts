@@ -8,20 +8,6 @@ import { supabase } from '@/lib/supabase';
 const CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
 const SCRIPT_ID = 'google-gis-script';
 
-// Generates a cryptographically random nonce and its SHA-256 hash.
-// Google receives the hash (embedded in the signed JWT as the `nonce` claim).
-// Supabase receives the raw value — it re-hashes and compares against the JWT.
-async function generateNonce(): Promise<[rawNonce: string, hashedNonce: string]> {
-  const rawBytes = crypto.getRandomValues(new Uint8Array(32));
-  const rawNonce = btoa(String.fromCharCode(...rawBytes))
-    .replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
-
-  const hashBuffer = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(rawNonce));
-  const hashedNonce = btoa(String.fromCharCode(...new Uint8Array(hashBuffer)))
-    .replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
-
-  return [rawNonce, hashedNonce];
-}
 
 /**
  * Activates Google One Tap when `enabled` is true.
@@ -45,27 +31,17 @@ export function useGoogleOneTap(enabled: boolean): void {
     // call becomes a no-op via this flag.
     let cancelled = false;
 
-    // init is async because nonce generation uses crypto.subtle (Promise-based).
-    // Event listeners don't await the returned promise — errors are handled internally.
-    async function init(): Promise<void> {
+    function init(): void {
       if (cancelled || !window.google?.accounts?.id) return;
-
-      const [rawNonce, hashedNonce] = await generateNonce();
-      if (cancelled) return; // guard in case cleanup fired during the await
-
       window.google.accounts.id.initialize({
         client_id: CLIENT_ID!,
-        // Hashed nonce → Google embeds it as the `nonce` claim in the signed JWT.
-        nonce: hashedNonce,
         callback: (r) => {
           void (async () => {
             if (cancelled) return;
             try {
-              // Raw nonce → Supabase hashes it and compares with the JWT claim.
               const { error } = await supabase.auth.signInWithIdToken({
                 provider: 'google',
                 token: r.credential,
-                nonce: rawNonce,
               });
               if (error) throw error;
               router.push('/app/dashboard');
