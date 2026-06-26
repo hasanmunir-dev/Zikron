@@ -3,19 +3,20 @@
 import { useEffect, useState, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Search, BookOpen, Inbox, MessageSquare, X, Table2, Bell, FolderOpen, Users } from 'lucide-react';
+import { Search, BookOpen, Inbox, MessageSquare, X, Table2, Bell, FolderOpen, Users, Link2 } from 'lucide-react';
 import { api } from '@/lib/api';
 import { formatRelativeTime } from '@/utils/date';
-import type { Note, InboxItem, SelfChatMessage, List, Reminder, Collection, Contact } from '@/types';
+import type { Note, InboxItem, SelfChatMessage, List, Reminder, Collection, Contact, SharedLink } from '@/types';
 
 type Result =
-  | { type: 'note';       item: Note }
-  | { type: 'inbox';      item: InboxItem }
-  | { type: 'message';    item: SelfChatMessage }
-  | { type: 'list';       item: List }
-  | { type: 'reminder';   item: Reminder }
-  | { type: 'collection'; item: Collection }
-  | { type: 'contact';    item: Contact };
+  | { type: 'note';        item: Note }
+  | { type: 'inbox';       item: InboxItem }
+  | { type: 'message';     item: SelfChatMessage }
+  | { type: 'list';        item: List }
+  | { type: 'reminder';    item: Reminder }
+  | { type: 'collection';  item: Collection }
+  | { type: 'contact';     item: Contact }
+  | { type: 'shared_link'; item: SharedLink & { created_at: string } };
 
 function SearchResults() {
   const searchParams = useSearchParams();
@@ -32,7 +33,7 @@ function SearchResults() {
     const q = query.toLowerCase();
 
     async function runSearch() {
-      const [notes, inbox, messages, lists, reminders, collections, contacts] = await Promise.all([
+      const [notes, inbox, messages, lists, reminders, collections, contacts, sharedLinks] = await Promise.all([
         api.get<Note[]>('/api/notes'),
         api.get<InboxItem[]>('/api/inbox'),
         api.get<SelfChatMessage[]>('/api/self-chat'),
@@ -40,6 +41,7 @@ function SearchResults() {
         api.get<Reminder[]>('/api/reminders'),
         api.get<Collection[]>('/api/collections'),
         api.get<Contact[]>('/api/contacts'),
+        api.get<SharedLink[]>('/api/shared-links'),
       ]);
 
       const filteredNotes = notes.filter(n =>
@@ -84,6 +86,11 @@ function SearchResults() {
           (c.notes ?? '').toLowerCase().includes(q)
         )
       );
+      const filteredSharedLinks = sharedLinks.filter(l =>
+        l.item_type.toLowerCase().includes(q) ||
+        l.share_type.toLowerCase().includes(q) ||
+        l.token.toLowerCase().includes(q)
+      );
 
       const all: Result[] = [
         ...filteredNotes.map(item => ({ type: 'note' as const, item })),
@@ -93,6 +100,7 @@ function SearchResults() {
         ...filteredReminders.map(item => ({ type: 'reminder' as const, item })),
         ...filteredCollections.map(item => ({ type: 'collection' as const, item })),
         ...filteredContacts.map(item => ({ type: 'contact' as const, item })),
+        ...filteredSharedLinks.map(item => ({ type: 'shared_link' as const, item: item as SharedLink & { created_at: string } })),
       ];
 
       type Dated = { created_at: string; updated_at?: string };
@@ -115,10 +123,10 @@ function SearchResults() {
   }
 
   const typeLabel: Record<Result['type'], string> = {
-    note: 'Note', inbox: 'Inbox', message: 'Chat', list: 'List', reminder: 'Reminder', collection: 'Collection', contact: 'Contact',
+    note: 'Note', inbox: 'Inbox', message: 'Chat', list: 'List', reminder: 'Reminder', collection: 'Collection', contact: 'Contact', shared_link: 'Shared',
   };
   const typeIcon: Record<Result['type'], React.ElementType> = {
-    note: BookOpen, inbox: Inbox, message: MessageSquare, list: Table2, reminder: Bell, collection: FolderOpen, contact: Users,
+    note: BookOpen, inbox: Inbox, message: MessageSquare, list: Table2, reminder: Bell, collection: FolderOpen, contact: Users, shared_link: Link2,
   };
   const typeColor: Record<Result['type'], string> = {
     note: 'bg-violet-100 dark:bg-violet-950/60 text-violet-600',
@@ -128,6 +136,7 @@ function SearchResults() {
     reminder: 'bg-amber-100 dark:bg-amber-950/60 text-amber-600',
     collection: 'bg-fuchsia-100 dark:bg-fuchsia-950/60 text-fuchsia-600',
     contact: 'bg-cyan-100 dark:bg-cyan-950/60 text-cyan-600',
+    shared_link: 'bg-rose-100 dark:bg-rose-950/60 text-rose-600',
   };
 
   function getHref(result: Result): string {
@@ -138,6 +147,7 @@ function SearchResults() {
     if (result.type === 'reminder') return `/app/reminders?detail=${result.item.id}`;
     if (result.type === 'collection') return `/app/collections?detail=${result.item.id}`;
     if (result.type === 'contact') return `/app/contacts?detail=${result.item.id}`;
+    if (result.type === 'shared_link') return '/app/shared';
     return '/app/dashboard';
   }
 
@@ -149,6 +159,7 @@ function SearchResults() {
     if (result.type === 'reminder') return result.item.title;
     if (result.type === 'collection') return result.item.title;
     if (result.type === 'contact') return result.item.name;
+    if (result.type === 'shared_link') return `${result.item.share_type} · ${result.item.item_type}`;
     return '';
   }
 
@@ -158,6 +169,7 @@ function SearchResults() {
     if (result.type === 'reminder') return result.item.description;
     if (result.type === 'collection') return result.item.description;
     if (result.type === 'contact') return [result.item.job_title, result.item.company, result.item.email].filter(Boolean).join(' · ') || null;
+    if (result.type === 'shared_link') return `Token: ${result.item.token} · ${result.item.view_count} view${result.item.view_count !== 1 ? 's' : ''}`;
     return null;
   }
 

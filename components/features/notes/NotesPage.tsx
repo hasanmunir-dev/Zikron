@@ -10,6 +10,7 @@ import { formatRelativeTime } from "@/utils/date";
 import { useNotes, useUpdateNote, useDeleteNote } from "@/hooks/queries/use-notes";
 import { ItemActions } from "@/components/shared/item-actions";
 import { NoteDialog } from "./NoteDialog";
+import { ShareDialog } from "@/components/features/sharing/ShareDialog";
 import type { Note } from "@/types";
 
 type Tab = "all" | "favorites" | "archived";
@@ -23,15 +24,27 @@ export function NotesPage({ basePath }: Props) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const stateKey = `notes:${basePath}`;
-
+  
   const saved = getPageState<SavedState>(stateKey);
   const [tab, setTab] = useState<Tab>(saved?.tab ?? "all");
+  const { data: notes = [], isLoading, isFetching } = useNotes(tab);
+
+  // const saved = getPageState<SavedState>(stateKey);
+  // const [tab, setTab] = useState<Tab>(saved?.tab ?? "all");
   const [search, setSearch] = useState(saved?.search ?? "");
 
   const dialog = parseDialogState(searchParams);
   const closeUrl = closeDialogUrl(basePath, searchParams);
+  const shareId = searchParams.get("share");
+  const shareNote = shareId ? notes.find(n => n.id === shareId) : null;
+  const closeShareUrl = (() => {
+    const p = new URLSearchParams(searchParams.toString());
+    p.delete("share");
+    const qs = p.toString();
+    return qs ? `${basePath}?${qs}` : basePath;
+  })();
 
-  const { data: notes = [], isLoading, isFetching } = useNotes(tab);
+  // const { data: notes = [], isLoading, isFetching } = useNotes(tab);
   const updateNote = useUpdateNote();
   const deleteNote = useDeleteNote();
 
@@ -172,6 +185,7 @@ export function NotesPage({ basePath }: Props) {
               onToggleFavorite={() => handleToggleFavorite(note)}
               onArchive={() => handleArchive(note)}
               onDelete={() => handleDelete(note)}
+              onShare={() => router.push(`${basePath}?share=${note.id}`)}
             />
           ))}
         </div>
@@ -196,6 +210,14 @@ export function NotesPage({ basePath }: Props) {
           defaultTab="write"
         />
       )}
+      {shareId && shareNote && (
+        <ShareDialog
+          itemType="note"
+          itemId={shareId}
+          itemTitle={shareNote.title}
+          onClose={() => router.push(closeShareUrl)}
+        />
+      )}
     </div>
   );
 }
@@ -207,6 +229,7 @@ function NoteCard({
   onToggleFavorite,
   onArchive,
   onDelete,
+  onShare,
 }: {
   note: Note;
   detailUrl: string;
@@ -214,6 +237,7 @@ function NoteCard({
   onToggleFavorite: () => void;
   onArchive: () => void;
   onDelete: () => void;
+  onShare: () => void;
 }) {
   const router = useRouter();
 
@@ -245,6 +269,7 @@ function NoteCard({
           itemName={note.title}
           collectionItemType="note"
           collectionItemId={note.id}
+          onShare={onShare}
         />
       </div>
 

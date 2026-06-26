@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Users, BookOpen, Inbox, MessageSquare, UserCheck, UserX, Clock, Table2, ListChecks, Bell, AlertCircle, MessageSquarePlus, GitCommit } from 'lucide-react';
+import { Users, BookOpen, Inbox, MessageSquare, UserCheck, UserX, Clock, Table2, ListChecks, Bell, AlertCircle, MessageSquarePlus, GitCommit, Link2, AlertTriangle } from 'lucide-react';
 import { useAdminStats, useAdminUsers, useAdminLists } from '@/hooks/queries/use-admin';
 import { formatRelativeTime } from '@/utils/date';
 import type { AdminList } from '@/types';
@@ -27,6 +27,8 @@ export default function AdminDashboardPage() {
     { label: 'Changelogs',     value: stats?.publishedChangelogs ?? '—', icon: GitCommit,      color: 'text-emerald-600 bg-emerald-100 dark:bg-emerald-950/60' },
     { label: 'Active Users',   value: stats?.activeUsers     ?? '—', icon: UserCheck,          color: 'text-green-600 bg-green-100 dark:bg-green-950/60' },
     { label: 'Disabled',       value: stats?.disabledUsers   ?? '—', icon: UserX,              color: 'text-red-500 bg-red-100 dark:bg-red-950/60' },
+    { label: 'Shared Links',   value: stats?.totalSharedLinks ?? '—', icon: Link2,             color: 'text-violet-600 bg-violet-100 dark:bg-violet-950/60' },
+    { label: 'Suspicious',     value: stats?.suspiciousAccesses ?? '—', icon: AlertTriangle,   color: 'text-amber-600 bg-amber-100 dark:bg-amber-950/60' },
   ];
 
   return (

@@ -6,7 +6,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import {
   Bell, Plus, Search, X, Clock, CheckCircle2, XCircle,
   AlertCircle, Trash2, Pencil, Circle,
-  BookOpen, Inbox, Table2, MessageSquare, Link2, RotateCcw, FolderOpen,
+  BookOpen, Inbox, Table2, MessageSquare, Link2, RotateCcw, FolderOpen, Share2,
 } from 'lucide-react';
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
@@ -21,6 +21,7 @@ import { useInbox } from '@/hooks/queries/use-inbox';
 import { useLists } from '@/hooks/queries/use-lists';
 import { DeleteConfirmDialog } from '@/components/shared/delete-confirm-dialog';
 import { AddToCollectionDialog } from '@/components/features/collections/AddToCollectionDialog';
+import { ShareDialog } from '@/components/features/sharing/ShareDialog';
 import { MarkdownEditor } from '@/components/editor/markdown-editor';
 import { MarkdownViewer } from '@/components/editor/markdown-viewer';
 import { closeDialogUrl } from '@/lib/dialog-url';
@@ -359,6 +360,9 @@ function ReminderCard({ r, onStatus }: { r: Reminder; onStatus: (id: string, s: 
           >
             <FolderOpen size={14} />
           </button>
+          <Link href={`${BASE}?share=${r.id}`} title="Share" className="p-1.5 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground transition-colors">
+            <Share2 size={14} />
+          </Link>
           <Link href={`${BASE}?edit=${r.id}`} title="Edit" className="p-1.5 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground transition-colors">
             <Pencil size={14} />
           </Link>
@@ -562,11 +566,14 @@ function DeleteDialog({ id, closeUrl }: { id: string; closeUrl: string }) {
 // ─── Main page ────────────────────────────────────────────────────────────────
 
 function RemindersContent() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const { data: rawReminders = [], isLoading } = useReminders();
   const updateStatus = useUpdateReminderStatus();
   const push = usePushNotifications();
 
+  const reminders = sortReminders(rawReminders);
+ 
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState<FilterTab>('all');
   const [notificationDismissed, setNotificationDismissed] = useState(false);
@@ -574,10 +581,18 @@ function RemindersContent() {
   const detailId  = searchParams.get('detail');
   const editId    = searchParams.get('edit');
   const deleteId  = searchParams.get('delete');
+  const shareId   = searchParams.get('share');
   const isCreate  = searchParams.get('create') === 'true';
   const closeUrl  = closeDialogUrl(BASE, searchParams);
+  const shareReminder = shareId ? reminders.find(r => r.id === shareId) : null;
+  const closeShareUrl = (() => {
+    const p = new URLSearchParams(searchParams.toString());
+    p.delete('share');
+    const qs = p.toString();
+    return qs ? `${BASE}?${qs}` : BASE;
+  })();
 
-  const reminders = sortReminders(rawReminders);
+  // const reminders = sortReminders(rawReminders);
 
   const filtered = reminders.filter(r => {
     if (search) {
@@ -697,6 +712,14 @@ function RemindersContent() {
       {detailId  && !editId && !deleteId && !isCreate && <DetailDialog id={detailId} closeUrl={closeUrl} />}
       {editId    && <EditDialog id={editId} closeUrl={closeUrl} />}
       {deleteId  && <DeleteDialog id={deleteId} closeUrl={closeUrl} />}
+      {shareId && shareReminder && (
+        <ShareDialog
+          itemType="reminder"
+          itemId={shareId}
+          itemTitle={shareReminder.title}
+          onClose={() => router.replace(closeShareUrl)}
+        />
+      )}
     </div>
   );
 }

@@ -20,6 +20,7 @@ import {
   ChevronsRight,
   MessageSquarePlus,
   Users,
+  Link2,
 } from "lucide-react";
 import Image from "next/image";
 import { useAuth } from "@/hooks/useAuth";
@@ -33,6 +34,7 @@ const navItems = [
   { href: "/app/reminders", icon: Bell, label: "Reminders" },
   { href: "/app/collections", icon: FolderOpen, label: "Collections" },
   { href: "/app/contacts", icon: Users, label: "Contacts" },
+  { href: "/app/shared", icon: Link2, label: "Shared" },
   { href: "/app/feedback", icon: MessageSquarePlus, label: "Feedback" },
 ];
 

@@ -1,13 +1,29 @@
 "use client";
 
-import { useState } from "react";
+import { useState, Suspense } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 
-export default function LoginPage() {
+function isSafeReturnTo(url: string): boolean {
+  if (!url) return false;
+  // Allow relative paths starting with / (same origin)
+  if (url.startsWith('/')) return true;
+  // Allow absolute URLs on the same origin
+  try {
+    const parsed = new URL(url);
+    return parsed.origin === window.location.origin;
+  } catch {
+    return false;
+  }
+}
+
+function LoginForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const returnTo = searchParams.get('returnTo') ?? '';
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -31,7 +47,11 @@ export default function LoginPage() {
       return;
     }
 
-    router.push("/app/dashboard");
+    if (returnTo && isSafeReturnTo(returnTo)) {
+      router.push(returnTo);
+    } else {
+      router.push("/app/dashboard");
+    }
   }
 
   async function handleGoogleLogin() {
@@ -163,6 +183,14 @@ export default function LoginPage() {
         </p>
       </div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense>
+      <LoginForm />
+    </Suspense>
   );
 }
 

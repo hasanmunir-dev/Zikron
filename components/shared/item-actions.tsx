@@ -9,6 +9,7 @@ import {
   Archive,
   Trash2,
   FolderOpen,
+  Link2,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -34,6 +35,7 @@ interface Props {
   className?: string;
   collectionItemType?: CollectionItemType;
   collectionItemId?: string;
+  onShare?: () => void;
 }
 
 export function ItemActions({
@@ -49,6 +51,7 @@ export function ItemActions({
   className,
   collectionItemType,
   collectionItemId,
+  onShare,
 }: Props) {
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [addToCollection, setAddToCollection] = useState(false);
@@ -115,6 +118,12 @@ export function ItemActions({
             <DropdownMenuItem onClick={() => setAddToCollection(true)}>
               <FolderOpen size={14} className="mr-2 shrink-0" />
               Add to Collection
+            </DropdownMenuItem>
+          )}
+          {onShare && (
+            <DropdownMenuItem onClick={onShare}>
+              <Link2 size={14} className="mr-2 shrink-0" />
+              Share
             </DropdownMenuItem>
           )}
           {onDelete && (

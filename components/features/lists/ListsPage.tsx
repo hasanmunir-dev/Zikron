@@ -1,23 +1,35 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Plus, Table2, Search, X } from "lucide-react";
 import { useLists, useUpdateList, useDeleteList } from "@/hooks/queries/use-lists";
 import { formatRelativeTime } from "@/utils/date";
 import { ItemActions } from "@/components/shared/item-actions";
+import { ShareDialog } from "@/components/features/sharing/ShareDialog";
 import type { List } from "@/types";
 
 type Tab = "all" | "favorites" | "archived";
 
 export function ListsPage() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const [tab, setTab] = useState<Tab>("all");
   const [search, setSearch] = useState("");
 
   const { data: lists = [], isFetching } = useLists(tab);
   const updateList = useUpdateList();
   const deleteList = useDeleteList();
+
+  const shareId = searchParams.get("share");
+  const shareList = shareId ? lists.find(l => l.id === shareId) : null;
+  const closeShareUrl = (() => {
+    const p = new URLSearchParams(searchParams.toString());
+    p.delete("share");
+    const qs = p.toString();
+    return qs ? `/app/lists?${qs}` : '/app/lists';
+  })();
 
   const filtered = search
     ? lists.filter(
@@ -132,9 +144,18 @@ export function ListsPage() {
                 updateList.mutate({ id: list.id, data: { is_archived: !list.is_archived } })
               }
               onDelete={() => deleteList.mutate(list.id)}
+              onShare={() => router.push(`/app/lists?share=${list.id}`)}
             />
           ))}
         </div>
+      )}
+      {shareId && shareList && (
+        <ShareDialog
+          itemType="list"
+          itemId={shareId}
+          itemTitle={shareList.title}
+          onClose={() => router.push(closeShareUrl)}
+        />
       )}
     </div>
   );
@@ -145,11 +166,13 @@ function ListCard({
   onToggleFavorite,
   onArchive,
   onDelete,
+  onShare,
 }: {
   list: List;
   onToggleFavorite: () => void;
   onArchive: () => void;
   onDelete: () => void;
+  onShare: () => void;
 }) {
   const router = useRouter();
 
@@ -181,6 +204,7 @@ function ListCard({
           itemName={list.title}
           collectionItemType="list"
           collectionItemId={list.id}
+          onShare={onShare}
         />
       </div>
 

@@ -266,6 +266,76 @@ export interface AdminContact extends Contact {
   owner: AdminOwner | null;
 }
 
+// ─── Sharing types ────────────────────────────────────────────────────────────
+
+export type ShareType = 'public' | 'protected' | 'private' | 'tracked_protected';
+export type ItemType = 'note' | 'inbox' | 'list' | 'collection' | 'reminder';
+
+export interface PrivateRecipient {
+  userId: string;
+  email: string;
+  fullName: string | null;
+  avatarUrl: string | null;
+  role: 'user' | 'admin';
+  status: 'active' | 'disabled';
+}
+export type AccessStatus =
+  | 'allowed' | 'denied' | 'suspicious' | 'expired'
+  | 'revoked' | 'password_required' | 'password_failed' | 'login_required';
+
+export interface SharedLinkRecipient {
+  id: string;
+  shared_link_id: string;
+  contact_id: string | null;
+  recipient_name: string | null;
+  recipient_email: string | null;
+  recipient_phone: string | null;
+  required_login_user_id: string | null;
+  individual_token: string | null;
+  first_opened_at: string | null;
+  last_opened_at: string | null;
+  suspicious_access_count: number;
+  is_revoked: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface SharedLink {
+  id: string;
+  user_id: string;
+  item_type: ItemType;
+  item_id: string;
+  share_type: ShareType;
+  token: string;
+  expires_at: string | null;
+  view_limit: number | null;
+  view_count: number;
+  is_revoked: boolean;
+  allow_download: boolean;
+  created_at: string;
+  updated_at: string;
+  shared_link_recipients?: SharedLinkRecipient[];
+}
+
+export interface AdminSharedLink extends SharedLink {
+  owner: AdminOwner | null;
+}
+
+export interface ShareAccessLog {
+  id: string;
+  shared_link_id: string;
+  recipient_id: string | null;
+  viewer_user_id: string | null;
+  ip_address: string | null;
+  user_agent: string | null;
+  device_label: string | null;
+  country: string | null;
+  city: string | null;
+  access_status: AccessStatus;
+  reason: string | null;
+  created_at: string;
+}
+
 // ─── Changelog types ───────────────────────────────────────────────────────────
 
 export type ChangelogType = 'feature' | 'improvement' | 'fix' | 'security' | 'announcement';

@@ -16,6 +16,8 @@ import {
   Users,
   Mail,
   Phone,
+  Link2,
+  AlertTriangle,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { api } from "@/lib/api";
@@ -27,8 +29,9 @@ import { listKeys } from "@/hooks/queries/use-lists";
 import { reminderKeys } from "@/hooks/queries/use-reminders";
 import { collectionKeys } from "@/hooks/queries/use-collections";
 import { contactKeys } from "@/hooks/queries/use-contacts";
+import { useSharedLinks } from "@/hooks/queries/use-shared-links";
 import { formatRelativeTime } from "@/utils/date";
-import type { Note, InboxItem, SelfChatMessage, List, Reminder, Collection, Contact } from "@/types";
+import type { Note, InboxItem, SelfChatMessage, List, Reminder, Collection, Contact, SharedLink } from "@/types";
 
 const quickCapture = [
   {
@@ -100,16 +103,26 @@ export default function DashboardPage() {
     queryKey: contactKeys.all(),
     queryFn: () => api.get<Contact[]>('/api/contacts'),
   });
+  const { data: sharedLinks = [] } = useSharedLinks();
 
   const firstName = user?.user_metadata?.full_name?.split(" ")[0] ?? "there";
   const hour = new Date().getHours();
   const greeting = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
+
+  const activeSharedLinks = (sharedLinks as SharedLink[]).filter(l => {
+    const isExpired = !!l.expires_at && new Date(l.expires_at) < new Date();
+    return !l.is_revoked && !isExpired;
+  });
+  const suspiciousAccessCount = (sharedLinks as SharedLink[]).reduce((sum, l) =>
+    sum + (l.shared_link_recipients?.reduce((s, r) => s + r.suspicious_access_count, 0) ?? 0), 0,
+  );
 
   const counts = {
     notes: notes.length,
     inbox: inbox.filter(i => i.status === 'inbox').length,
     messages: messages.length,
     lists: lists.length,
+    sharedLinks: activeSharedLinks.length,
   };
 
   const recents = [
@@ -140,6 +153,24 @@ export default function DashboardPage() {
           Here&apos;s what&apos;s happening in your knowledge hub.
         </p>
       </div>
+
+      {/* Suspicious access alert */}
+      {suspiciousAccessCount > 0 && (
+        <Link
+          href="/app/shared"
+          className="flex items-start gap-3 rounded-xl border border-amber-200 dark:border-amber-800/50 bg-amber-50 dark:bg-amber-950/30 px-4 py-3 hover:bg-amber-100 dark:hover:bg-amber-950/50 transition-colors"
+        >
+          <AlertTriangle size={15} className="text-amber-600 shrink-0 mt-0.5" />
+          <div>
+            <p className="text-sm font-medium text-amber-800 dark:text-amber-300">
+              {suspiciousAccessCount} suspicious access{suspiciousAccessCount !== 1 ? 'es' : ''} detected
+            </p>
+            <p className="text-xs text-amber-700 dark:text-amber-400 mt-0.5">
+              Possible link leak or new device detected on your tracked links. Review your shared links.
+            </p>
+          </div>
+        </Link>
+      )}
 
       {/* Quick capture */}
       <section>
@@ -172,12 +203,13 @@ export default function DashboardPage() {
         <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
           Overview
         </h3>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
           {[
             { label: "Notes", value: counts.notes, icon: BookOpen, href: "/app/notes" },
             { label: "Inbox", value: counts.inbox, icon: Inbox, href: "/app/inbox" },
             { label: "Lists", value: counts.lists, icon: Table2, href: "/app/lists" },
             { label: "Messages", value: counts.messages, icon: MessageSquare, href: "/app/self-chat" },
+            { label: "Shared", value: counts.sharedLinks, icon: Link2, href: "/app/shared" },
           ].map(({ label, value, icon: Icon, href }) => (
             <Link
               key={label}

@@ -22,6 +22,8 @@ interface AdminStats {
   totalContactMessages: number;
   unreadContactMessages: number;
   totalCollections: number;
+  totalSharedLinks: number;
+  suspiciousAccesses: number;
 }
 
 interface AdminInboxItem {

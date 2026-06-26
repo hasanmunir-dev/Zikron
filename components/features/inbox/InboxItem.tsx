@@ -14,6 +14,7 @@ interface Props {
   onToggleFavorite: (id: string, current: boolean) => void;
   onArchive: (id: string) => void;
   onDelete: (id: string) => void;
+  onShare?: () => void;
 }
 
 export function InboxItemCard({
@@ -22,6 +23,7 @@ export function InboxItemCard({
   onToggleFavorite,
   onArchive,
   onDelete,
+  onShare,
 }: Props) {
   return (
     <Link href={detailUrl}
@@ -83,6 +85,7 @@ export function InboxItemCard({
             itemName={item.title}
             collectionItemType="inbox"
             collectionItemId={item.id}
+            onShare={onShare}
           />
         </div>
       </div>

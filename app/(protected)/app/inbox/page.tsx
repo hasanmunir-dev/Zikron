@@ -9,6 +9,7 @@ import { dialogUrl, closeDialogUrl, parseDialogState } from '@/lib/dialog-url';
 import { useInbox, useUpdateInboxItem, useDeleteInboxItem } from '@/hooks/queries/use-inbox';
 import { InboxItemCard } from '@/components/features/inbox/InboxItem';
 import { InboxDialog } from '@/components/features/inbox/InboxDialog';
+import { ShareDialog } from '@/components/features/sharing/ShareDialog';
 import type { InboxItem } from '@/types';
 
 const BASE_PATH = '/app/inbox';
@@ -19,15 +20,28 @@ type SavedState = { tab: Tab; search: string };
 export default function InboxPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-
+  
   const saved = getPageState<SavedState>('inbox');
+
   const [tab, setTab] = useState<Tab>(saved?.tab ?? 'inbox');
+  const { data: items = [], isLoading, isFetching } = useInbox(tab);
+
+  // const saved = getPageState<SavedState>('inbox');
+  // const [tab, setTab] = useState<Tab>(saved?.tab ?? 'inbox');
   const [search, setSearch] = useState(saved?.search ?? '');
 
   const dialog = parseDialogState(searchParams);
   const closeUrl = closeDialogUrl(BASE_PATH, searchParams);
+  const shareId = searchParams.get('share');
+  const shareItem = shareId ? items.find((i: InboxItem) => i.id === shareId) : null;
+  const closeShareUrl = (() => {
+    const p = new URLSearchParams(searchParams.toString());
+    p.delete('share');
+    const qs = p.toString();
+    return qs ? `${BASE_PATH}?${qs}` : BASE_PATH;
+  })();
 
-  const { data: items = [], isLoading, isFetching } = useInbox(tab);
+  // const { data: items = [], isLoading, isFetching } = useInbox(tab);
   const updateItem = useUpdateInboxItem();
   const deleteItem = useDeleteInboxItem();
 
@@ -152,6 +166,7 @@ export default function InboxPage() {
               onToggleFavorite={handleToggleFavorite}
               onArchive={handleArchive}
               onDelete={handleDelete}
+              onShare={() => router.push(`${BASE_PATH}?share=${item.id}`)}
             />
           ))}
         </div>
@@ -165,6 +180,14 @@ export default function InboxPage() {
       )}
       {dialog?.action === 'edit' && dialog.id && (
         <InboxDialog mode="edit" id={dialog.id} closeUrl={closeUrl} basePath={BASE_PATH} />
+      )}
+      {shareId && shareItem && (
+        <ShareDialog
+          itemType="inbox"
+          itemId={shareId}
+          itemTitle={shareItem.title}
+          onClose={() => router.push(closeShareUrl)}
+        />
       )}
     </div>
   );

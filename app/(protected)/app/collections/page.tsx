@@ -5,9 +5,10 @@ import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
   FolderOpen, Plus, Search, X, Star, Archive, Pencil, Trash2,
-  BookOpen, Inbox, Table2, MessageSquare, Bell, Hash,
+  BookOpen, Inbox, Table2, MessageSquare, Bell, Hash, Share2,
 } from 'lucide-react';
 import { DeleteConfirmDialog } from '@/components/shared/delete-confirm-dialog';
+import { ShareDialog } from '@/components/features/sharing/ShareDialog';
 import { MarkdownEditor } from '@/components/editor/markdown-editor';
 import { MarkdownViewer } from '@/components/editor/markdown-viewer';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -178,7 +179,7 @@ function CollectionForm({
 
 // ─── Collection card ───────────────────────────────────────────────────────────
 
-function CollectionCard({ col, onDelete }: { col: Collection; onDelete: () => void }) {
+function CollectionCard({ col, onDelete, onShare }: { col: Collection; onDelete: () => void; onShare: () => void }) {
   const update = useUpdateCollection();
   const [confirmDelete, setConfirmDelete] = useState(false);
 
@@ -217,6 +218,14 @@ function CollectionCard({ col, onDelete }: { col: Collection; onDelete: () => vo
             >
               <Pencil size={13} />
             </Link>
+            <button
+              type="button"
+              onClick={onShare}
+              className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+              title="Share"
+            >
+              <Share2 size={13} />
+            </button>
             <button
               type="button"
               onClick={() => setConfirmDelete(true)}
@@ -468,6 +477,7 @@ function CollectionEditDialog({ id }: { id: string }) {
 // ─── Main page ─────────────────────────────────────────────────────────────────
 
 function CollectionsContent() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const [query, setQuery] = useState('');
   const [tab, setTab] = useState<'all' | 'favorites' | 'archived'>('all');
@@ -475,10 +485,19 @@ function CollectionsContent() {
   const create = searchParams.get('create');
   const detail = searchParams.get('detail');
   const edit = searchParams.get('edit');
+  const shareId = searchParams.get('share');
 
   const { data: collections = [], isLoading } = useCollections();
   const deleteCollection = useDeleteCollection();
   const update = useUpdateCollection();
+
+  const shareCollection = shareId ? collections.find(c => c.id === shareId) : null;
+  const closeShareUrl = (() => {
+    const p = new URLSearchParams(searchParams.toString());
+    p.delete('share');
+    const qs = p.toString();
+    return qs ? `${BASE}?${qs}` : BASE;
+  })();
 
   const filtered = collections
     .filter(c => {
@@ -601,6 +620,7 @@ function CollectionsContent() {
                 key={col.id}
                 col={col}
                 onDelete={() => deleteCollection.mutate(col.id)}
+                onShare={() => router.push(`${BASE}?share=${col.id}`)}
               />
             ))}
           </div>
@@ -611,6 +631,14 @@ function CollectionsContent() {
       {create === 'true' && <CollectionCreateDialog />}
       {detail && <CollectionDetailDialog id={detail} />}
       {edit && <CollectionEditDialog id={edit} />}
+      {shareId && shareCollection && (
+        <ShareDialog
+          itemType="collection"
+          itemId={shareId}
+          itemTitle={shareCollection.title}
+          onClose={() => router.replace(closeShareUrl)}
+        />
+      )}
     </div>
   );
 }
