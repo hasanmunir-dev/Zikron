@@ -240,6 +240,32 @@ export interface AdminCollection extends Collection {
   item_count: number;
 }
 
+// ─── Contact types ─────────────────────────────────────────────────────────────
+
+export type ContactSource = 'manual' | 'google' | 'future_import';
+
+export interface Contact {
+  id: string;
+  user_id: string;
+  source: ContactSource;
+  google_resource_name: string | null;
+  name: string;
+  email: string | null;
+  phone: string | null;
+  avatar_url: string | null;
+  company: string | null;
+  job_title: string | null;
+  notes: string | null;
+  favorite: boolean;
+  archived: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface AdminContact extends Contact {
+  owner: AdminOwner | null;
+}
+
 // ─── Changelog types ───────────────────────────────────────────────────────────
 
 export type ChangelogType = 'feature' | 'improvement' | 'fix' | 'security' | 'announcement';

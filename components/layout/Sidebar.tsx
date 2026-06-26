@@ -19,6 +19,7 @@ import {
   PanelLeftOpen,
   ChevronsRight,
   MessageSquarePlus,
+  Users,
 } from "lucide-react";
 import Image from "next/image";
 import { useAuth } from "@/hooks/useAuth";
@@ -31,6 +32,7 @@ const navItems = [
   { href: "/app/self-chat", icon: MessageSquare, label: "Self Chat" },
   { href: "/app/reminders", icon: Bell, label: "Reminders" },
   { href: "/app/collections", icon: FolderOpen, label: "Collections" },
+  { href: "/app/contacts", icon: Users, label: "Contacts" },
   { href: "/app/feedback", icon: MessageSquarePlus, label: "Feedback" },
 ];
 

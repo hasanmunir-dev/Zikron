@@ -13,6 +13,9 @@ import {
   Zap,
   Table2,
   FolderOpen,
+  Users,
+  Mail,
+  Phone,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { api } from "@/lib/api";
@@ -23,8 +26,9 @@ import { selfChatKeys } from "@/hooks/queries/use-self-chat";
 import { listKeys } from "@/hooks/queries/use-lists";
 import { reminderKeys } from "@/hooks/queries/use-reminders";
 import { collectionKeys } from "@/hooks/queries/use-collections";
+import { contactKeys } from "@/hooks/queries/use-contacts";
 import { formatRelativeTime } from "@/utils/date";
-import type { Note, InboxItem, SelfChatMessage, List, Reminder, Collection } from "@/types";
+import type { Note, InboxItem, SelfChatMessage, List, Reminder, Collection, Contact } from "@/types";
 
 const quickCapture = [
   {
@@ -91,6 +95,10 @@ export default function DashboardPage() {
   const { data: collections = [] } = useQuery({
     queryKey: collectionKeys.all(),
     queryFn: () => api.get<Collection[]>('/api/collections'),
+  });
+  const { data: contacts = [] } = useQuery({
+    queryKey: contactKeys.all(),
+    queryFn: () => api.get<Contact[]>('/api/contacts'),
   });
 
   const firstName = user?.user_metadata?.full_name?.split(" ")[0] ?? "there";
@@ -249,6 +257,80 @@ export default function DashboardPage() {
           </section>
         );
       })()}
+
+      {/* Favorite Contacts */}
+      {contacts.filter(c => c.favorite && !c.archived).length > 0 && (
+        <section>
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Favorite Contacts</h3>
+            <Link href="/app/contacts?tab=favorites" className="text-xs text-blue-600 hover:underline flex items-center gap-1">
+              View all <ArrowRight size={12} />
+            </Link>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            {contacts.filter(c => c.favorite && !c.archived).slice(0, 3).map(contact => {
+              const initials = contact.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
+              return (
+                <Link
+                  key={contact.id}
+                  href={`/app/contacts?detail=${contact.id}`}
+                  className="flex items-center gap-3 bg-card border border-border rounded-xl px-4 py-3 hover:shadow-sm transition-all"
+                >
+                  <div className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center text-sm font-semibold text-primary shrink-0">
+                    {initials}
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium text-foreground truncate">{contact.name}</p>
+                    {contact.job_title && <p className="text-xs text-muted-foreground truncate">{contact.job_title}</p>}
+                  </div>
+                  <Star size={12} className="text-amber-400 fill-amber-400 shrink-0 ml-auto" />
+                </Link>
+              );
+            })}
+          </div>
+        </section>
+      )}
+
+      {/* Recent Contacts */}
+      {contacts.filter(c => !c.archived).length > 0 && (
+        <section>
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Recent Contacts</h3>
+            <Link href="/app/contacts" className="text-xs text-blue-600 hover:underline flex items-center gap-1">
+              View all <ArrowRight size={12} />
+            </Link>
+          </div>
+          <div className="space-y-2">
+            {contacts.filter(c => !c.archived).slice(0, 4).map(contact => {
+              const initials = contact.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
+              return (
+                <Link
+                  key={contact.id}
+                  href={`/app/contacts?detail=${contact.id}`}
+                  className="flex items-center gap-3 bg-card border border-border rounded-lg px-4 py-3 hover:shadow-sm transition-all"
+                >
+                  <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-xs font-semibold text-primary shrink-0">
+                    {initials}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm text-foreground truncate">{contact.name}</p>
+                    {(contact.job_title || contact.company) && (
+                      <p className="text-xs text-muted-foreground truncate">
+                        {[contact.job_title, contact.company].filter(Boolean).join(' · ')}
+                      </p>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    {contact.email && <Mail size={12} className="text-muted-foreground/50" />}
+                    {contact.phone && <Phone size={12} className="text-muted-foreground/50" />}
+                    <span className="text-xs text-muted-foreground">{formatRelativeTime(contact.created_at)}</span>
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
+        </section>
+      )}
 
       {/* Reminders widget */}
       {(() => {

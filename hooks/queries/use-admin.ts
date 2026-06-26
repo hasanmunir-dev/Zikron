@@ -18,6 +18,10 @@ interface AdminStats {
   openFeedback: number;
   resolvedFeedback: number;
   publishedChangelogs: number;
+  totalContacts: number;
+  totalContactMessages: number;
+  unreadContactMessages: number;
+  totalCollections: number;
 }
 
 interface AdminInboxItem {

@@ -22,6 +22,7 @@ import {
   ChevronsRight,
   MessageSquarePlus,
   GitCommit,
+  Mail,
 } from "lucide-react";
 import Image from "next/image";
 import { useAuth } from "@/hooks/useAuth";
@@ -110,6 +111,12 @@ const systemItems = [
     href: "/admin/contacts",
     icon: Contact,
     label: "Contacts",
+    placeholder: false,
+  },
+  {
+    href: "/admin/contact-messages",
+    icon: Mail,
+    label: "Contact Messages",
     placeholder: false,
   },
   {
