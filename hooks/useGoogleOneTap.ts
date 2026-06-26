@@ -9,7 +9,6 @@ const CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
 const SCRIPT_ID = 'google-gis-script';
 
-
 /**
  * Activates Google One Tap when `enabled` is true.
  * Sends the Google credential to Express (POST /api/auth/google-one-tap).
@@ -35,46 +34,63 @@ export function useGoogleOneTap(enabled: boolean): void {
 
     function init(): void {
       if (cancelled || !window.google?.accounts?.id) return;
-      window.google.accounts.id.initialize({
-        client_id: CLIENT_ID!,
-        callback: (r) => {
-          void (async () => {
-            if (cancelled) return;
-            try {
-              // Send the Google credential to Express; Express calls Supabase.
-              const res = await fetch(`${API_URL}/api/auth/google-one-tap`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ credential: r.credential }),
-              });
-              if (!res.ok) {
-                const { error } = await res.json() as { error?: string };
-                throw new Error(error ?? `Request failed: ${res.status}`);
+      void (async () => {
+        // GIS (especially with itp_support: true) embeds a nonce claim in the
+        // credential JWT. GoTrue requires the raw nonce in the request body so
+        // it can SHA-256 it and compare against the JWT claim.
+        const rawNonce = crypto.randomUUID();
+        const hashBuffer = await crypto.subtle.digest(
+          'SHA-256',
+          new TextEncoder().encode(rawNonce),
+        );
+        const hashedNonce = Array.from(new Uint8Array(hashBuffer))
+          .map(b => b.toString(16).padStart(2, '0'))
+          .join('');
+
+        if (cancelled || !window.google?.accounts?.id) return;
+
+        window.google.accounts.id.initialize({
+          client_id: CLIENT_ID!,
+          nonce: hashedNonce,
+          callback: (r) => {
+            void (async () => {
+              if (cancelled) return;
+              try {
+                // Send credential + raw nonce to Express; Express calls Supabase.
+                const res = await fetch(`${API_URL}/api/auth/google-one-tap`, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ credential: r.credential, nonce: rawNonce }),
+                });
+                if (!res.ok) {
+                  const { error } = await res.json() as { error?: string };
+                  throw new Error(error ?? `Request failed: ${res.status}`);
+                }
+                const { access_token, refresh_token } = await res.json() as {
+                  access_token: string;
+                  refresh_token: string;
+                };
+                // Store the Supabase session locally so onAuthStateChange fires
+                // and useAuth picks up the new user — no direct signInWithIdToken.
+                const { error: sessionError } = await supabase.auth.setSession({
+                  access_token,
+                  refresh_token,
+                });
+                if (sessionError) throw sessionError;
+                router.push('/app/dashboard');
+              } catch (err) {
+                console.error('[GoogleOneTap] sign-in failed:', err);
+                toast.error('Google sign-in failed. Please try again.');
               }
-              const { access_token, refresh_token } = await res.json() as {
-                access_token: string;
-                refresh_token: string;
-              };
-              // Store the Supabase session locally so onAuthStateChange fires
-              // and useAuth picks up the new user — no direct signInWithIdToken.
-              const { error: sessionError } = await supabase.auth.setSession({
-                access_token,
-                refresh_token,
-              });
-              if (sessionError) throw sessionError;
-              router.push('/app/dashboard');
-            } catch (err) {
-              console.error('[GoogleOneTap] sign-in failed:', err);
-              toast.error('Google sign-in failed. Please try again.');
-            }
-          })();
-        },
-        auto_select: true,
-        cancel_on_tap_outside: false,
-        context: 'signin',
-        itp_support: true,
-      });
-      window.google.accounts.id.prompt();
+            })();
+          },
+          auto_select: true,
+          cancel_on_tap_outside: false,
+          context: 'signin',
+          itp_support: true,
+        });
+        window.google.accounts.id.prompt();
+      })();
     }
 
     // Case 1: GIS library already loaded from a previous page or mount.
