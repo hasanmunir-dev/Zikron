@@ -110,7 +110,7 @@ function ChangelogEditorDialog({
 
         <form onSubmit={handleSubmit} className="p-6 flex flex-col gap-5">
           {/* Version + Type */}
-          <div className="flex gap-4">
+          <div className="flex flex-col sm:flex-row gap-4">
             <div className="flex-1">
               <label className="block text-sm font-medium text-foreground mb-1.5">Version <span className="text-red-500">*</span></label>
               <input
@@ -196,7 +196,7 @@ function ChangelogEditorDialog({
           </div>
 
           {/* Deployed at + commit */}
-          <div className="flex gap-4">
+          <div className="flex flex-col sm:flex-row gap-4">
             <div className="flex-1">
               <label className="block text-sm font-medium text-foreground mb-1.5">Deployed at</label>
               <DateTimePicker
@@ -232,7 +232,7 @@ function ChangelogEditorDialog({
             <span className="text-sm font-medium text-foreground">Publish immediately</span>
           </label>
 
-          <div className="flex justify-end gap-3 pt-2">
+          <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-3 pt-2">
             <button type="button" onClick={onClose} className="px-4 py-2 text-sm font-medium text-muted-foreground border border-border rounded-lg hover:bg-muted transition-colors">
               Cancel
             </button>

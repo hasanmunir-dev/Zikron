@@ -41,10 +41,10 @@ export function UserDetailPanel({ userId, listRoute, fullPage = false }: Props) 
 
   const card = (
     <div className={`bg-card flex flex-col shadow-xl border border-border ${
-      fullPage ? 'w-full max-w-lg rounded-2xl' : 'w-full sm:rounded-2xl sm:max-w-lg'
+      fullPage ? 'w-full max-w-lg rounded-2xl' : 'w-full sm:rounded-2xl sm:max-w-lg max-h-[90vh]'
     }`}>
       {/* Header */}
-      <div className="flex items-center justify-between px-5 py-3.5 border-b border-border">
+      <div className="flex items-center justify-between px-5 py-3.5 border-b border-border shrink-0">
         <h3 className="text-sm font-semibold text-foreground">User Profile</h3>
         <button type="button" onClick={handleClose} aria-label="Close" className="p-1.5 text-muted-foreground hover:text-foreground">
           <X size={18} />
@@ -52,7 +52,7 @@ export function UserDetailPanel({ userId, listRoute, fullPage = false }: Props) 
       </div>
 
       {/* Body */}
-      <div className="p-6">
+      <div className="flex-1 overflow-y-auto p-6">
         {!ready ? (
           <div className="space-y-4 animate-pulse">
             <div className="h-16 w-16 rounded-full bg-muted mx-auto" />

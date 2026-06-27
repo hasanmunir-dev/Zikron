@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { supabase } from '@/lib/supabase';
@@ -15,14 +15,27 @@ const SCRIPT_ID = 'google-gis-script';
  * Express calls Supabase, returns session tokens, frontend stores them via
  * supabase.auth.setSession() so useAuth's onAuthStateChange picks up the user.
  *
+ * Loading state is owned by the caller via `setLoading`. The hook calls
+ * setLoading(true) immediately when a credential arrives, and setLoading(false)
+ * only on failure. On success the caller is responsible for clearing loading
+ * (by watching useAuth's user state) so the overlay stays visible across the
+ * navigation boundary.
+ *
  * Handles:
  * - Script deduplication (safe across React Strict Mode double-mounts)
  * - Cleanup / cancel on unmount
+ * - Duplicate-submission guard via isSubmittingRef
  * - Toast error on failure
  * - Redirect to /app/dashboard on success
  */
-export function useGoogleOneTap(enabled: boolean): void {
+export function useGoogleOneTap(
+  enabled: boolean,
+  setLoading: (v: boolean) => void,
+): void {
   const router = useRouter();
+  // Ref prevents a second credential submission if Google fires the callback
+  // twice (e.g. Strict Mode double-invoke or rapid user interaction).
+  const isSubmittingRef = useRef(false);
 
   useEffect(() => {
     if (!enabled || !CLIENT_ID) return;
@@ -55,6 +68,12 @@ export function useGoogleOneTap(enabled: boolean): void {
           callback: (r) => {
             void (async () => {
               if (cancelled) return;
+              // Block re-entrant calls while a submission is in-flight.
+              if (isSubmittingRef.current) return;
+              isSubmittingRef.current = true;
+              setLoading(true);
+              // Cancel the prompt immediately so Google can't re-fire while loading.
+              window.google?.accounts.id.cancel();
               try {
                 // Send credential + raw nonce to Express; Express calls Supabase.
                 const res = await fetch(`${API_URL}/api/auth/google-one-tap`, {
@@ -77,10 +96,21 @@ export function useGoogleOneTap(enabled: boolean): void {
                   refresh_token,
                 });
                 if (sessionError) throw sessionError;
-                router.push('/app/dashboard');
+
+                // Reset the guard now so re-auth works if the user signs out
+                // later in the same session (enabled will become true again).
+                isSubmittingRef.current = false;
+
+                // Navigate to dashboard. The overlay is NOT cleared here —
+                // GoogleOneTap watches useAuth's user state and clears it once
+                // the session is confirmed, so it stays visible across the
+                // route transition.
+                router.replace('/app/dashboard');
               } catch (err) {
                 console.error('[GoogleOneTap] sign-in failed:', err);
                 toast.error('Google sign-in failed. Please try again.');
+                isSubmittingRef.current = false;
+                setLoading(false);
               }
             })();
           },
@@ -129,7 +159,6 @@ export function useGoogleOneTap(enabled: boolean): void {
       script.removeEventListener('load', init);
       window.google?.accounts.id.cancel();
     };
-  // router is stable (Next.js guarantees referential stability).
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [enabled]);
 }
