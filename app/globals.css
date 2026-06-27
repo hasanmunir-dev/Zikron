@@ -175,3 +175,17 @@ body {
 .dark .hljs-literal { color: oklch(0.75 0.18 55); }
 .dark .hljs-title,
 .dark .hljs-class .hljs-title { color: oklch(0.75 0.18 30); }
+
+/* Masonry grid (react-masonry-css) */
+.masonry-grid {
+  display: flex;
+  margin-left: -16px;
+  width: auto;
+}
+.masonry-grid-column {
+  padding-left: 16px;
+  background-clip: padding-box;
+}
+.masonry-grid-column > * {
+  margin-bottom: 16px;
+}

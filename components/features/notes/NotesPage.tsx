@@ -17,6 +17,7 @@ import { useBulkSelection } from "@/hooks/use-bulk-selection";
 import { BulkActionToolbar } from "@/components/shared/bulk-action-toolbar";
 import type { BulkAction } from "@/components/shared/bulk-action-toolbar";
 import type { Note, SharedWithMeItem } from "@/types";
+import { MasonryGrid, MasonrySkeleton } from "@/components/shared/masonry-grid";
 
 type Tab = "all" | "favorites" | "archived" | "shared";
 type SavedState = { tab: Tab; search: string };
@@ -151,7 +152,7 @@ export function NotesPage({ basePath }: Props) {
   ];
 
   return (
-    <div className="p-6 max-w-4xl mx-auto">
+    <div className="p-6 max-w-6xl mx-auto">
       <div className="flex items-center justify-between mb-6">
         <div>
           <h2 className="text-xl font-bold text-foreground">Notes</h2>
@@ -249,7 +250,7 @@ export function NotesPage({ basePath }: Props) {
             </p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <MasonryGrid>
             {filteredShared.map(item => (
               <SharedNoteCard
                 key={item.share_id}
@@ -257,17 +258,10 @@ export function NotesPage({ basePath }: Props) {
                 onClick={() => router.push(`${basePath}?shared_view=${item.share_id}`)}
               />
             ))}
-          </div>
+          </MasonryGrid>
         )
       ) : isLoading && notes.length === 0 ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {[1, 2, 3].map((i) => (
-            <div
-              key={i}
-              className="bg-card border border-border rounded-xl p-4 h-32 animate-pulse"
-            />
-          ))}
-        </div>
+        <MasonrySkeleton count={6} />
       ) : filtered.length === 0 && (tab !== 'all' || filteredShared.length === 0) ? (
         <div className="text-center py-16">
           <div className="w-12 h-12 bg-muted rounded-xl flex items-center justify-center mx-auto mb-3">
@@ -287,7 +281,7 @@ export function NotesPage({ basePath }: Props) {
           )}
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <MasonryGrid>
           {filtered.map((note) => (
             <div key={note.id} className="relative group/sel">
               {/* Checkbox overlay */}
@@ -331,7 +325,7 @@ export function NotesPage({ basePath }: Props) {
               onClick={() => router.push(`${basePath}?shared_view=${item.share_id}`)}
             />
           ))}
-        </div>
+        </MasonryGrid>
       )}
 
       {dialog?.action === "create" && (

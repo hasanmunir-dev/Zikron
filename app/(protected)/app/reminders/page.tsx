@@ -33,6 +33,7 @@ import { closeDialogUrl } from '@/lib/dialog-url';
 import { formatRelativeTime } from '@/utils/date';
 import { usePushNotifications } from '@/hooks/use-push-notifications';
 import type { Reminder, ReminderStatus, ReminderPriority, ReminderLinkedType, SharedWithMeItem } from '@/types';
+import { MasonryGrid } from '@/components/shared/masonry-grid';
 
 const BASE = '/app/reminders';
 
@@ -312,7 +313,7 @@ function ReminderCard({ r, onStatus }: { r: Reminder; onStatus: (id: string, s: 
   }
 
   return (
-    <div className={`bg-card border rounded-xl p-4 transition-all hover:shadow-sm ${cs === 'overdue' ? 'border-red-200 dark:border-red-900/50' : 'border-border'} ${r.status === 'cancelled' ? 'opacity-60' : ''}`}>
+    <Link href={`${BASE}?detail=${r.id}`} className={`block bg-card border rounded-xl p-4 transition-all hover:shadow-sm ${cs === 'overdue' ? 'border-red-200 dark:border-red-900/50' : 'border-border'} ${r.status === 'cancelled' ? 'opacity-60' : ''}`}>
       <div className="flex items-start gap-3">
         <button
           type="button"
@@ -326,12 +327,11 @@ function ReminderCard({ r, onStatus }: { r: Reminder; onStatus: (id: string, s: 
 
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap mb-1">
-            <Link
-              href={`${BASE}?detail=${r.id}`}
+            <div
               className={`text-sm font-medium hover:text-blue-600 transition-colors leading-snug ${r.status === 'completed' ? 'line-through text-muted-foreground' : 'text-foreground'}`}
             >
               {r.title}
-            </Link>
+            </div>
             {r.priority === 'high' && (
               <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${priorityColor.high}`}>High</span>
             )}
@@ -382,7 +382,7 @@ function ReminderCard({ r, onStatus }: { r: Reminder; onStatus: (id: string, s: 
         itemType="reminder"
         itemId={r.id}
       />
-    </div>
+    </Link>
   );
 }
 
@@ -655,7 +655,7 @@ function RemindersContent() {
   ];
 
   return (
-    <div className="p-6 max-w-3xl mx-auto">
+    <div className="p-6 max-w-6xl mx-auto">
       <div className="flex items-center justify-between mb-6">
         <div>
           <h2 className="text-xl font-bold text-foreground">Reminders</h2>
@@ -746,7 +746,7 @@ function RemindersContent() {
             </p>
           </div>
         ) : (
-          <div className="space-y-2">
+          <MasonryGrid>
             {filteredShared.map(item => (
               <SharedReminderCard
                 key={item.share_id}
@@ -754,10 +754,18 @@ function RemindersContent() {
                 onClick={() => router.push(`${BASE}?shared_view=${item.share_id}`)}
               />
             ))}
-          </div>
+          </MasonryGrid>
         )
       ) : isLoading ? (
-        <div className="space-y-3">{[...Array(4)].map((_, i) => <div key={i} className="h-20 bg-muted rounded-xl animate-pulse" />)}</div>
+        <MasonryGrid>
+          {[...Array(4)].map((_, i) => (
+            <div key={i} className="bg-card border border-border rounded-xl p-4 space-y-2 animate-pulse">
+              <div className="h-4 w-1/2 rounded bg-muted" />
+              <div className="h-3 w-full rounded bg-muted" />
+              {i % 2 === 0 && <div className="h-3 w-2/3 rounded bg-muted" />}
+            </div>
+          ))}
+        </MasonryGrid>
       ) : filtered.length === 0 && (filter !== 'all' || filteredShared.length === 0) ? (
         <div className="bg-card border border-dashed border-border rounded-2xl p-12 text-center">
           <div className="w-12 h-12 bg-amber-100 dark:bg-amber-950/40 rounded-xl flex items-center justify-center mx-auto mb-4">
@@ -776,7 +784,7 @@ function RemindersContent() {
           )}
         </div>
       ) : (
-        <div className="space-y-2">
+        <>
           {filtered.length > 0 && (
             <div className="flex items-center gap-2 mb-3">
               <input
@@ -794,32 +802,34 @@ function RemindersContent() {
               )}
             </div>
           )}
-          {filtered.map(r => (
-            <div key={r.id} className="relative group/sel">
-              <button
-                type="button"
-                onClick={e => { e.stopPropagation(); bulk.toggle(r.id); }}
-                aria-label={`${bulk.isSelected(r.id) ? 'Deselect' : 'Select'} item`}
-                className={`absolute top-2 left-2 z-30 flex items-center justify-center w-5 h-5 rounded border-2 transition-all ${
-                  bulk.isSelected(r.id) ? 'bg-primary border-primary opacity-100' : `bg-card border-border ${bulk.selectedCount > 0 ? 'opacity-100' : 'opacity-0 group-hover/sel:opacity-100'}`
-                }`}
-              >
-                {bulk.isSelected(r.id) && <Check size={11} className="text-primary-foreground" />}
-              </button>
-              {bulk.selectedCount > 0 && (
-                <div className="absolute inset-0 z-20 cursor-pointer rounded-xl" onClick={() => bulk.toggle(r.id)} aria-hidden="true" />
-              )}
-              <ReminderCard r={r} onStatus={(id, status) => updateStatus.mutate({ id, status })} />
-            </div>
-          ))}
-          {filter === 'all' && filteredShared.map(item => (
-            <SharedReminderCard
-              key={item.share_id}
-              item={item}
-              onClick={() => router.push(`${BASE}?shared_view=${item.share_id}`)}
-            />
-          ))}
-        </div>
+          <MasonryGrid>
+            {filtered.map(r => (
+              <div key={r.id} className="relative group/sel">
+                <button
+                  type="button"
+                  onClick={e => { e.stopPropagation(); bulk.toggle(r.id); }}
+                  aria-label={`${bulk.isSelected(r.id) ? 'Deselect' : 'Select'} item`}
+                  className={`absolute top-2 left-2 z-30 flex items-center justify-center w-5 h-5 rounded border-2 transition-all ${
+                    bulk.isSelected(r.id) ? 'bg-primary border-primary opacity-100' : `bg-card border-border ${bulk.selectedCount > 0 ? 'opacity-100' : 'opacity-0 group-hover/sel:opacity-100'}`
+                  }`}
+                >
+                  {bulk.isSelected(r.id) && <Check size={11} className="text-primary-foreground" />}
+                </button>
+                {bulk.selectedCount > 0 && (
+                  <div className="absolute inset-0 z-20 cursor-pointer rounded-xl" onClick={() => bulk.toggle(r.id)} aria-hidden="true" />
+                )}
+                <ReminderCard r={r} onStatus={(id, status) => updateStatus.mutate({ id, status })} />
+              </div>
+            ))}
+            {filter === 'all' && filteredShared.map(item => (
+              <SharedReminderCard
+                key={item.share_id}
+                item={item}
+                onClick={() => router.push(`${BASE}?shared_view=${item.share_id}`)}
+              />
+            ))}
+          </MasonryGrid>
+        </>
       )}
 
       {isCreate  && <CreateDialog closeUrl={closeUrl} />}

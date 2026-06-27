@@ -44,6 +44,7 @@ import { DeleteConfirmDialog } from '@/components/shared/delete-confirm-dialog';
 import { DateTimePicker } from '@/components/ui/date-time-picker';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import type { Contact, ContactEmail, ContactPhone, ContactAddress, ContactWebsite } from '@/types';
+import { MasonryGrid, MasonrySkeleton } from '@/components/shared/masonry-grid';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -756,12 +757,12 @@ function ContactCard({ contact, onAction }: {
   const phone = primaryPhone(contact);
 
   return (
-    <div className="relative group bg-card border border-border rounded-xl p-4 hover:border-primary/30 transition-colors">
-      <Link
+    <Link href={`?detail=${contact.id}`} className="block relative group bg-card border border-border rounded-xl p-4 hover:border-primary/30 transition-colors">
+      {/* <Link
         href={`?detail=${contact.id}`}
         className="absolute inset-0 rounded-xl z-0"
         aria-label={`View ${contact.name}`}
-      />
+      /> */}
 
       <div className="relative z-10 flex items-start gap-3">
         <ContactAvatar contact={contact} size="md" />
@@ -786,7 +787,7 @@ function ContactCard({ contact, onAction }: {
             {email && (
               <span className="flex items-center gap-1 text-xs text-muted-foreground">
                 <Mail size={11} />
-                <span className="truncate max-w-30">{email}</span>
+                <span className="truncate max-w-full">{email}</span>
               </span>
             )}
             {phone && (
@@ -826,7 +827,7 @@ function ContactCard({ contact, onAction }: {
           </button>
         </div>
       </div>
-    </div>
+    </Link>
   );
 }
 
@@ -1225,11 +1226,7 @@ function ContactsContent() {
           );
         })()}
         {isLoading ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-            {Array.from({ length: 6 }).map((_, i) => (
-              <div key={i} className="h-24 rounded-xl bg-muted/50 animate-pulse" />
-            ))}
-          </div>
+          <MasonrySkeleton count={6} />
         ) : filtered.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-24 text-center">
             <div className="w-16 h-16 bg-muted rounded-2xl flex items-center justify-center mb-5">
@@ -1268,7 +1265,7 @@ function ContactsContent() {
             )}
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          <MasonryGrid>
             {filtered.map(contact => (
               <div key={contact.id} className="relative group/sel">
                 <button
@@ -1298,7 +1295,7 @@ function ContactsContent() {
                 />
               </div>
             ))}
-          </div>
+          </MasonryGrid>
         )}
       </div>
 

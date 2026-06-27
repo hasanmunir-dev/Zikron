@@ -14,6 +14,7 @@ import { ItemActions } from "@/components/shared/item-actions";
 import { ShareDialog } from "@/components/features/sharing/ShareDialog";
 import { SharedItemDetailDialog } from "@/components/features/sharing/SharedItemDetailDialog";
 import type { List, SharedWithMeItem } from "@/types";
+import { MasonryGrid, MasonrySkeleton } from "@/components/shared/masonry-grid";
 
 type Tab = "all" | "favorites" | "archived" | "shared";
 
@@ -110,7 +111,7 @@ export function ListsPage() {
   ];
 
   return (
-    <div className="p-6 max-w-5xl mx-auto">
+    <div className="p-6 max-w-6xl mx-auto">
       <div className="flex items-center justify-between mb-6">
         <div>
           <h2 className="text-xl font-bold text-foreground">Lists</h2>
@@ -207,7 +208,7 @@ export function ListsPage() {
             </p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <MasonryGrid>
             {filteredShared.map(item => (
               <SharedListCard
                 key={item.share_id}
@@ -215,7 +216,7 @@ export function ListsPage() {
                 onClick={() => router.push(`/app/lists?shared_view=${item.share_id}`)}
               />
             ))}
-          </div>
+          </MasonryGrid>
         )
       ) : filtered.length === 0 && (tab !== 'all' || filteredShared.length === 0) ? (
         <div className="text-center py-20">
@@ -239,7 +240,7 @@ export function ListsPage() {
           )}
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <MasonryGrid>
           {filtered.map((list) => (
             <div key={list.id} className="relative group/sel">
               {/* Checkbox overlay */}
@@ -284,7 +285,7 @@ export function ListsPage() {
               onClick={() => router.push(`/app/lists?shared_view=${item.share_id}`)}
             />
           ))}
-        </div>
+        </MasonryGrid>
       )}
       {shareId && shareList && (
         <ShareDialog

@@ -20,6 +20,7 @@ import { copyToClipboard } from '@/lib/share/copy-link';
 import { shareUrl as nativeShare } from '@/lib/share/native-share';
 import { getAppUrl } from '@/lib/share/url';
 import type { SharedLink, ShareType, ItemType, ShareAccessLog, SharedWithMeItem } from '@/types';
+import { MasonryGrid, MasonrySkeleton } from '@/components/shared/masonry-grid';
 
 // ─── URL helpers ──────────────────────────────────────────────────────────────
 
@@ -584,9 +585,7 @@ function SharedWithMeContent() {
       </div>
 
       {isLoading ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          {[...Array(4)].map((_, i) => <div key={i} className="h-24 bg-muted rounded-xl animate-pulse" />)}
-        </div>
+        <MasonrySkeleton count={4} />
       ) : filtered.length === 0 ? (
         <div className="text-center py-16">
           <div className="w-12 h-12 bg-muted rounded-xl flex items-center justify-center mx-auto mb-3">
@@ -602,7 +601,7 @@ function SharedWithMeContent() {
           )}
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <MasonryGrid>
           {filtered.map(item => (
             <SharedWithMeCard
               key={item.share_id}
@@ -610,7 +609,7 @@ function SharedWithMeContent() {
               onOpen={() => router.push(`/app/shared?tab=received&view=${item.share_id}`)}
             />
           ))}
-        </div>
+        </MasonryGrid>
       )}
 
       {viewItem && (
@@ -642,7 +641,7 @@ function SharedContent() {
   const { data: receivedItems = [] } = useSharedWithMe();
 
   return (
-    <div className="p-6 max-w-3xl mx-auto">
+    <div className="p-6 max-w-6xl mx-auto">
       <div className="flex items-center justify-between mb-6">
         <div>
           <h2 className="text-xl font-bold text-foreground">Shared</h2>

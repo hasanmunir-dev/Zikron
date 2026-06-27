@@ -19,6 +19,7 @@ import { MarkdownViewer } from '@/components/editor/markdown-viewer';
 import { DeleteConfirmDialog } from '@/components/shared/delete-confirm-dialog';
 import { formatRelativeTime } from '@/utils/date';
 import type { Feedback, FeedbackType, FeedbackStatus, FeedbackLinkedType } from '@/types';
+import { MasonryGrid } from '@/components/shared/masonry-grid';
 
 const BASE = '/app/feedback';
 
@@ -347,7 +348,7 @@ function FeedbackPageContent() {
   }
 
   return (
-    <div className="p-6 max-w-4xl mx-auto">
+    <div className="p-6 max-w-6xl mx-auto">
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
@@ -453,7 +454,7 @@ function FeedbackPageContent() {
           )}
         </div>
       ) : (
-        <div className="flex flex-col gap-3">
+        <MasonryGrid>
           {filtered.map(item => {
             const typeData = FEEDBACK_TYPES.find(t => t.value === item.type);
             return (
@@ -508,7 +509,7 @@ function FeedbackPageContent() {
               </div>
             );
           })}
-        </div>
+        </MasonryGrid>
       )}
 
       {/* Dialogs */}

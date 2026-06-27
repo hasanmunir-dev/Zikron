@@ -15,6 +15,7 @@ import { SharedItemDetailDialog } from '@/components/features/sharing/SharedItem
 import { useBulkSelection } from '@/hooks/use-bulk-selection';
 import { BulkActionToolbar } from '@/components/shared/bulk-action-toolbar';
 import type { InboxItem, SharedWithMeItem } from '@/types';
+import { MasonryGrid } from '@/components/shared/masonry-grid';
 
 const BASE_PATH = '/app/inbox';
 
@@ -112,7 +113,7 @@ export default function InboxPage() {
   ];
 
   return (
-    <div className="p-6 max-w-3xl mx-auto">
+    <div className="p-6 max-w-6xl mx-auto">
       <div className="flex items-center justify-between mb-6">
         <div>
           <h2 className="text-xl font-bold text-foreground">Inbox</h2>
@@ -203,7 +204,7 @@ export default function InboxPage() {
             </p>
           </div>
         ) : (
-          <div className="space-y-3">
+          <MasonryGrid>
             {filteredShared.map(item => (
               <SharedInboxCard
                 key={item.share_id}
@@ -211,14 +212,18 @@ export default function InboxPage() {
                 onClick={() => router.push(`${BASE_PATH}?shared_view=${item.share_id}`)}
               />
             ))}
-          </div>
+          </MasonryGrid>
         )
       ) : isLoading && items.length === 0 ? (
-        <div className="space-y-3">
-          {[1, 2, 3].map(i => (
-            <div key={i} className="bg-card border border-border rounded-xl p-4 h-20 animate-pulse" />
+        <MasonryGrid>
+          {[1, 2, 3, 4].map(i => (
+            <div key={i} className="bg-card border border-border rounded-xl p-4 space-y-2 animate-pulse">
+              <div className="h-4 w-2/3 rounded bg-muted" />
+              <div className="h-3 w-full rounded bg-muted" />
+              {i % 2 === 0 && <div className="h-3 w-3/4 rounded bg-muted" />}
+            </div>
           ))}
-        </div>
+        </MasonryGrid>
       ) : filtered.length === 0 ? (
         <div className="text-center py-16">
           <div className="w-12 h-12 bg-muted rounded-xl flex items-center justify-center mx-auto mb-3">
@@ -238,7 +243,7 @@ export default function InboxPage() {
           )}
         </div>
       ) : (
-        <div className="space-y-3">
+        <>
           {filtered.length > 0 && (
             <div className="flex items-center gap-2 mb-3">
               <input
@@ -256,6 +261,7 @@ export default function InboxPage() {
               )}
             </div>
           )}
+          <MasonryGrid>
           {filtered.map((item: InboxItem) => (
             <div key={item.id} className="relative group/sel">
               <button
@@ -288,7 +294,8 @@ export default function InboxPage() {
               onClick={() => router.push(`${BASE_PATH}?shared_view=${item.share_id}`)}
             />
           ))}
-        </div>
+          </MasonryGrid>
+        </>
       )}
 
       {dialog?.action === 'create' && (

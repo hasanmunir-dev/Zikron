@@ -23,6 +23,7 @@ import { BulkActionToolbar } from '@/components/shared/bulk-action-toolbar';
 import { useSharedWithMe } from '@/hooks/queries/use-shared-links';
 import { formatRelativeTime } from '@/utils/date';
 import type { Collection, CollectionWithItems, CollectionItem, CollectionItemType, SharedWithMeItem } from '@/types';
+import { MasonryGrid, MasonrySkeleton } from '@/components/shared/masonry-grid';
 
 const BASE = '/app/collections';
 
@@ -189,7 +190,7 @@ function CollectionCard({ col, onDelete, onShare }: { col: Collection; onDelete:
   const [confirmDelete, setConfirmDelete] = useState(false);
 
   return (
-    <div className="relative group bg-card border border-border rounded-xl overflow-hidden hover:border-primary/40 transition-all hover:shadow-sm">
+    <Link  href={`${BASE}?detail=${col.id}`} className="block relative group bg-card border border-border rounded-xl overflow-hidden hover:border-primary/40 transition-all hover:shadow-sm">
       {/* Color bar */}
       <div className={`h-1 w-full ${colorClass(col.color)}`} />
 
@@ -198,12 +199,11 @@ function CollectionCard({ col, onDelete, onShare }: { col: Collection; onDelete:
           <div className="flex items-center gap-2.5 min-w-0">
             <span className="text-xl shrink-0">{col.icon ?? '📁'}</span>
             <div className="min-w-0">
-              <Link
-                href={`${BASE}?detail=${col.id}`}
+              <div
                 className="block text-sm font-semibold text-foreground truncate hover:text-primary transition-colors"
               >
                 {col.title}
-              </Link>
+              </div>
             </div>
           </div>
 
@@ -254,7 +254,7 @@ function CollectionCard({ col, onDelete, onShare }: { col: Collection; onDelete:
           </span>
         )}
 
-        <div className="mt-3 flex items-center justify-between">
+        {/* <div className="mt-3 flex items-center justify-between">
           <span className="text-xs text-muted-foreground">{formatRelativeTime(col.updated_at)}</span>
           <Link
             href={`${BASE}?detail=${col.id}`}
@@ -262,7 +262,7 @@ function CollectionCard({ col, onDelete, onShare }: { col: Collection; onDelete:
           >
             Open →
           </Link>
-        </div>
+        </div> */}
       </div>
 
       <DeleteConfirmDialog
@@ -273,7 +273,7 @@ function CollectionCard({ col, onDelete, onShare }: { col: Collection; onDelete:
         itemName={col.title}
         onConfirm={() => { setConfirmDelete(false); onDelete(); }}
       />
-    </div>
+    </Link>
   );
 }
 
@@ -641,7 +641,7 @@ function CollectionsContent() {
               </p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <MasonryGrid>
               {filteredShared.map(item => (
                 <SharedCollectionCard
                   key={item.share_id}
@@ -649,21 +649,10 @@ function CollectionsContent() {
                   onClick={() => router.push(`${BASE}?shared_view=${item.share_id}`)}
                 />
               ))}
-            </div>
+            </MasonryGrid>
           )
         ) : isLoading ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {[...Array(6)].map((_, i) => (
-              <div key={i} className="bg-card border border-border rounded-xl overflow-hidden">
-                <Skeleton className="h-1 w-full" />
-                <div className="p-4 space-y-2">
-                  <Skeleton className="h-5 w-3/4" />
-                  <Skeleton className="h-3 w-full" />
-                  <Skeleton className="h-3 w-2/3" />
-                </div>
-              </div>
-            ))}
-          </div>
+          <MasonrySkeleton count={6} />
         ) : filtered.length === 0 && (tab !== 'all' || filteredShared.length === 0) ? (
           <div className="flex flex-col items-center justify-center py-16 text-center">
             <div className="w-14 h-14 bg-violet-100 dark:bg-violet-900/40 rounded-2xl flex items-center justify-center mb-4">
@@ -686,9 +675,9 @@ function CollectionsContent() {
             )}
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <>
             {filtered.length > 0 && (
-              <div className="col-span-full flex items-center gap-2 mb-1">
+              <div className="flex items-center gap-2 mb-3">
                 <input
                   type="checkbox"
                   id="collections-select-all"
@@ -704,36 +693,38 @@ function CollectionsContent() {
                 )}
               </div>
             )}
-            {filtered.map(col => (
-              <div key={col.id} className="relative group/sel">
-                <button
-                  type="button"
-                  onClick={e => { e.stopPropagation(); bulk.toggle(col.id); }}
-                  aria-label={`${bulk.isSelected(col.id) ? 'Deselect' : 'Select'} item`}
-                  className={`absolute top-2 left-2 z-30 flex items-center justify-center w-5 h-5 rounded border-2 transition-all ${
-                    bulk.isSelected(col.id) ? 'bg-primary border-primary opacity-100' : `bg-card border-border ${bulk.selectedCount > 0 ? 'opacity-100' : 'opacity-0 group-hover/sel:opacity-100'}`
-                  }`}
-                >
-                  {bulk.isSelected(col.id) && <Check size={11} className="text-primary-foreground" />}
-                </button>
-                {bulk.selectedCount > 0 && (
-                  <div className="absolute inset-0 z-20 cursor-pointer rounded-xl" onClick={() => bulk.toggle(col.id)} aria-hidden="true" />
-                )}
-                <CollectionCard
-                  col={col}
-                  onDelete={() => deleteCollection.mutate(col.id)}
-                  onShare={() => router.push(`${BASE}?share=${col.id}`)}
+            <MasonryGrid>
+              {filtered.map(col => (
+                <div key={col.id} className="relative group/sel">
+                  <button
+                    type="button"
+                    onClick={e => { e.stopPropagation(); bulk.toggle(col.id); }}
+                    aria-label={`${bulk.isSelected(col.id) ? 'Deselect' : 'Select'} item`}
+                    className={`absolute top-2 left-2 z-30 flex items-center justify-center w-5 h-5 rounded border-2 transition-all ${
+                      bulk.isSelected(col.id) ? 'bg-primary border-primary opacity-100' : `bg-card border-border ${bulk.selectedCount > 0 ? 'opacity-100' : 'opacity-0 group-hover/sel:opacity-100'}`
+                    }`}
+                  >
+                    {bulk.isSelected(col.id) && <Check size={11} className="text-primary-foreground" />}
+                  </button>
+                  {bulk.selectedCount > 0 && (
+                    <div className="absolute inset-0 z-20 cursor-pointer rounded-xl" onClick={() => bulk.toggle(col.id)} aria-hidden="true" />
+                  )}
+                  <CollectionCard
+                    col={col}
+                    onDelete={() => deleteCollection.mutate(col.id)}
+                    onShare={() => router.push(`${BASE}?share=${col.id}`)}
+                  />
+                </div>
+              ))}
+              {tab === 'all' && filteredShared.map(item => (
+                <SharedCollectionCard
+                  key={item.share_id}
+                  item={item}
+                  onClick={() => router.push(`${BASE}?shared_view=${item.share_id}`)}
                 />
-              </div>
-            ))}
-            {tab === 'all' && filteredShared.map(item => (
-              <SharedCollectionCard
-                key={item.share_id}
-                item={item}
-                onClick={() => router.push(`${BASE}?shared_view=${item.share_id}`)}
-              />
-            ))}
-          </div>
+              ))}
+            </MasonryGrid>
+          </>
         )}
       </div>
 

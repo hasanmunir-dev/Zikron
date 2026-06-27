@@ -143,7 +143,7 @@ export default function DashboardPage() {
   ];
 
   return (
-    <div className="p-6 max-w-4xl mx-auto space-y-8">
+    <div className="p-6 max-w-6xl mx-auto space-y-8">
       {/* Greeting */}
       <div>
         <h2 className="text-2xl font-bold text-foreground">
