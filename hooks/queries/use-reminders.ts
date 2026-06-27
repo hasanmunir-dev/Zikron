@@ -126,3 +126,46 @@ export function useUpdateReminderStatus() {
     },
   });
 }
+
+// ─── Bulk operations ──────────────────────────────────────────────────────────
+
+export function useBulkUpdateReminders() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ ids, status }: { ids: string[]; status: ReminderStatus }) =>
+      api.patch<{ affected: number }>('/api/reminders/bulk', { ids, updates: { status } }),
+    onMutate: async ({ ids, status }) => {
+      await queryClient.cancelQueries({ queryKey: reminderKeys.all() });
+      const prev = queryClient.getQueryData<Reminder[]>(reminderKeys.all());
+      queryClient.setQueryData<Reminder[]>(reminderKeys.all(), old =>
+        (old ?? []).map(r => ids.includes(r.id) ? { ...r, status } : r),
+      );
+      return { prev };
+    },
+    onError: (_err, _vars, ctx) => {
+      if (ctx?.prev) queryClient.setQueryData(reminderKeys.all(), ctx.prev);
+      toast.error('Bulk update failed');
+    },
+    onSettled: () => queryClient.invalidateQueries({ queryKey: reminderKeys.all() }),
+  });
+}
+
+export function useBulkDeleteReminders() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (ids: string[]) =>
+      api.deleteWithBody<{ affected: number }>('/api/reminders/bulk', { ids }),
+    onMutate: async (ids) => {
+      await queryClient.cancelQueries({ queryKey: reminderKeys.all() });
+      const prev = queryClient.getQueryData<Reminder[]>(reminderKeys.all());
+      queryClient.setQueryData<Reminder[]>(reminderKeys.all(), old => (old ?? []).filter(r => !ids.includes(r.id)));
+      return { prev };
+    },
+    onError: (_err, _ids, ctx) => {
+      if (ctx?.prev) queryClient.setQueryData(reminderKeys.all(), ctx.prev);
+      toast.error('Failed to delete reminders');
+    },
+    onSuccess: (data) => toast.success(`Deleted ${data.affected} reminder${data.affected !== 1 ? 's' : ''}`),
+    onSettled: () => queryClient.invalidateQueries({ queryKey: reminderKeys.all() }),
+  });
+}

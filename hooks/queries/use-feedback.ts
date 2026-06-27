@@ -70,6 +70,28 @@ export function useDeleteFeedback() {
   });
 }
 
+// ─── Bulk operations ──────────────────────────────────────────────────────────
+
+export function useBulkDeleteFeedback() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (ids: string[]) =>
+      api.deleteWithBody<{ affected: number }>('/api/feedback/bulk', { ids }),
+    onMutate: async (ids) => {
+      await queryClient.cancelQueries({ queryKey: feedbackKeys.all() });
+      const prev = queryClient.getQueryData<Feedback[]>(feedbackKeys.all());
+      queryClient.setQueryData<Feedback[]>(feedbackKeys.all(), old => (old ?? []).filter(f => !ids.includes(f.id)));
+      return { prev };
+    },
+    onError: (_err, _ids, ctx) => {
+      if (ctx?.prev) queryClient.setQueryData(feedbackKeys.all(), ctx.prev);
+      toast.error('Failed to delete feedback');
+    },
+    onSuccess: (data) => toast.success(`Deleted ${data.affected} item${data.affected !== 1 ? 's' : ''}`),
+    onSettled: () => queryClient.invalidateQueries({ queryKey: feedbackKeys.all() }),
+  });
+}
+
 // ─── Admin hooks ──────────────────────────────────────────────────────────────
 
 export function useAdminFeedback() {

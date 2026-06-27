@@ -6,25 +6,28 @@ import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 
 interface DateTimePickerProps {
-  value: string;        // "YYYY-MM-DDTHH:mm" local time, or ""
+  value: string;        // "YYYY-MM-DDTHH:mm" local time, or "" (dateOnly: "YYYY-MM-DD")
   onChange: (v: string) => void;
   placeholder?: string;
   disabled?: boolean;
   error?: boolean;
+  dateOnly?: boolean;
 }
 
 function pad(n: number) {
   return String(n).padStart(2, '0');
 }
 
-// Parse "YYYY-MM-DDTHH:mm" without UTC conversion so timezone never shifts the date
-function parseValue(val: string): { date: Date | undefined; hour: number; minute: number } {
+// Parse "YYYY-MM-DDTHH:mm" or "YYYY-MM-DD" without UTC conversion so timezone never shifts the date
+function parseValue(val: string, dateOnly?: boolean): { date: Date | undefined; hour: number; minute: number } {
   if (!val) return { date: undefined, hour: 9, minute: 0 };
-  const [datePart, timePart] = val.split('T');
+  const datePart = dateOnly ? val : val.split('T')[0];
   if (!datePart) return { date: undefined, hour: 9, minute: 0 };
   const [y, mo, d] = datePart.split('-').map(Number);
-  const [h = 9, m = 0] = (timePart ?? '09:00').split(':').map(Number);
   if (!y || !mo || !d) return { date: undefined, hour: 9, minute: 0 };
+  if (dateOnly) return { date: new Date(y, mo - 1, d), hour: 0, minute: 0 };
+  const timePart = val.split('T')[1];
+  const [h = 9, m = 0] = (timePart ?? '09:00').split(':').map(Number);
   return { date: new Date(y, mo - 1, d), hour: h, minute: m };
 }
 
@@ -32,11 +35,16 @@ function buildValue(date: Date, hour: number, minute: number): string {
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(hour)}:${pad(minute)}`;
 }
 
-function formatDisplay(val: string): string {
+function buildDateValue(date: Date): string {
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+}
+
+function formatDisplay(val: string, dateOnly?: boolean): string {
   if (!val) return '';
-  const { date, hour, minute } = parseValue(val);
+  const { date, hour, minute } = parseValue(val, dateOnly);
   if (!date) return '';
   const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  if (dateOnly) return `${months[date.getMonth()]} ${date.getDate()}, ${date.getFullYear()}`;
   return `${months[date.getMonth()]} ${date.getDate()}, ${date.getFullYear()} · ${pad(hour)}:${pad(minute)}`;
 }
 
@@ -91,10 +99,12 @@ function SpinField({
 export function DateTimePicker({
   value,
   onChange,
-  placeholder = 'Pick date & time',
+  placeholder,
   disabled,
   error,
+  dateOnly,
 }: DateTimePickerProps) {
+  const defaultPlaceholder = dateOnly ? 'Pick date' : 'Pick date & time';
   const [open, setOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>();
   const [hour, setHour] = useState(9);
@@ -102,7 +112,7 @@ export function DateTimePicker({
 
   function handleOpenChange(o: boolean) {
     if (o) {
-      const p = parseValue(value);
+      const p = parseValue(value, dateOnly);
       setSelectedDate(p.date);
       setHour(p.hour);
       setMinute(p.minute);
@@ -112,6 +122,10 @@ export function DateTimePicker({
 
   function handleDaySelect(day: Date | undefined) {
     setSelectedDate(day);
+    if (dateOnly) {
+      if (day) { onChange(buildDateValue(day)); setOpen(false); }
+      return;
+    }
     // If editing an existing value (time already set), auto-close with the updated date
     if (day && value) {
       onChange(buildValue(day, hour, minute));
@@ -130,7 +144,7 @@ export function DateTimePicker({
     onChange('');
   }
 
-  const display = formatDisplay(value);
+  const display = formatDisplay(value, dateOnly);
 
   return (
     <div className="relative">
@@ -150,7 +164,7 @@ export function DateTimePicker({
               ].join(' ')}
             >
               <CalendarIcon size={15} className="shrink-0 text-muted-foreground" />
-              <span className="flex-1 text-left">{display || placeholder}</span>
+              <span className="flex-1 text-left">{display || placeholder || defaultPlaceholder}</span>
             </button>
           }
         />
@@ -162,24 +176,26 @@ export function DateTimePicker({
             defaultMonth={selectedDate ?? new Date()}
             autoFocus
           />
-          <div className="border-t border-border bg-muted/30 px-4 py-3">
-            <div className="flex items-center gap-3">
-              <Clock size={14} className="shrink-0 text-muted-foreground" />
-              <div className="flex items-center gap-1.5">
-                <SpinField label="HH" value={hour} max={23} onChange={setHour} />
-                <span className="pb-1 text-base font-bold text-muted-foreground">:</span>
-                <SpinField label="MM" value={minute} max={59} onChange={setMinute} />
+          {!dateOnly && (
+            <div className="border-t border-border bg-muted/30 px-4 py-3">
+              <div className="flex items-center gap-3">
+                <Clock size={14} className="shrink-0 text-muted-foreground" />
+                <div className="flex items-center gap-1.5">
+                  <SpinField label="HH" value={hour} max={23} onChange={setHour} />
+                  <span className="pb-1 text-base font-bold text-muted-foreground">:</span>
+                  <SpinField label="MM" value={minute} max={59} onChange={setMinute} />
+                </div>
+                <button
+                  type="button"
+                  onClick={apply}
+                  disabled={!selectedDate}
+                  className="ml-auto rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-blue-700 disabled:opacity-40"
+                >
+                  Done
+                </button>
               </div>
-              <button
-                type="button"
-                onClick={apply}
-                disabled={!selectedDate}
-                className="ml-auto rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-blue-700 disabled:opacity-40"
-              >
-                Done
-              </button>
             </div>
-          </div>
+          )}
         </PopoverContent>
       </Popover>
 
@@ -187,7 +203,7 @@ export function DateTimePicker({
       {value && !disabled && (
         <button
           type="button"
-          aria-label="Clear date and time"
+          aria-label={dateOnly ? 'Clear date' : 'Clear date and time'}
           onClick={clearValue}
           className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground transition-colors hover:text-foreground"
         >

@@ -153,7 +153,7 @@ export default function AdminContactMessagesPage() {
               <button
                 type="button"
                 onClick={e => { e.stopPropagation(); handleDelete(msg.id); }}
-                className="shrink-0 opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-red-500 transition-all mt-0.5"
+                className="shrink-0 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100 text-muted-foreground hover:text-red-500 transition-all mt-0.5"
                 aria-label="Delete message"
               >
                 <Trash2 size={15} />

@@ -242,7 +242,39 @@ export interface AdminCollection extends Collection {
 
 // ─── Contact types ─────────────────────────────────────────────────────────────
 
-export type ContactSource = 'manual' | 'google' | 'future_import';
+export type ContactSource = 'manual' | 'google' | 'csv' | 'future_import';
+
+export interface ContactEmail {
+  value: string;
+  label: string;
+  primary: boolean;
+}
+
+export interface ContactPhone {
+  value: string;
+  label: string;
+  primary: boolean;
+  normalized?: string;
+}
+
+export interface ContactAddress {
+  street: string;
+  city: string;
+  state: string;
+  zip: string;
+  country: string;
+  label: string;
+}
+
+export interface ContactWebsite {
+  value: string;
+  label: string;
+}
+
+export interface ContactSocialLink {
+  platform: string;
+  value: string;
+}
 
 export interface Contact {
   id: string;
@@ -250,8 +282,19 @@ export interface Contact {
   source: ContactSource;
   google_resource_name: string | null;
   name: string;
+  prefix: string | null;
+  middle_name: string | null;
+  nickname: string | null;
+  birthday: string | null;
+  // Legacy flat fields (kept for backward compat + Google dedup)
   email: string | null;
   phone: string | null;
+  // Rich multi-value fields
+  emails: ContactEmail[];
+  phones: ContactPhone[];
+  addresses: ContactAddress[];
+  websites: ContactWebsite[];
+  social_links: ContactSocialLink[];
   avatar_url: string | null;
   company: string | null;
   job_title: string | null;

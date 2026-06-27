@@ -1,11 +1,11 @@
 'use client';
 
-import { useState, Suspense } from 'react';
+import { useState, Suspense, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
   FolderOpen, Plus, Search, X, Star, Archive, Pencil, Trash2,
-  BookOpen, Inbox, Table2, MessageSquare, Bell, Hash, Share2, Users,
+  BookOpen, Inbox, Table2, MessageSquare, Bell, Hash, Share2, Users, Check,
 } from 'lucide-react';
 import { DeleteConfirmDialog } from '@/components/shared/delete-confirm-dialog';
 import { ShareDialog } from '@/components/features/sharing/ShareDialog';
@@ -16,7 +16,10 @@ import { Skeleton } from '@/components/ui/skeleton';
 import {
   useCollections, useCollection, useCreateCollection,
   useUpdateCollection, useDeleteCollection, useRemoveCollectionItem,
+  useBulkUpdateCollections, useBulkDeleteCollections,
 } from '@/hooks/queries/use-collections';
+import { useBulkSelection } from '@/hooks/use-bulk-selection';
+import { BulkActionToolbar } from '@/components/shared/bulk-action-toolbar';
 import { useSharedWithMe } from '@/hooks/queries/use-shared-links';
 import { formatRelativeTime } from '@/utils/date';
 import type { Collection, CollectionWithItems, CollectionItem, CollectionItemType, SharedWithMeItem } from '@/types';
@@ -495,6 +498,14 @@ function CollectionsContent() {
   const sharedCollections = sharedItems.filter(i => i.item_type === 'collection');
   const deleteCollection = useDeleteCollection();
   const update = useUpdateCollection();
+  const bulkUpdate = useBulkUpdateCollections();
+  const bulkDelete = useBulkDeleteCollections();
+  const bulk = useBulkSelection();
+
+  useEffect(() => {
+    bulk.clear();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tab]);
 
   const shareCollection = shareId ? collections.find(c => c.id === shareId) : null;
   const closeShareUrl = (() => {
@@ -597,6 +608,28 @@ function CollectionsContent() {
 
       {/* Content */}
       <div className="flex-1 overflow-y-auto px-6 pb-6">
+        {bulk.selectedCount > 0 && tab !== 'shared' && (
+          <BulkActionToolbar
+            count={bulk.selectedCount}
+            total={filtered.length}
+            onClear={bulk.clear}
+            onSelectAll={() => bulk.toggleAll(filtered.map(c => c.id), true)}
+            actions={[
+              {
+                label: 'Favorite',
+                icon: Star,
+                onClick: () => { bulkUpdate.mutate({ ids: bulk.getArray(), updates: { is_favorite: true } }); bulk.clear(); },
+              },
+              {
+                label: 'Delete',
+                icon: Trash2,
+                variant: 'destructive' as const,
+                onClick: () => { bulkDelete.mutate(bulk.getArray()); bulk.clear(); },
+              },
+            ]}
+          />
+        )}
+
         {tab === 'shared' ? (
           filteredShared.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16 text-center">
@@ -654,13 +687,44 @@ function CollectionsContent() {
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {tab !== 'shared' && filtered.length > 0 && (
+              <div className="col-span-full flex items-center gap-2 mb-1">
+                <input
+                  type="checkbox"
+                  id="collections-select-all"
+                  checked={bulk.selectedCount === filtered.length && filtered.length > 0}
+                  onChange={e => bulk.toggleAll(filtered.map(c => c.id), e.target.checked)}
+                  className="w-4 h-4 rounded border-border accent-primary cursor-pointer"
+                />
+                <label htmlFor="collections-select-all" className="text-xs text-muted-foreground cursor-pointer select-none">
+                  {bulk.selectedCount > 0 ? `${bulk.selectedCount} selected` : `Select all ${filtered.length}`}
+                </label>
+                {bulk.selectedCount > 0 && (
+                  <button type="button" onClick={bulk.clear} className="text-xs text-muted-foreground hover:text-foreground ml-1">Clear</button>
+                )}
+              </div>
+            )}
             {filtered.map(col => (
-              <CollectionCard
-                key={col.id}
-                col={col}
-                onDelete={() => deleteCollection.mutate(col.id)}
-                onShare={() => router.push(`${BASE}?share=${col.id}`)}
-              />
+              <div key={col.id} className="relative group/sel">
+                <button
+                  type="button"
+                  onClick={e => { e.stopPropagation(); bulk.toggle(col.id); }}
+                  aria-label={`${bulk.isSelected(col.id) ? 'Deselect' : 'Select'} item`}
+                  className={`absolute top-2 left-2 z-30 flex items-center justify-center w-5 h-5 rounded border-2 transition-all ${
+                    bulk.isSelected(col.id) ? 'bg-primary border-primary opacity-100' : `bg-card border-border ${bulk.selectedCount > 0 ? 'opacity-100' : 'opacity-0 group-hover/sel:opacity-100'}`
+                  }`}
+                >
+                  {bulk.isSelected(col.id) && <Check size={11} className="text-primary-foreground" />}
+                </button>
+                {bulk.selectedCount > 0 && (
+                  <div className="absolute inset-0 z-20 cursor-pointer rounded-xl" onClick={() => bulk.toggle(col.id)} aria-hidden="true" />
+                )}
+                <CollectionCard
+                  col={col}
+                  onDelete={() => deleteCollection.mutate(col.id)}
+                  onShare={() => router.push(`${BASE}?share=${col.id}`)}
+                />
+              </div>
             ))}
             {tab === 'all' && filteredShared.map(item => (
               <SharedCollectionCard

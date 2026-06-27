@@ -1,12 +1,12 @@
 'use client';
 
-import { useState, Suspense } from 'react';
+import { useState, Suspense, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
   Bell, Plus, Search, X, Clock, CheckCircle2, XCircle,
   AlertCircle, Trash2, Pencil, Circle,
-  BookOpen, Inbox, Table2, MessageSquare, Link2, RotateCcw, FolderOpen, Share2, Users,
+  BookOpen, Inbox, Table2, MessageSquare, Link2, RotateCcw, FolderOpen, Share2, Users, Check,
 } from 'lucide-react';
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
@@ -15,7 +15,10 @@ import { DateTimePicker } from '@/components/ui/date-time-picker';
 import {
   useReminders, useReminder, useCreateReminder,
   useUpdateReminder, useDeleteReminder, useUpdateReminderStatus,
+  useBulkUpdateReminders, useBulkDeleteReminders,
 } from '@/hooks/queries/use-reminders';
+import { useBulkSelection } from '@/hooks/use-bulk-selection';
+import { BulkActionToolbar } from '@/components/shared/bulk-action-toolbar';
 import { useNotes } from '@/hooks/queries/use-notes';
 import { useInbox } from '@/hooks/queries/use-inbox';
 import { useLists } from '@/hooks/queries/use-lists';
@@ -52,8 +55,7 @@ function isTomorrow(dateStr: string): boolean {
   return d.getFullYear() === t.getFullYear() && d.getMonth() === t.getMonth() && d.getDate() === t.getDate();
 }
 
-// Convert a stored UTC ISO string to the value expected by <input type="datetime-local">
-// (which uses local time, not UTC)
+// Convert a stored UTC ISO string to "YYYY-MM-DDTHH:mm" local time for DateTimePicker
 function toLocalDatetimeInput(iso: string): string {
   const d = new Date(iso);
   const offset = d.getTimezoneOffset() * 60000;
@@ -581,6 +583,14 @@ function RemindersContent() {
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState<FilterTab>('all');
   const [notificationDismissed, setNotificationDismissed] = useState(false);
+  const bulkUpdate = useBulkUpdateReminders();
+  const bulkDelete = useBulkDeleteReminders();
+  const bulk = useBulkSelection();
+
+  useEffect(() => {
+    bulk.clear();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filter]);
 
   const detailId  = searchParams.get('detail');
   const editId    = searchParams.get('edit');
@@ -698,6 +708,33 @@ function RemindersContent() {
         ))}
       </div>
 
+      {bulk.selectedCount > 0 && filter !== 'shared' && (
+        <BulkActionToolbar
+          count={bulk.selectedCount}
+          total={filtered.length}
+          onClear={bulk.clear}
+          onSelectAll={() => bulk.toggleAll(filtered.map(r => r.id), true)}
+          actions={[
+            {
+              label: 'Complete',
+              icon: CheckCircle2,
+              onClick: () => { bulkUpdate.mutate({ ids: bulk.getArray(), status: 'completed' }); bulk.clear(); },
+            },
+            {
+              label: 'Cancel',
+              icon: XCircle,
+              onClick: () => { bulkUpdate.mutate({ ids: bulk.getArray(), status: 'cancelled' }); bulk.clear(); },
+            },
+            {
+              label: 'Delete',
+              icon: Trash2,
+              variant: 'destructive' as const,
+              onClick: () => { bulkDelete.mutate(bulk.getArray()); bulk.clear(); },
+            },
+          ]}
+        />
+      )}
+
       {filter === 'shared' ? (
         filteredShared.length === 0 ? (
           <div className="bg-card border border-dashed border-border rounded-2xl p-12 text-center">
@@ -740,8 +777,40 @@ function RemindersContent() {
         </div>
       ) : (
         <div className="space-y-2">
+          {filter !== 'shared' && filtered.length > 0 && (
+            <div className="flex items-center gap-2 mb-3">
+              <input
+                type="checkbox"
+                id="reminders-select-all"
+                checked={bulk.selectedCount === filtered.length && filtered.length > 0}
+                onChange={e => bulk.toggleAll(filtered.map(r => r.id), e.target.checked)}
+                className="w-4 h-4 rounded border-border accent-primary cursor-pointer"
+              />
+              <label htmlFor="reminders-select-all" className="text-xs text-muted-foreground cursor-pointer select-none">
+                {bulk.selectedCount > 0 ? `${bulk.selectedCount} selected` : `Select all ${filtered.length}`}
+              </label>
+              {bulk.selectedCount > 0 && (
+                <button type="button" onClick={bulk.clear} className="text-xs text-muted-foreground hover:text-foreground ml-1">Clear</button>
+              )}
+            </div>
+          )}
           {filtered.map(r => (
-            <ReminderCard key={r.id} r={r} onStatus={(id, status) => updateStatus.mutate({ id, status })} />
+            <div key={r.id} className="relative group/sel">
+              <button
+                type="button"
+                onClick={e => { e.stopPropagation(); bulk.toggle(r.id); }}
+                aria-label={`${bulk.isSelected(r.id) ? 'Deselect' : 'Select'} item`}
+                className={`absolute top-2 left-2 z-30 flex items-center justify-center w-5 h-5 rounded border-2 transition-all ${
+                  bulk.isSelected(r.id) ? 'bg-primary border-primary opacity-100' : `bg-card border-border ${bulk.selectedCount > 0 ? 'opacity-100' : 'opacity-0 group-hover/sel:opacity-100'}`
+                }`}
+              >
+                {bulk.isSelected(r.id) && <Check size={11} className="text-primary-foreground" />}
+              </button>
+              {bulk.selectedCount > 0 && (
+                <div className="absolute inset-0 z-20 cursor-pointer rounded-xl" onClick={() => bulk.toggle(r.id)} aria-hidden="true" />
+              )}
+              <ReminderCard r={r} onStatus={(id, status) => updateStatus.mutate({ id, status })} />
+            </div>
           ))}
           {filter === 'all' && filteredShared.map(item => (
             <SharedReminderCard

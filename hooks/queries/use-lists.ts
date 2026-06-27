@@ -93,3 +93,46 @@ export function useUpdateList() {
     },
   });
 }
+
+// ─── Bulk operations ──────────────────────────────────────────────────────────
+
+export function useBulkUpdateLists() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ ids, updates }: { ids: string[]; updates: Record<string, unknown> }) =>
+      api.patch<{ affected: number }>('/api/lists/bulk', { ids, updates }),
+    onMutate: async ({ ids, updates }) => {
+      await queryClient.cancelQueries({ queryKey: listKeys.all() });
+      const prev = queryClient.getQueryData<List[]>(listKeys.all());
+      queryClient.setQueryData<List[]>(listKeys.all(), old =>
+        (old ?? []).map(l => ids.includes(l.id) ? { ...l, ...updates } as List : l),
+      );
+      return { prev };
+    },
+    onError: (_err, _vars, ctx) => {
+      if (ctx?.prev) queryClient.setQueryData(listKeys.all(), ctx.prev);
+      toast.error('Bulk update failed');
+    },
+    onSettled: () => queryClient.invalidateQueries({ queryKey: listKeys.all() }),
+  });
+}
+
+export function useBulkDeleteLists() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (ids: string[]) =>
+      api.deleteWithBody<{ affected: number }>('/api/lists/bulk', { ids }),
+    onMutate: async (ids) => {
+      await queryClient.cancelQueries({ queryKey: listKeys.all() });
+      const prev = queryClient.getQueryData<List[]>(listKeys.all());
+      queryClient.setQueryData<List[]>(listKeys.all(), old => (old ?? []).filter(l => !ids.includes(l.id)));
+      return { prev };
+    },
+    onError: (_err, _ids, ctx) => {
+      if (ctx?.prev) queryClient.setQueryData(listKeys.all(), ctx.prev);
+      toast.error('Failed to delete lists');
+    },
+    onSuccess: (data) => toast.success(`Deleted ${data.affected} list${data.affected !== 1 ? 's' : ''}`),
+    onSettled: () => queryClient.invalidateQueries({ queryKey: listKeys.all() }),
+  });
+}

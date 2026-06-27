@@ -124,6 +124,49 @@ export function useRemoveCollectionItem() {
   });
 }
 
+// ─── Bulk operations ──────────────────────────────────────────────────────────
+
+export function useBulkUpdateCollections() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ ids, updates }: { ids: string[]; updates: Record<string, unknown> }) =>
+      api.patch<{ affected: number }>('/api/collections/bulk', { ids, updates }),
+    onMutate: async ({ ids, updates }) => {
+      await queryClient.cancelQueries({ queryKey: collectionKeys.all() });
+      const prev = queryClient.getQueryData<Collection[]>(collectionKeys.all());
+      queryClient.setQueryData<Collection[]>(collectionKeys.all(), old =>
+        (old ?? []).map(c => ids.includes(c.id) ? { ...c, ...updates } as Collection : c),
+      );
+      return { prev };
+    },
+    onError: (_err, _vars, ctx) => {
+      if (ctx?.prev) queryClient.setQueryData(collectionKeys.all(), ctx.prev);
+      toast.error('Bulk update failed');
+    },
+    onSettled: () => queryClient.invalidateQueries({ queryKey: collectionKeys.all() }),
+  });
+}
+
+export function useBulkDeleteCollections() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (ids: string[]) =>
+      api.deleteWithBody<{ affected: number }>('/api/collections/bulk', { ids }),
+    onMutate: async (ids) => {
+      await queryClient.cancelQueries({ queryKey: collectionKeys.all() });
+      const prev = queryClient.getQueryData<Collection[]>(collectionKeys.all());
+      queryClient.setQueryData<Collection[]>(collectionKeys.all(), old => (old ?? []).filter(c => !ids.includes(c.id)));
+      return { prev };
+    },
+    onError: (_err, _ids, ctx) => {
+      if (ctx?.prev) queryClient.setQueryData(collectionKeys.all(), ctx.prev);
+      toast.error('Failed to delete collections');
+    },
+    onSuccess: (data) => toast.success(`Deleted ${data.affected} collection${data.affected !== 1 ? 's' : ''}`),
+    onSettled: () => queryClient.invalidateQueries({ queryKey: collectionKeys.all() }),
+  });
+}
+
 // ─── Admin hooks ──────────────────────────────────────────────────────────────
 
 export function useAdminCollections() {

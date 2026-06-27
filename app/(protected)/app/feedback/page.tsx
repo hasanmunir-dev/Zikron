@@ -5,12 +5,15 @@ import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
   MessageSquarePlus, Search, X, Bug, Zap, Layout, Gauge,
-  Lightbulb, HelpCircle, Eye, Trash2, Plus, CheckCircle2,
+  Lightbulb, HelpCircle, Eye, Trash2, Plus, CheckCircle2, Check,
 } from 'lucide-react';
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
-import { useFeedback, useCreateFeedback, useDeleteFeedback } from '@/hooks/queries/use-feedback';
+import { useFeedback, useCreateFeedback, useDeleteFeedback, useBulkDeleteFeedback } from '@/hooks/queries/use-feedback';
+import { useBulkSelection } from '@/hooks/use-bulk-selection';
+import { BulkActionToolbar } from '@/components/shared/bulk-action-toolbar';
+import type { BulkAction } from '@/components/shared/bulk-action-toolbar';
 import { MarkdownEditor } from '@/components/editor/markdown-editor';
 import { MarkdownViewer } from '@/components/editor/markdown-viewer';
 import { DeleteConfirmDialog } from '@/components/shared/delete-confirm-dialog';
@@ -325,6 +328,9 @@ function FeedbackPageContent() {
     setDetailId(urlDetailId);
   }
 
+  const bulk = useBulkSelection();
+  const bulkDelete = useBulkDeleteFeedback();
+
   const detailItem = detailId ? items.find(f => f.id === detailId) : null;
 
   const filtered = items.filter(f => {
@@ -401,6 +407,33 @@ function FeedbackPageContent() {
         {isFetching && <span className="self-center text-xs text-muted-foreground animate-pulse">Refreshing…</span>}
       </div>
 
+      {/* Bulk actions */}
+      {(() => {
+        const bulkActions: BulkAction[] = [
+          {
+            label: 'Delete',
+            icon: Trash2,
+            variant: 'destructive' as const,
+            onClick: () => {
+              if (confirm(`Delete ${bulk.selectedCount} item${bulk.selectedCount !== 1 ? 's' : ''}? This cannot be undone.`)) {
+                bulkDelete.mutate(bulk.getArray());
+                bulk.clear();
+              }
+            },
+            disabled: bulkDelete.isPending,
+          },
+        ];
+        return (
+          <BulkActionToolbar
+            count={bulk.selectedCount}
+            total={filtered.length}
+            actions={bulkActions}
+            onClear={bulk.clear}
+            onSelectAll={checked => bulk.toggleAll(filtered.map(f => f.id), checked)}
+          />
+        );
+      })()}
+
       {/* List */}
       {filtered.length === 0 ? (
         <div className="text-center py-20">
@@ -424,39 +457,55 @@ function FeedbackPageContent() {
           {filtered.map(item => {
             const typeData = FEEDBACK_TYPES.find(t => t.value === item.type);
             return (
-              <Link
-                key={item.id}
-                href={`?detail=${item.id}`}
-                className="group relative bg-card border border-border rounded-xl p-4 hover:shadow-sm transition-all flex items-start gap-4"
-              >
-                {typeData && (
-                  <div className="w-9 h-9 rounded-xl bg-muted flex items-center justify-center shrink-0 mt-0.5">
-                    <typeData.icon size={16} className={typeData.color} />
-                  </div>
+              <div key={item.id} className="relative group/sel">
+                <button
+                  type="button"
+                  onClick={e => { e.stopPropagation(); bulk.toggle(item.id); }}
+                  aria-label={`${bulk.isSelected(item.id) ? 'Deselect' : 'Select'}`}
+                  className={`absolute top-2 left-2 z-30 flex items-center justify-center w-5 h-5 rounded border-2 transition-all ${
+                    bulk.isSelected(item.id)
+                      ? 'bg-primary border-primary opacity-100'
+                      : `bg-card border-border ${bulk.selectedCount > 0 ? 'opacity-100' : 'opacity-0 group-hover/sel:opacity-100'}`
+                  }`}
+                >
+                  {bulk.isSelected(item.id) && <Check size={11} className="text-primary-foreground" />}
+                </button>
+                {bulk.selectedCount > 0 && (
+                  <div className="absolute inset-0 z-20 cursor-pointer rounded-xl" onClick={() => bulk.toggle(item.id)} aria-hidden="true" />
                 )}
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-start justify-between gap-3">
-                    <p className="text-sm font-semibold text-foreground line-clamp-1">{item.title}</p>
-                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium shrink-0 ${STATUS_COLORS[item.status]}`}>
-                      {STATUS_LABELS[item.status]}
-                    </span>
+                <Link
+                  href={`?detail=${item.id}`}
+                  className="group relative bg-card border border-border rounded-xl p-4 hover:shadow-sm transition-all flex items-start gap-4"
+                >
+                  {typeData && (
+                    <div className="w-9 h-9 rounded-xl bg-muted flex items-center justify-center shrink-0 mt-0.5">
+                      <typeData.icon size={16} className={typeData.color} />
+                    </div>
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-start justify-between gap-3">
+                      <p className="text-sm font-semibold text-foreground line-clamp-1">{item.title}</p>
+                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium shrink-0 ${STATUS_COLORS[item.status]}`}>
+                        {STATUS_LABELS[item.status]}
+                      </span>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{item.message.replace(/[#*`_>]/g, '')}</p>
+                    <div className="flex items-center gap-2 mt-2 text-xs text-muted-foreground/60">
+                      <span className="capitalize">{typeData?.label}</span>
+                      <span>·</span>
+                      <span>{formatRelativeTime(item.created_at)}</span>
+                      {item.admin_response && (
+                        <>
+                          <span>·</span>
+                          <span className="text-emerald-600 dark:text-emerald-400 flex items-center gap-0.5">
+                            <CheckCircle2 size={11} /> Response received
+                          </span>
+                        </>
+                      )}
+                    </div>
                   </div>
-                  <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{item.message.replace(/[#*`_>]/g, '')}</p>
-                  <div className="flex items-center gap-2 mt-2 text-xs text-muted-foreground/60">
-                    <span className="capitalize">{typeData?.label}</span>
-                    <span>·</span>
-                    <span>{formatRelativeTime(item.created_at)}</span>
-                    {item.admin_response && (
-                      <>
-                        <span>·</span>
-                        <span className="text-emerald-600 dark:text-emerald-400 flex items-center gap-0.5">
-                          <CheckCircle2 size={11} /> Response received
-                        </span>
-                      </>
-                    )}
-                  </div>
-                </div>
-              </Link>
+                </Link>
+              </div>
             );
           })}
         </div>

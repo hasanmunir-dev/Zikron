@@ -1,11 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { Plus, Table2, Search, X, Users } from "lucide-react";
-import { useLists, useUpdateList, useDeleteList } from "@/hooks/queries/use-lists";
+import { Plus, Table2, Search, X, Users, Check, Trash2, Star, Archive } from "lucide-react";
+import { useLists, useUpdateList, useDeleteList, useBulkUpdateLists, useBulkDeleteLists } from "@/hooks/queries/use-lists";
 import { useSharedWithMe } from "@/hooks/queries/use-shared-links";
+import { useBulkSelection } from "@/hooks/use-bulk-selection";
+import { BulkActionToolbar } from "@/components/shared/bulk-action-toolbar";
+import type { BulkAction } from "@/components/shared/bulk-action-toolbar";
 import { formatRelativeTime } from "@/utils/date";
 import { ItemActions } from "@/components/shared/item-actions";
 import { ShareDialog } from "@/components/features/sharing/ShareDialog";
@@ -26,6 +29,10 @@ export function ListsPage() {
   const sharedLists = sharedItems.filter(i => i.item_type === 'list');
   const updateList = useUpdateList();
   const deleteList = useDeleteList();
+
+  const bulk = useBulkSelection();
+  const bulkUpdate = useBulkUpdateLists();
+  const bulkDelete = useBulkDeleteLists();
 
   const shareId = searchParams.get("share");
   const shareList = shareId ? lists.find(l => l.id === shareId) : null;
@@ -57,6 +64,43 @@ export function ListsPage() {
   const filteredShared = search
     ? sharedLists.filter(i => i.title.toLowerCase().includes(search.toLowerCase()))
     : sharedLists;
+
+  const filteredIds = filtered.map(l => l.id);
+
+  const bulkActions: BulkAction[] = [
+    {
+      label: 'Favorite',
+      icon: Star,
+      onClick: () => {
+        bulkUpdate.mutate({ ids: bulk.getArray(), updates: { is_favorite: true } });
+        bulk.clear();
+      },
+      disabled: bulkUpdate.isPending,
+    },
+    {
+      label: 'Archive',
+      icon: Archive,
+      onClick: () => {
+        bulkUpdate.mutate({ ids: bulk.getArray(), updates: { is_archived: true } });
+        bulk.clear();
+      },
+      disabled: bulkUpdate.isPending,
+    },
+    {
+      label: 'Delete',
+      icon: Trash2,
+      variant: 'destructive' as const,
+      onClick: () => {
+        if (confirm(`Delete ${bulk.selectedCount} list${bulk.selectedCount !== 1 ? 's' : ''}? This cannot be undone.`)) {
+          bulkDelete.mutate(bulk.getArray());
+          bulk.clear();
+        }
+      },
+      disabled: bulkDelete.isPending,
+    },
+  ];
+
+  useEffect(() => { bulk.clear(); }, [tab]);
 
   const tabs: { id: Tab; label: string; count?: number }[] = [
     { id: "all", label: "All lists" },
@@ -132,6 +176,26 @@ export function ListsPage() {
         )}
       </div>
 
+      {tab !== 'shared' && filtered.length > 0 && (
+        <div className="flex items-center gap-2 mb-3">
+          <input
+            type="checkbox"
+            id="select-all-lists"
+            checked={bulk.selectedCount === filtered.length && filtered.length > 0}
+            onChange={e => bulk.toggleAll(filteredIds, e.target.checked)}
+            className="w-4 h-4 rounded border-border accent-primary cursor-pointer"
+          />
+          <label htmlFor="select-all-lists" className="text-xs text-muted-foreground cursor-pointer select-none">
+            {bulk.selectedCount > 0 ? `${bulk.selectedCount} selected` : `Select all ${filtered.length}`}
+          </label>
+          {bulk.selectedCount > 0 && (
+            <button type="button" onClick={bulk.clear} className="text-xs text-muted-foreground hover:text-foreground ml-1">
+              Clear
+            </button>
+          )}
+        </div>
+      )}
+
       {tab === 'shared' ? (
         filteredShared.length === 0 ? (
           <div className="text-center py-20">
@@ -177,18 +241,41 @@ export function ListsPage() {
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {filtered.map((list) => (
-            <ListCard
-              key={list.id}
-              list={list}
-              onToggleFavorite={() =>
-                updateList.mutate({ id: list.id, data: { is_favorite: !list.is_favorite } })
-              }
-              onArchive={() =>
-                updateList.mutate({ id: list.id, data: { is_archived: !list.is_archived } })
-              }
-              onDelete={() => deleteList.mutate(list.id)}
-              onShare={() => router.push(`/app/lists?share=${list.id}`)}
-            />
+            <div key={list.id} className="relative group/sel">
+              {/* Checkbox overlay */}
+              <button
+                type="button"
+                onClick={e => { e.stopPropagation(); bulk.toggle(list.id); }}
+                aria-label={`${bulk.isSelected(list.id) ? 'Deselect' : 'Select'} ${list.title}`}
+                className={`absolute top-2 left-2 z-30 flex items-center justify-center w-5 h-5 rounded border-2 transition-all ${
+                  bulk.isSelected(list.id)
+                    ? 'bg-primary border-primary opacity-100'
+                    : 'bg-card border-border opacity-0 group-hover/sel:opacity-100'
+                } ${bulk.selectedCount > 0 ? 'opacity-100' : ''}`}
+              >
+                {bulk.isSelected(list.id) && <Check size={11} className="text-primary-foreground" />}
+              </button>
+              {/* Click overlay when in bulk mode */}
+              {bulk.selectedCount > 0 && (
+                <div
+                  className="absolute inset-0 z-20 cursor-pointer rounded-xl"
+                  onClick={() => bulk.toggle(list.id)}
+                  aria-hidden="true"
+                />
+              )}
+              <ListCard
+                key={list.id}
+                list={list}
+                onToggleFavorite={() =>
+                  updateList.mutate({ id: list.id, data: { is_favorite: !list.is_favorite } })
+                }
+                onArchive={() =>
+                  updateList.mutate({ id: list.id, data: { is_archived: !list.is_archived } })
+                }
+                onDelete={() => deleteList.mutate(list.id)}
+                onShare={() => router.push(`/app/lists?share=${list.id}`)}
+              />
+            </div>
           ))}
           {tab === 'all' && filteredShared.map(item => (
             <SharedListCard
@@ -213,6 +300,13 @@ export function ListsPage() {
           onClose={() => router.push(closeSharedViewUrl)}
         />
       )}
+      <BulkActionToolbar
+        count={bulk.selectedCount}
+        total={filtered.length}
+        actions={bulkActions}
+        onClear={bulk.clear}
+        onSelectAll={() => bulk.toggleAll(filteredIds, true)}
+      />
     </div>
   );
 }

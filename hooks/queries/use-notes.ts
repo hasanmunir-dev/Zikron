@@ -134,3 +134,46 @@ export function useDeleteNote() {
     },
   });
 }
+
+// ─── Bulk operations ──────────────────────────────────────────────────────────
+
+export function useBulkUpdateNotes() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ ids, updates }: { ids: string[]; updates: Record<string, unknown> }) =>
+      api.patch<{ affected: number }>('/api/notes/bulk', { ids, updates }),
+    onMutate: async ({ ids, updates }) => {
+      await queryClient.cancelQueries({ queryKey: noteKeys.all() });
+      const prev = queryClient.getQueryData<Note[]>(noteKeys.all());
+      queryClient.setQueryData<Note[]>(noteKeys.all(), old =>
+        (old ?? []).map(n => ids.includes(n.id) ? { ...n, ...updates } as Note : n),
+      );
+      return { prev };
+    },
+    onError: (_err, _vars, ctx) => {
+      if (ctx?.prev) queryClient.setQueryData(noteKeys.all(), ctx.prev);
+      toast.error('Bulk update failed');
+    },
+    onSettled: () => queryClient.invalidateQueries({ queryKey: noteKeys.all() }),
+  });
+}
+
+export function useBulkDeleteNotes() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (ids: string[]) =>
+      api.deleteWithBody<{ affected: number }>('/api/notes/bulk', { ids }),
+    onMutate: async (ids) => {
+      await queryClient.cancelQueries({ queryKey: noteKeys.all() });
+      const prev = queryClient.getQueryData<Note[]>(noteKeys.all());
+      queryClient.setQueryData<Note[]>(noteKeys.all(), old => (old ?? []).filter(n => !ids.includes(n.id)));
+      return { prev };
+    },
+    onError: (_err, _ids, ctx) => {
+      if (ctx?.prev) queryClient.setQueryData(noteKeys.all(), ctx.prev);
+      toast.error('Failed to delete notes');
+    },
+    onSuccess: (data) => toast.success(`Deleted ${data.affected} note${data.affected !== 1 ? 's' : ''}`),
+    onSettled: () => queryClient.invalidateQueries({ queryKey: noteKeys.all() }),
+  });
+}

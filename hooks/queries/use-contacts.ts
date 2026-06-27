@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { api } from '@/lib/api';
-import type { Contact, AdminContact } from '@/types';
+import type { Contact, AdminContact, ContactEmail, ContactPhone } from '@/types';
 
 export const contactKeys = {
   all: () => ['contacts'] as const,
@@ -33,10 +33,12 @@ export function useContact(id: string | undefined) {
   });
 }
 
+export type ContactCreateBody = Omit<Contact, 'id' | 'user_id' | 'source' | 'google_resource_name' | 'favorite' | 'archived' | 'created_at' | 'updated_at'>;
+
 export function useCreateContact() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (body: Omit<Contact, 'id' | 'user_id' | 'source' | 'google_resource_name' | 'favorite' | 'archived' | 'created_at' | 'updated_at'>) =>
+    mutationFn: (body: ContactCreateBody) =>
       api.post<Contact>('/api/contacts', body),
     onSuccess: () => {
       toast.success('Contact created');
@@ -125,6 +127,63 @@ export function useDisconnectGoogleContacts() {
       queryClient.invalidateQueries({ queryKey: googleContactsKeys.status() });
     },
     onError: () => toast.error('Failed to disconnect Google account'),
+  });
+}
+
+export function useBulkUpdateContacts() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ ids, updates }: { ids: string[]; updates: Record<string, unknown> }) =>
+      api.patch<{ affected: number }>('/api/contacts/bulk', { ids, updates }),
+    onMutate: async ({ ids, updates }) => {
+      await queryClient.cancelQueries({ queryKey: contactKeys.all() });
+      const prev = queryClient.getQueryData<Contact[]>(contactKeys.all());
+      queryClient.setQueryData<Contact[]>(contactKeys.all(), old =>
+        (old ?? []).map(c => ids.includes(c.id) ? { ...c, ...updates } as Contact : c),
+      );
+      return { prev };
+    },
+    onError: (_err, _vars, ctx) => {
+      if (ctx?.prev) queryClient.setQueryData(contactKeys.all(), ctx.prev);
+      toast.error('Bulk update failed');
+    },
+    onSettled: () => queryClient.invalidateQueries({ queryKey: contactKeys.all() }),
+  });
+}
+
+export function useBulkDeleteContacts() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (ids: string[]) =>
+      api.deleteWithBody<{ affected: number }>('/api/contacts/bulk', { ids }),
+    onMutate: async (ids) => {
+      await queryClient.cancelQueries({ queryKey: contactKeys.all() });
+      const prev = queryClient.getQueryData<Contact[]>(contactKeys.all());
+      queryClient.setQueryData<Contact[]>(contactKeys.all(), old => (old ?? []).filter(c => !ids.includes(c.id)));
+      return { prev };
+    },
+    onError: (_err, _ids, ctx) => {
+      if (ctx?.prev) queryClient.setQueryData(contactKeys.all(), ctx.prev);
+      toast.error('Failed to delete contacts');
+    },
+    onSuccess: (data) => toast.success(`Deleted ${data.affected} contact${data.affected !== 1 ? 's' : ''}`),
+    onSettled: () => queryClient.invalidateQueries({ queryKey: contactKeys.all() }),
+  });
+}
+
+export function useImportCsvContacts() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (csv: string) =>
+      api.post<{ imported: number; skipped: number; errors: string[] }>('/api/contacts/import-csv', { csv }),
+    onSuccess: (data) => {
+      const { imported, skipped } = data;
+      const parts = [`${imported} imported`];
+      if (skipped > 0) parts.push(`${skipped} skipped`);
+      toast.success(`CSV import complete: ${parts.join(', ')}`);
+      queryClient.invalidateQueries({ queryKey: contactKeys.all() });
+    },
+    onError: () => toast.error('CSV import failed'),
   });
 }
 

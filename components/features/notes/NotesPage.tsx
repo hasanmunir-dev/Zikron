@@ -3,16 +3,19 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Plus, BookOpen, Search, X, Users } from "lucide-react";
+import { Plus, BookOpen, Search, X, Users, Check, Trash2, Star, Archive } from "lucide-react";
 import { savePageState, getPageState, cacheItem } from "@/lib/page-state";
 import { dialogUrl, closeDialogUrl, parseDialogState } from "@/lib/dialog-url";
 import { formatRelativeTime } from "@/utils/date";
-import { useNotes, useUpdateNote, useDeleteNote } from "@/hooks/queries/use-notes";
+import { useNotes, useUpdateNote, useDeleteNote, useBulkUpdateNotes, useBulkDeleteNotes } from "@/hooks/queries/use-notes";
 import { useSharedWithMe } from "@/hooks/queries/use-shared-links";
 import { ItemActions } from "@/components/shared/item-actions";
 import { NoteDialog } from "./NoteDialog";
 import { ShareDialog } from "@/components/features/sharing/ShareDialog";
 import { SharedItemDetailDialog } from "@/components/features/sharing/SharedItemDetailDialog";
+import { useBulkSelection } from "@/hooks/use-bulk-selection";
+import { BulkActionToolbar } from "@/components/shared/bulk-action-toolbar";
+import type { BulkAction } from "@/components/shared/bulk-action-toolbar";
 import type { Note, SharedWithMeItem } from "@/types";
 
 type Tab = "all" | "favorites" | "archived" | "shared";
@@ -61,6 +64,10 @@ export function NotesPage({ basePath }: Props) {
   const updateNote = useUpdateNote();
   const deleteNote = useDeleteNote();
 
+  const bulk = useBulkSelection();
+  const bulkUpdate = useBulkUpdateNotes();
+  const bulkDelete = useBulkDeleteNotes();
+
   useEffect(() => {
     if (searchParams.get("new") === "1") {
       router.replace(dialogUrl(basePath, "create"));
@@ -70,6 +77,8 @@ export function NotesPage({ basePath }: Props) {
   useEffect(() => {
     savePageState<SavedState>(stateKey, { tab, search });
   }, [tab, search, stateKey]);
+
+  useEffect(() => { bulk.clear(); }, [tab]);
 
   function handleToggleFavorite(note: Note) {
     updateNote.mutate({ id: note.id, data: { is_favorite: !note.is_favorite } });
@@ -98,6 +107,41 @@ export function NotesPage({ basePath }: Props) {
 
   // "all" tab merges owned + shared (shared appear after owned)
   const filtered = tab === 'shared' ? [] : filteredOwned;
+
+  const ownedNoteIds = filtered.map(n => n.id);
+
+  const bulkActions: BulkAction[] = [
+    {
+      label: 'Favorite',
+      icon: Star,
+      onClick: () => {
+        bulkUpdate.mutate({ ids: bulk.getArray(), updates: { is_favorite: true } });
+        bulk.clear();
+      },
+      disabled: bulkUpdate.isPending,
+    },
+    {
+      label: 'Archive',
+      icon: Archive,
+      onClick: () => {
+        bulkUpdate.mutate({ ids: bulk.getArray(), updates: { is_archived: true } });
+        bulk.clear();
+      },
+      disabled: bulkUpdate.isPending,
+    },
+    {
+      label: 'Delete',
+      icon: Trash2,
+      variant: 'destructive' as const,
+      onClick: () => {
+        if (confirm(`Delete ${bulk.selectedCount} note${bulk.selectedCount !== 1 ? 's' : ''}? This cannot be undone.`)) {
+          bulkDelete.mutate(bulk.getArray());
+          bulk.clear();
+        }
+      },
+      disabled: bulkDelete.isPending,
+    },
+  ];
 
   const tabs: { id: Tab; label: string; count?: number }[] = [
     { id: "all", label: "All notes" },
@@ -173,6 +217,26 @@ export function NotesPage({ basePath }: Props) {
         )}
       </div>
 
+      {tab !== 'shared' && filtered.length > 0 && (
+        <div className="flex items-center gap-2 mb-3">
+          <input
+            type="checkbox"
+            id="select-all-notes"
+            checked={bulk.selectedCount === filtered.length && filtered.length > 0}
+            onChange={e => bulk.toggleAll(ownedNoteIds, e.target.checked)}
+            className="w-4 h-4 rounded border-border accent-primary cursor-pointer"
+          />
+          <label htmlFor="select-all-notes" className="text-xs text-muted-foreground cursor-pointer select-none">
+            {bulk.selectedCount > 0 ? `${bulk.selectedCount} selected` : `Select all ${filtered.length}`}
+          </label>
+          {bulk.selectedCount > 0 && (
+            <button type="button" onClick={bulk.clear} className="text-xs text-muted-foreground hover:text-foreground ml-1">
+              Clear
+            </button>
+          )}
+        </div>
+      )}
+
       {tab === 'shared' ? (
         /* ── Shared with me view ── */
         filteredShared.length === 0 ? (
@@ -225,16 +289,39 @@ export function NotesPage({ basePath }: Props) {
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {filtered.map((note) => (
-            <NoteCard
-              key={note.id}
-              note={note}
-              detailUrl={dialogUrl(basePath, "detail", note.id)}
-              editUrl={dialogUrl(basePath, "edit", note.id)}
-              onToggleFavorite={() => handleToggleFavorite(note)}
-              onArchive={() => handleArchive(note)}
-              onDelete={() => handleDelete(note)}
-              onShare={() => router.push(`${basePath}?share=${note.id}`)}
-            />
+            <div key={note.id} className="relative group/sel">
+              {/* Checkbox overlay */}
+              <button
+                type="button"
+                onClick={e => { e.stopPropagation(); bulk.toggle(note.id); }}
+                aria-label={`${bulk.isSelected(note.id) ? 'Deselect' : 'Select'} ${note.title}`}
+                className={`absolute top-2 left-2 z-30 flex items-center justify-center w-5 h-5 rounded border-2 transition-all ${
+                  bulk.isSelected(note.id)
+                    ? 'bg-primary border-primary opacity-100'
+                    : 'bg-card border-border opacity-0 group-hover/sel:opacity-100'
+                } ${bulk.selectedCount > 0 ? 'opacity-100' : ''}`}
+              >
+                {bulk.isSelected(note.id) && <Check size={11} className="text-primary-foreground" />}
+              </button>
+              {/* Click overlay when in bulk mode */}
+              {bulk.selectedCount > 0 && (
+                <div
+                  className="absolute inset-0 z-20 cursor-pointer rounded-xl"
+                  onClick={() => bulk.toggle(note.id)}
+                  aria-hidden="true"
+                />
+              )}
+              <NoteCard
+                key={note.id}
+                note={note}
+                detailUrl={dialogUrl(basePath, "detail", note.id)}
+                editUrl={dialogUrl(basePath, "edit", note.id)}
+                onToggleFavorite={() => handleToggleFavorite(note)}
+                onArchive={() => handleArchive(note)}
+                onDelete={() => handleDelete(note)}
+                onShare={() => router.push(`${basePath}?share=${note.id}`)}
+              />
+            </div>
           ))}
           {/* Shared notes appear in "all" tab after owned notes */}
           {tab === 'all' && filteredShared.map(item => (
@@ -280,6 +367,13 @@ export function NotesPage({ basePath }: Props) {
           onClose={() => router.push(closeSharedViewUrl)}
         />
       )}
+      <BulkActionToolbar
+        count={bulk.selectedCount}
+        total={filtered.length}
+        actions={bulkActions}
+        onClear={bulk.clear}
+        onSelectAll={() => bulk.toggleAll(ownedNoteIds, true)}
+      />
     </div>
   );
 }

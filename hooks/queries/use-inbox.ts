@@ -133,3 +133,46 @@ export function useDeleteInboxItem() {
     },
   });
 }
+
+// ─── Bulk operations ──────────────────────────────────────────────────────────
+
+export function useBulkUpdateInboxItems() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ ids, status }: { ids: string[]; status: 'inbox' | 'favorite' | 'archived' }) =>
+      api.patch<{ affected: number }>('/api/inbox/bulk', { ids, updates: { status } }),
+    onMutate: async ({ ids, status }) => {
+      await queryClient.cancelQueries({ queryKey: inboxKeys.all() });
+      const prev = queryClient.getQueryData<InboxItem[]>(inboxKeys.all());
+      queryClient.setQueryData<InboxItem[]>(inboxKeys.all(), old =>
+        (old ?? []).map(i => ids.includes(i.id) ? { ...i, status } : i),
+      );
+      return { prev };
+    },
+    onError: (_err, _vars, ctx) => {
+      if (ctx?.prev) queryClient.setQueryData(inboxKeys.all(), ctx.prev);
+      toast.error('Bulk update failed');
+    },
+    onSettled: () => queryClient.invalidateQueries({ queryKey: inboxKeys.all() }),
+  });
+}
+
+export function useBulkDeleteInboxItems() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (ids: string[]) =>
+      api.deleteWithBody<{ affected: number }>('/api/inbox/bulk', { ids }),
+    onMutate: async (ids) => {
+      await queryClient.cancelQueries({ queryKey: inboxKeys.all() });
+      const prev = queryClient.getQueryData<InboxItem[]>(inboxKeys.all());
+      queryClient.setQueryData<InboxItem[]>(inboxKeys.all(), old => (old ?? []).filter(i => !ids.includes(i.id)));
+      return { prev };
+    },
+    onError: (_err, _ids, ctx) => {
+      if (ctx?.prev) queryClient.setQueryData(inboxKeys.all(), ctx.prev);
+      toast.error('Failed to delete items');
+    },
+    onSuccess: (data) => toast.success(`Deleted ${data.affected} item${data.affected !== 1 ? 's' : ''}`),
+    onSettled: () => queryClient.invalidateQueries({ queryKey: inboxKeys.all() }),
+  });
+}
