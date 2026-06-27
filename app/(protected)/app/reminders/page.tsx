@@ -777,7 +777,7 @@ function RemindersContent() {
         </div>
       ) : (
         <div className="space-y-2">
-          {filter !== 'shared' && filtered.length > 0 && (
+          {filtered.length > 0 && (
             <div className="flex items-center gap-2 mb-3">
               <input
                 type="checkbox"

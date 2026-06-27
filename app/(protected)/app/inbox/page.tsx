@@ -239,7 +239,7 @@ export default function InboxPage() {
         </div>
       ) : (
         <div className="space-y-3">
-          {tab !== 'shared' && filtered.length > 0 && (
+          {filtered.length > 0 && (
             <div className="flex items-center gap-2 mb-3">
               <input
                 type="checkbox"

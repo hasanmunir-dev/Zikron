@@ -118,7 +118,7 @@ function MultiEmailField({
             placeholder="email@example.com"
             className="flex-1 min-w-0 rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
           />
-          <Select value={item.label} onValueChange={val => update(i, 'label', val)}>
+          <Select value={item.label} onValueChange={val => update(i, 'label', val ?? item.label)}>
             <SelectTrigger aria-label="Email label" className="shrink-0 w-auto capitalize">
               <SelectValue />
             </SelectTrigger>
@@ -185,7 +185,7 @@ function MultiPhoneField({
             placeholder="+1 555 000 0000"
             className="flex-1 min-w-0 rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
           />
-          <Select value={item.label} onValueChange={val => update(i, 'label', val)}>
+          <Select value={item.label} onValueChange={val => update(i, 'label', val ?? item.label)}>
             <SelectTrigger aria-label="Phone label" className="shrink-0 w-auto capitalize">
               <SelectValue />
             </SelectTrigger>
@@ -249,7 +249,7 @@ function MultiWebsiteField({
             placeholder="https://..."
             className="flex-1 min-w-0 rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
           />
-          <Select value={item.label} onValueChange={val => update(i, 'label', val)}>
+          <Select value={item.label} onValueChange={val => update(i, 'label', val ?? item.label)}>
             <SelectTrigger aria-label="Website label" className="shrink-0 w-auto capitalize">
               <SelectValue />
             </SelectTrigger>
@@ -309,7 +309,7 @@ function AddressFields({
       {addresses.map((addr, i) => (
         <div key={i} className="rounded-xl border border-border p-3 space-y-2">
           <div className="flex items-center justify-between gap-2">
-            <Select value={addr.label} onValueChange={val => update(i, 'label', val)}>
+            <Select value={addr.label} onValueChange={val => update(i, 'label', val ?? addr.label)}>
               <SelectTrigger aria-label="Address type" size="sm" className="w-auto capitalize">
                 <SelectValue />
               </SelectTrigger>
@@ -455,7 +455,7 @@ function ContactForm({
         </div>
         <div>
           <label className={labelClass}>Birthday</label>
-          <DateTimePicker dateOnly value={form.birthday ?? ''} onChange={v => set('birthday', v || null)} placeholder="Pick birthday" />
+          <DateTimePicker dateOnly value={form.birthday ?? ''} onChange={v => set('birthday', v || '')} placeholder="Pick birthday" />
         </div>
       </div>
 
@@ -1220,7 +1220,7 @@ function ContactsContent() {
               total={filtered.length}
               actions={bulkActions}
               onClear={bulk.clear}
-              onSelectAll={checked => bulk.toggleAll(filtered.map(c => c.id), checked)}
+              onSelectAll={() => bulk.toggleAll(filtered.map(c => c.id), true)}
             />
           );
         })()}

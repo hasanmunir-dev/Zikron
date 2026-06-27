@@ -429,7 +429,7 @@ function FeedbackPageContent() {
             total={filtered.length}
             actions={bulkActions}
             onClear={bulk.clear}
-            onSelectAll={checked => bulk.toggleAll(filtered.map(f => f.id), checked)}
+            onSelectAll={() => bulk.toggleAll(filtered.map(f => f.id), true)}
           />
         );
       })()}

@@ -687,7 +687,7 @@ function CollectionsContent() {
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {tab !== 'shared' && filtered.length > 0 && (
+            {filtered.length > 0 && (
               <div className="col-span-full flex items-center gap-2 mb-1">
                 <input
                   type="checkbox"
