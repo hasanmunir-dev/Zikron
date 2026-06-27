@@ -58,7 +58,7 @@
   --muted-foreground: oklch(0.556 0 0);
   --border: oklch(0.922 0 0);
   --input: oklch(0.922 0 0);
-  --primary: oklch(0.205 0 0);
+  --primary: oklch(0.55 0.2 264);
   --primary-foreground: oklch(0.985 0 0);
   --secondary: oklch(0.97 0 0);
   --secondary-foreground: oklch(0.205 0 0);
@@ -95,6 +95,11 @@
 body {
   font-family: var(--font-geist-sans, system-ui, sans-serif);
   -webkit-font-smoothing: antialiased;
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
 }
 
 ::-webkit-scrollbar {
@@ -179,13 +184,25 @@ body {
 /* Masonry grid (react-masonry-css) */
 .masonry-grid {
   display: flex;
-  margin-left: -16px;
+  margin-left: -12px;
   width: auto;
 }
 .masonry-grid-column {
-  padding-left: 16px;
+  padding-left: 12px;
   background-clip: padding-box;
 }
-.masonry-grid-column > * {
-  margin-bottom: 16px;
+.masonry-grid-column > * + * {
+  margin-top: 12px;
+}
+
+@media (min-width: 640px) {
+  .masonry-grid {
+    margin-left: -16px;
+  }
+  .masonry-grid-column {
+    padding-left: 16px;
+  }
+  .masonry-grid-column > * + * {
+    margin-top: 16px;
+  }
 }

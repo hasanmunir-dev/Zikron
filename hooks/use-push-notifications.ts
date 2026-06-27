@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { toast } from 'sonner';
 import { getOrCreatePushSubscription, registerServiceWorker, removePushSubscription, savePushSubscription } from '@/lib/push';
 
 export type PushPermission = 'default' | 'granted' | 'denied' | 'unsupported';
@@ -39,6 +40,7 @@ export function usePushNotifications() {
       const sub = await getOrCreatePushSubscription();
       await savePushSubscription(sub);
       setIsSubscribed(true);
+      toast.success('Push notifications enabled');
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Failed to enable notifications');
     } finally {
@@ -58,6 +60,7 @@ export function usePushNotifications() {
         await sub.unsubscribe();
       }
       setIsSubscribed(false);
+      toast.success('Push notifications disabled');
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Failed to disable notifications');
     } finally {

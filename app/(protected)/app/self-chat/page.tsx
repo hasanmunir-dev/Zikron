@@ -61,24 +61,15 @@ export default function SelfChatPage() {
 
   return (
     <div className="flex flex-col h-full">
-      {/* Header */}
-      <div className="px-5 py-3.5 border-b border-border bg-card flex items-center justify-between shrink-0">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 bg-emerald-100 dark:bg-emerald-950/60 rounded-full flex items-center justify-center">
-            <MessageSquare size={15} className="text-emerald-600 dark:text-emerald-400" />
-          </div>
-          <div>
-            <p className="text-sm font-semibold text-foreground">Me</p>
-            <p className="text-xs text-muted-foreground">Your personal saved messages</p>
-          </div>
-        </div>
+      {/* Toolbar */}
+      <div className="px-4 py-2 border-b border-border bg-card flex items-center justify-end shrink-0">
         <button
           type="button"
           aria-label="Toggle search"
           onClick={() => { setShowSearch(v => !v); setSearch(''); }}
           className={`p-2 rounded-lg transition-colors ${showSearch ? 'bg-blue-50 dark:bg-blue-950/50 text-blue-600' : 'text-muted-foreground hover:text-foreground hover:bg-muted'}`}
         >
-          <Search size={17} />
+          <Search size={16} />
         </button>
       </div>
 
@@ -147,7 +138,7 @@ export default function SelfChatPage() {
       </div>
 
       {/* Input */}
-      <div className="px-4 py-3 border-t border-border bg-card shrink-0">
+      <div className="px-4 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))] border-t border-border bg-card shrink-0">
         <div className="flex items-end gap-2">
           <textarea
             ref={inputRef}

@@ -8,9 +8,13 @@ const pageTitles: Record<string, string> = {
   '/app/dashboard': 'Dashboard',
   '/app/inbox': 'Inbox',
   '/app/notes': 'Notes',
+  '/app/lists': 'Lists',
   '/app/self-chat': 'Self Chat',
   '/app/reminders': 'Reminders',
   '/app/collections': 'Collections',
+  '/app/contacts': 'Contacts',
+  '/app/shared': 'Shared',
+  '/app/feedback': 'Feedback',
   '/app/settings': 'Settings',
   '/app/search': 'Search',
 };

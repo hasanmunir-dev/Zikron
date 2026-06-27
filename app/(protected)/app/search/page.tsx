@@ -7,7 +7,6 @@ import { Search, BookOpen, Inbox, MessageSquare, X, Table2, Bell, FolderOpen, Us
 import { api } from '@/lib/api';
 import { formatRelativeTime } from '@/utils/date';
 import type { Note, InboxItem, SelfChatMessage, List, Reminder, Collection, Contact, SharedLink } from '@/types';
-import { MasonryGrid } from '@/components/shared/masonry-grid';
 
 type Result =
   | { type: 'note';        item: Note }
@@ -233,7 +232,7 @@ function SearchResults() {
       {!loading && results.length > 0 && (
         <div>
           <p className="text-xs text-muted-foreground mb-3">{results.length} result{results.length !== 1 ? 's' : ''} for &quot;{query}&quot;</p>
-          <MasonryGrid>
+          <div className="flex flex-col gap-2">
             {results.map((result, idx) => {
               const Icon = typeIcon[result.type];
               const label = getLabel(result);
@@ -270,7 +269,7 @@ function SearchResults() {
                 </Link>
               );
             })}
-          </MasonryGrid>
+          </div>
         </div>
       )}
     </div>

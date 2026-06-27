@@ -105,7 +105,7 @@ export default function SettingsPage() {
             <div className="px-4 py-3 flex items-center gap-3">
               <Shield size={16} className="text-muted-foreground/40 shrink-0" />
               <span className="text-sm text-foreground flex-1">Data storage</span>
-              <span className="text-xs text-muted-foreground">Local + Supabase</span>
+              <span className="text-xs text-muted-foreground">Supabase cloud</span>
             </div>
           </div>
         </div>

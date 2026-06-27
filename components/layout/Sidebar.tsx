@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -35,7 +35,6 @@ const navItems = [
   { href: "/app/collections", icon: FolderOpen, label: "Collections" },
   { href: "/app/contacts", icon: Users, label: "Contacts" },
   { href: "/app/shared", icon: Link2, label: "Shared" },
-  { href: "/app/feedback", icon: MessageSquarePlus, label: "Feedback" },
 ];
 
 type SidebarMode = "collapsed" | "expanded" | "auto";
@@ -48,6 +47,18 @@ interface SidebarProps {
 export function Sidebar({ open, onClose }: SidebarProps) {
   const pathname = usePathname();
   const { user, role, signOut } = useAuth();
+  const asideRef = useRef<HTMLElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    document.addEventListener("keydown", handleKeyDown);
+    asideRef.current?.focus();
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [open, onClose]);
+
   const [sidebarMode, setSidebarMode] = useState<SidebarMode>(() => {
     if (typeof window !== "undefined") {
       return (localStorage.getItem("sidebarMode") as SidebarMode) ?? "auto";
@@ -112,6 +123,8 @@ export function Sidebar({ open, onClose }: SidebarProps) {
       )}
 
       <aside
+        ref={asideRef}
+        tabIndex={-1}
         className={`
           group fixed left-0 top-0 z-30 flex h-full w-60 flex-col border-r border-border bg-card
           transition-all duration-200 ease-out
@@ -127,18 +140,18 @@ export function Sidebar({ open, onClose }: SidebarProps) {
             onClick={onClose}
             className="flex min-w-0 items-center gap-3 overflow-hidden"
           >
-            <div className="h-7 w-9 shrink-0 overflow-hidden">
+            <div className="h-8 w-8 shrink-0 overflow-hidden">
               <Image
                 src="/icon.svg"
                 alt="Zikron"
-                width={36}
-                height={36}
+                width={32}
+                height={32}
                 className="h-full w-full object-contain"
                 priority
               />
             </div>
 
-            <span className={`text-lg font-bold dark:text-primary text-[#4076f5] ${labelClass}`}>
+            <span className={`text-lg font-bold text-primary ${labelClass}`}>
               Zikron
             </span>
           </Link>
@@ -165,7 +178,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
         </div>
 
         {/* Nav */}
-        <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-4">
+        <nav className="flex-1 space-y-0.5 overflow-y-auto px-3 py-3">
           {navItems.map(({ href, icon: Icon, label }) => {
             const active = pathname === href || pathname.startsWith(`${href}/`);
 
@@ -212,15 +225,15 @@ export function Sidebar({ open, onClose }: SidebarProps) {
         </nav>
 
         {/* Bottom */}
-        <div className="space-y-1 border-t border-border px-3 py-3">
+        <div className="space-y-0.5 border-t border-border px-3 py-3">
           {role === "admin" && (
             <Link
               href="/admin/dashboard"
               onClick={onClose}
               title="Admin Panel"
               className={`
-                flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-blue-600 transition-colors
-                hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-950/40
+                flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors
+                text-muted-foreground hover:bg-muted hover:text-foreground
                 ${alignClass}
               `}
             >
@@ -228,6 +241,24 @@ export function Sidebar({ open, onClose }: SidebarProps) {
               <span className={labelClass}>Admin Panel</span>
             </Link>
           )}
+
+          <Link
+            href="/app/feedback"
+            onClick={onClose}
+            title="Feedback"
+            className={`
+              flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors
+              ${alignClass}
+              ${
+                pathname === "/app/feedback"
+                  ? "bg-primary/10 text-primary"
+                  : "text-muted-foreground hover:bg-muted hover:text-foreground"
+              }
+            `}
+          >
+            <MessageSquarePlus size={18} className="shrink-0" />
+            <span className={labelClass}>Feedback</span>
+          </Link>
 
           <Link
             href="/app/settings"
@@ -238,7 +269,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
               ${alignClass}
               ${
                 pathname === "/app/settings"
-                  ? "bg-blue-50 text-blue-700 dark:bg-blue-950/50 dark:text-blue-400"
+                  ? "bg-primary/10 text-primary"
                   : "text-muted-foreground hover:bg-muted hover:text-foreground"
               }
             `}

@@ -19,12 +19,23 @@ export function ThemeToggle() {
         setOpen(false);
       }
     }
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === 'Escape') setOpen(false);
+    }
     document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
   }, [open]);
 
   if (!mounted) {
-    return <div className="w-8 h-8" />;
+    return (
+      <div className="flex items-center justify-center w-9 h-9 rounded-lg text-muted-foreground/40">
+        <Monitor size={16} />
+      </div>
+    );
   }
 
   const themes = [
@@ -41,7 +52,7 @@ export function ThemeToggle() {
       <button
         type="button"
         onClick={() => setOpen(v => !v)}
-        className="flex items-center justify-center w-8 h-8 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+        className="flex items-center justify-center w-9 h-9 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
         aria-label="Toggle theme"
         aria-expanded={open ? 'true' : 'false'}
       >

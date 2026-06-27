@@ -3,7 +3,6 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Menu, Search, X } from 'lucide-react';
-import Image from 'next/image';
 import { ThemeToggle } from '@/components/ThemeToggle';
 
 interface HeaderProps {
@@ -28,19 +27,15 @@ export function Header({ onMenuClick, title }: HeaderProps) {
         type="button"
         onClick={onMenuClick}
         aria-label="Open menu"
-        className="lg:hidden text-muted-foreground hover:text-foreground transition-colors"
+        className="lg:hidden flex items-center justify-center w-9 h-9 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
       >
         <Menu size={20} />
       </button>
 
-      {/* <div className="h-7 w-7 shrink-0 overflow-hidden rounded-lg bg-white lg:hidden">
-        <Image src="/logo.png" alt="Zikron" width={28} height={28} className="h-full w-full object-contain" priority />
-      </div> */}
-
-      <h1 className="font-semibold text-foreground text-sm hidden sm:block">{title}</h1>
+      <h1 className="font-semibold text-foreground text-sm truncate max-w-[120px] sm:max-w-none">{title}</h1>
 
       {/* Search bar */}
-      <form onSubmit={handleSearch} className="flex-1  ml-auto lg:ml-0">
+      <form onSubmit={handleSearch} className="flex-1 ml-auto sm:ml-0">
         <div className="relative">
           <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
           <input

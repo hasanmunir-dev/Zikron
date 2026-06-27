@@ -34,8 +34,6 @@ export default function InboxPage() {
   const { data: sharedItems = [] } = useSharedWithMe();
   const sharedInboxItems = sharedItems.filter(i => i.item_type === 'inbox');
 
-  // const saved = getPageState<SavedState>('inbox');
-  // const [tab, setTab] = useState<Tab>(saved?.tab ?? 'inbox');
   const [search, setSearch] = useState(saved?.search ?? '');
 
   const dialog = parseDialogState(searchParams);

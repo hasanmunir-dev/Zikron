@@ -10,7 +10,7 @@ import {
   Bell,
   Star,
   ArrowRight,
-  Zap,
+  Clock,
   Table2,
   FolderOpen,
   Users,
@@ -147,7 +147,7 @@ export default function DashboardPage() {
       {/* Greeting */}
       <div>
         <h2 className="text-2xl font-bold text-foreground">
-          {greeting}, {firstName} 👋
+          {greeting}, {firstName}
         </h2>
         <p className="text-muted-foreground mt-1 text-sm">
           Here&apos;s what&apos;s happening in your knowledge hub.
@@ -177,14 +177,14 @@ export default function DashboardPage() {
         <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
           Quick capture
         </h3>
-        <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+        <div className="grid grid-cols-3 sm:grid-cols-5 gap-3">
           {quickCapture.map(({ icon: Icon, label, href, adminHref, color }) => {
             const targetHref = pathname.startsWith("/admin") ? `/${adminHref}` : href;
             return (
               <Link
                 key={href}
                 href={targetHref}
-                className="flex flex-col items-center gap-2 p-4 bg-card border border-border rounded-xl hover:border-border hover:shadow-sm transition-all group"
+                className="flex flex-col items-center gap-2 p-4 bg-card border border-border rounded-xl hover:border-primary/30 hover:shadow-md transition-all group"
               >
                 <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${color}`}>
                   <Icon size={20} />
@@ -203,7 +203,7 @@ export default function DashboardPage() {
         <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
           Overview
         </h3>
-        <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
+        <div className="grid grid-cols-3 sm:grid-cols-5 gap-4">
           {[
             { label: "Notes", value: counts.notes, icon: BookOpen, href: "/app/notes" },
             { label: "Inbox", value: counts.inbox, icon: Inbox, href: "/app/inbox" },
@@ -256,39 +256,7 @@ export default function DashboardPage() {
       )}
 
       {/* Recent Collections */}
-      {collections.length > 0 && (() => {
-        const recent = [...collections].filter(c => !c.is_archived).slice(0, 3);
-        const favorites = collections.filter(c => c.is_favorite);
-        if (recent.length === 0) return null;
-        const COLORS: Record<string, string> = { blue: 'bg-blue-500', violet: 'bg-violet-500', green: 'bg-emerald-500', rose: 'bg-rose-500', amber: 'bg-amber-500', cyan: 'bg-cyan-500', slate: 'bg-slate-500' };
-        return (
-          <section>
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Collections</h3>
-              <Link href="/app/collections" className="text-xs text-blue-600 hover:underline flex items-center gap-1">
-                View all <ArrowRight size={12} />
-              </Link>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              {recent.map(col => (
-                <Link
-                  key={col.id}
-                  href={`/app/collections?detail=${col.id}`}
-                  className="flex items-center gap-3 bg-card border border-border rounded-xl px-4 py-3 hover:shadow-sm transition-all"
-                >
-                  <div className={`h-8 w-8 rounded-lg flex items-center justify-center text-base ${COLORS[col.color ?? ''] ?? 'bg-violet-500'} text-white shrink-0`}>
-                    {col.icon ?? '📁'}
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-sm font-medium text-foreground truncate">{col.title}</p>
-                    {col.is_favorite && <Star size={10} className="text-amber-400 fill-amber-400 inline" />}
-                  </div>
-                </Link>
-              ))}
-            </div>
-          </section>
-        );
-      })()}
+      <RecentCollections collections={collections} />
 
       {/* Favorite Contacts */}
       {contacts.filter(c => c.favorite && !c.archived).length > 0 && (
@@ -423,7 +391,7 @@ export default function DashboardPage() {
         </h3>
         {recents.length === 0 ? (
           <EmptyState
-            icon={Zap}
+            icon={Clock}
             title="Nothing here yet"
             desc="Start by adding something to your inbox or writing a note."
           />
@@ -443,7 +411,7 @@ export default function DashboardPage() {
             <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
               Favorites
             </h3>
-            <Link href="/app/notes" className="text-xs text-blue-600 hover:underline flex items-center gap-1">
+            <Link href="/app/notes?tab=favorites" className="text-xs text-blue-600 hover:underline flex items-center gap-1">
               View all <ArrowRight size={12} />
             </Link>
           </div>
@@ -463,6 +431,43 @@ export default function DashboardPage() {
   );
 }
 
+const COLLECTION_COLORS: Record<string, string> = {
+  blue: 'bg-blue-500', violet: 'bg-violet-500', green: 'bg-emerald-500',
+  rose: 'bg-rose-500', amber: 'bg-amber-500', cyan: 'bg-cyan-500', slate: 'bg-slate-500',
+};
+
+function RecentCollections({ collections }: { collections: Collection[] }) {
+  const recent = [...collections].filter(c => !c.is_archived).slice(0, 3);
+  if (recent.length === 0) return null;
+  return (
+    <section>
+      <div className="flex items-center justify-between mb-3">
+        <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Collections</h3>
+        <Link href="/app/collections" className="text-xs text-blue-600 hover:underline flex items-center gap-1">
+          View all <ArrowRight size={12} />
+        </Link>
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        {recent.map(col => (
+          <Link
+            key={col.id}
+            href={`/app/collections?detail=${col.id}`}
+            className="flex items-center gap-3 bg-card border border-border rounded-xl px-4 py-3 hover:shadow-sm transition-all"
+          >
+            <div className={`h-8 w-8 rounded-lg flex items-center justify-center text-base ${COLLECTION_COLORS[col.color ?? ''] ?? 'bg-violet-500'} text-white shrink-0`}>
+              {col.icon ?? '📁'}
+            </div>
+            <div className="min-w-0">
+              <p className="text-sm font-medium text-foreground truncate">{col.title}</p>
+              {col.is_favorite && <Star size={10} className="text-amber-400 fill-amber-400 inline" />}
+            </div>
+          </Link>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 function RecentItem({ item }: { item: Note | InboxItem | SelfChatMessage }) {
   const isNote = "title" in item && "is_archived" in item;
   const isInbox = "status" in item;
@@ -474,12 +479,21 @@ function RecentItem({ item }: { item: Note | InboxItem | SelfChatMessage }) {
       ? `/app/inbox?detail=${item.id}`
       : "/app/self-chat";
 
+  const typeIcon = isNote
+    ? { Icon: BookOpen, color: "bg-violet-100 dark:bg-violet-950/60 text-violet-600" }
+    : isInbox
+      ? { Icon: Inbox, color: "bg-blue-100 dark:bg-blue-950/60 text-blue-600" }
+      : { Icon: MessageSquare, color: "bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600" };
+
   return (
     <Link
       href={href}
       onClick={isNote ? () => cacheItem(item as Note) : undefined}
       className="flex items-center gap-3 bg-card border border-border rounded-lg px-4 py-3 hover:shadow-sm transition-all"
     >
+      <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${typeIcon.color}`}>
+        <typeIcon.Icon size={13} />
+      </div>
       <div className="flex-1 min-w-0">
         <p className="text-sm text-foreground truncate">{label}</p>
       </div>

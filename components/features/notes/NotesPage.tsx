@@ -38,8 +38,6 @@ export function NotesPage({ basePath }: Props) {
   const { data: sharedItems = [] } = useSharedWithMe();
   const sharedNotes = sharedItems.filter(i => i.item_type === 'note');
 
-  // const saved = getPageState<SavedState>(stateKey);
-  // const [tab, setTab] = useState<Tab>(saved?.tab ?? "all");
   const [search, setSearch] = useState(saved?.search ?? "");
 
   const dialog = parseDialogState(searchParams);
