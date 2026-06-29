@@ -22,7 +22,7 @@ export default function SettingsPage() {
         <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Profile</h3>
         <div className="bg-card border border-border rounded-xl overflow-hidden">
           <div className="p-4 flex items-center gap-4 border-b border-border">
-            <div className="w-12 h-12 bg-blue-600 rounded-full flex items-center justify-center text-white text-lg font-bold shrink-0">
+            <div className="w-12 h-12 bg-primary rounded-full flex items-center justify-center text-primary-foreground text-lg font-bold shrink-0">
               {(name[0] ?? user?.email?.[0] ?? 'Z').toUpperCase()}
             </div>
             <div>

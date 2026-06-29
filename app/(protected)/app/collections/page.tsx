@@ -104,7 +104,7 @@ function CollectionForm({
       <div className="flex items-start gap-4">
         <div className="space-y-1.5">
           <p className="text-xs font-medium text-muted-foreground">Icon</p>
-          <div className="grid grid-cols-6 gap-1.5">
+          <div className="grid grid-cols-4 sm:grid-cols-6 gap-1.5">
             {COLLECTION_ICONS.map(ic => (
               <button
                 key={ic}
@@ -325,7 +325,7 @@ function CollectionDetailDialog({ id }: { id: string }) {
   const byType: ItemsByType = {};
   for (const item of col.items) {
     if (!byType[item.item_type]) byType[item.item_type] = [];
-    byType[item.item_type]!.push(item);
+    byType[item.item_type]?.push(item);
   }
 
   const types: CollectionItemType[] = ['note', 'inbox', 'list', 'self_chat', 'reminder'];
@@ -778,7 +778,7 @@ function SharedCollectionCard({ item, onClick }: { item: SharedWithMeItem; onCli
 
 export default function CollectionsPage() {
   return (
-    <Suspense>
+    <Suspense fallback={<div className="flex-1 flex items-center justify-center"><div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" /></div>}>
       <CollectionsContent />
     </Suspense>
   );

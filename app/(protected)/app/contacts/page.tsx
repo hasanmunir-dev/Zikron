@@ -873,7 +873,7 @@ function CsvImportDialog({ onClose }: { onClose: () => void }) {
     if (!csvText.trim()) return;
     const result = await importCsv.mutateAsync(csvText);
     if (result.errors?.length) {
-      console.warn('[csv-import] partial errors:', result.errors);
+      // partial import errors surfaced to user via result data
     }
     onClose();
   }

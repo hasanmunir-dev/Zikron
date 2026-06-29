@@ -138,7 +138,7 @@ export default function InboxPage() {
             <Icon size={14} />
             {label}
             {count !== undefined && count > 0 && (
-              <span className="text-[10px] bg-blue-100 dark:bg-blue-950/60 text-blue-600 px-1 py-0.5 rounded-full font-medium leading-none">
+              <span className="text-[10px] bg-primary/10 text-primary px-1 py-0.5 rounded-full font-medium leading-none">
                 {count}
               </span>
             )}
@@ -155,7 +155,7 @@ export default function InboxPage() {
           value={search}
           onChange={e => setSearch(e.target.value)}
           placeholder="Search inbox..."
-          className="w-full pl-9 pr-8 py-2 text-sm border border-border rounded-lg bg-muted text-foreground placeholder:text-muted-foreground focus:bg-background focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+          className="w-full pl-9 pr-8 py-2 text-sm border border-border rounded-lg bg-muted text-foreground placeholder:text-muted-foreground focus:bg-background focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
         />
         {search && (
           <button type="button" aria-label="Clear search" onClick={() => setSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground">

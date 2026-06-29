@@ -418,7 +418,7 @@ function SharedByMeContent() {
     if (typeFilter !== 'all' && l.item_type !== typeFilter) return false;
     if (search) {
       const q = search.toLowerCase();
-      if (!l.token.includes(q) && !l.item_type.includes(q) && !l.share_type.includes(q)) return false;
+      if (!l.token.includes(q) && !l.item_type.includes(q) && !l.share_type.includes(q) && !(l.item_title ?? '').toLowerCase().includes(q)) return false;
     }
     return true;
   });
@@ -694,7 +694,7 @@ function SharedContent() {
 
 export default function SharedPage() {
   return (
-    <Suspense>
+    <Suspense fallback={<div className="flex-1 flex items-center justify-center"><div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" /></div>}>
       <SharedContent />
     </Suspense>
   );

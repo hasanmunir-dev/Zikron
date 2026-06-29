@@ -226,7 +226,7 @@ function ReminderForm({ initial, onSubmit, onCancel, isLoading, submitLabel }: R
         <MarkdownEditor value={form.description} onChange={v => set('description', v)} minHeight="140px" defaultTab="write" />
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div>
           <label className="block text-xs font-medium text-muted-foreground mb-1">Due date & time</label>
           <DateTimePicker
@@ -257,7 +257,7 @@ function ReminderForm({ initial, onSubmit, onCancel, isLoading, submitLabel }: R
         <input value={form.tags} onChange={e => set('tags', e.target.value)} placeholder="work, urgent, school" className={inputCls()} />
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div>
           <label className="block text-xs font-medium text-muted-foreground mb-1">Link to</label>
           <Select value={form.linked_type} onValueChange={v => { set('linked_type', v as ReminderLinkedType); set('linked_id', ''); }}>
@@ -291,7 +291,7 @@ function ReminderForm({ initial, onSubmit, onCancel, isLoading, submitLabel }: R
 
       <div className="flex items-center justify-end gap-2 pt-2 border-t border-border">
         <button type="button" onClick={onCancel} className="px-4 py-2 text-sm text-muted-foreground hover:text-foreground transition-colors">Cancel</button>
-        <button type="submit" disabled={isLoading} className="px-4 py-2 text-sm font-medium bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors">
+        <button type="submit" disabled={isLoading} className="px-4 py-2 text-sm font-medium bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 disabled:opacity-50 transition-colors">
           {isLoading ? 'Saving…' : submitLabel}
         </button>
       </div>
@@ -681,7 +681,7 @@ function RemindersContent() {
         <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
         <input
           value={search} onChange={e => setSearch(e.target.value)} placeholder="Search reminders…"
-          className="w-full pl-9 pr-8 py-2 text-sm border border-border rounded-lg bg-muted text-foreground placeholder:text-muted-foreground focus:bg-background focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          className="w-full pl-9 pr-8 py-2 text-sm border border-border rounded-lg bg-muted text-foreground placeholder:text-muted-foreground focus:bg-background focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
         />
         {search && <button type="button" aria-label="Clear search" onClick={() => setSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground"><X size={14} /></button>}
       </div>
@@ -882,5 +882,9 @@ function SharedReminderCard({ item, onClick }: { item: SharedWithMeItem; onClick
 }
 
 export default function RemindersPage() {
-  return <Suspense><RemindersContent /></Suspense>;
+  return (
+    <Suspense fallback={<div className="flex-1 flex items-center justify-center"><div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" /></div>}>
+      <RemindersContent />
+    </Suspense>
+  );
 }
