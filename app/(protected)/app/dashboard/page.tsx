@@ -1,7 +1,8 @@
 "use client";
 
+import { useMemo } from "react";
 import Link from "next/link";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Inbox,
   BookOpen,
@@ -23,6 +24,7 @@ import {
   BellOff,
   BellRing,
   Share2,
+  Network,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { api } from "@/lib/api";
@@ -35,9 +37,15 @@ import { reminderKeys } from "@/hooks/queries/use-reminders";
 import { collectionKeys } from "@/hooks/queries/use-collections";
 import { contactKeys } from "@/hooks/queries/use-contacts";
 import { useSharedLinks, useSharedWithMe } from "@/hooks/queries/use-shared-links";
+import { useRecentLinks } from "@/hooks/queries/use-item-links";
+import { useRecentVersions } from "@/hooks/queries/use-history";
+import { useFrequentTags, useRecentTags } from "@/hooks/queries/use-tags";
+import { TagChip } from "@/components/features/tags/TagChip";
+import { TYPE_CONFIG } from "@/components/features/links/LinkPicker";
+import { GraphCanvas } from "@/components/features/graph/GraphCanvas";
 import { usePushNotifications } from "@/hooks/use-push-notifications";
 import { formatRelativeTime } from "@/utils/date";
-import type { Note, InboxItem, SelfChatMessage, List, Reminder, Collection, Contact, SharedLink, SharedWithMeItem } from "@/types";
+import type { Note, InboxItem, SelfChatMessage, List, Reminder, Collection, Contact, SharedLink, SharedWithMeItem, ItemLink, LinkableItemType, VersionableItemType } from "@/types";
 
 const COLLECTION_COLORS: Record<string, string> = {
   blue: 'bg-blue-500', violet: 'bg-violet-500', green: 'bg-emerald-500',
@@ -621,6 +629,171 @@ function ContactsWidget({ contacts }: { contacts: Contact[] }) {
 }
 
 // ──────────────────────────────────────────────
+//  Recently Edited widget
+// ──────────────────────────────────────────────
+
+const VERSION_ITEM_PATHS: Record<VersionableItemType, string> = {
+  note: '/app/notes', inbox: '/app/inbox', list: '/app/lists',
+  reminder: '/app/reminders', collection: '/app/collections',
+};
+
+function RecentlyEditedWidget() {
+  const { data: versions = [], isLoading } = useRecentVersions(8);
+
+  if (isLoading || versions.length === 0) return null;
+
+  return (
+    <div className="rounded-xl border border-border bg-card p-4 space-y-3">
+      <WidgetHeader title="Recently Edited" href="#" />
+      <div className="space-y-1">
+        {versions.map(v => {
+          const href = `${VERSION_ITEM_PATHS[v.item_type]}?detail=${v.item_id}`;
+          const summary = v.metadata_snapshot?.summary as string | undefined;
+          return (
+            <Link
+              key={v.id}
+              href={href}
+              className="flex items-center gap-3 rounded-lg px-2 py-1.5 hover:bg-accent transition-colors"
+            >
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-foreground truncate">
+                  {v.title_snapshot ?? 'Untitled'}
+                </p>
+                <p className="text-xs text-muted-foreground truncate">
+                  {summary ?? v.item_type} · {formatRelativeTime(v.created_at)}
+                </p>
+              </div>
+            </Link>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// ──────────────────────────────────────────────
+//  Knowledge Graph widget
+// ──────────────────────────────────────────────
+
+function GraphWidget() {
+  return (
+    <div className="bg-card border border-border rounded-xl overflow-hidden">
+      <div className="flex items-center justify-between px-4 py-3 border-b border-border">
+        <div className="flex items-center gap-2">
+          <div className="w-6 h-6 rounded-md bg-violet-100 dark:bg-violet-950/60 flex items-center justify-center">
+            <Network size={12} className="text-violet-600 dark:text-violet-400" />
+          </div>
+          <span className="text-sm font-semibold text-foreground">Knowledge Graph</span>
+        </div>
+        <Link href="/app/graph" className="text-xs text-primary hover:underline font-medium">
+          Open full graph →
+        </Link>
+      </div>
+      <div className="h-52 w-full">
+        <GraphCanvas miniMode />
+      </div>
+    </div>
+  );
+}
+
+// ──────────────────────────────────────────────
+//  Frequently Used Tags widget
+// ──────────────────────────────────────────────
+
+function FrequentTagsWidget() {
+  const { data: tags = [], isLoading } = useFrequentTags(12);
+  if (isLoading || tags.length === 0) return null;
+  return (
+    <div className="rounded-xl border border-border bg-card p-4 space-y-3">
+      <WidgetHeader title="Frequently Used Tags" href="/app/tags" />
+      <div className="flex flex-wrap gap-1.5">
+        {tags.map(tag => (
+          <TagChip key={tag.id} tag={tag} linkable size="xs" />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ──────────────────────────────────────────────
+//  Recent Tags widget
+// ──────────────────────────────────────────────
+
+function RecentTagsWidget() {
+  const { data: tags = [], isLoading } = useRecentTags(10);
+  if (isLoading || tags.length === 0) return null;
+  return (
+    <div className="rounded-xl border border-border bg-card p-4 space-y-3">
+      <WidgetHeader title="Recent Tags" href="/app/tags" />
+      <div className="flex flex-wrap gap-1.5">
+        {tags.map(tag => (
+          <TagChip key={tag.id} tag={tag} linkable size="xs" />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ──────────────────────────────────────────────
+//  Recently Connected Knowledge widget
+// ──────────────────────────────────────────────
+
+const ITEM_PATHS: Record<LinkableItemType, string> = {
+  note: '/app/notes', inbox: '/app/inbox', list: '/app/lists',
+  reminder: '/app/reminders', collection: '/app/collections', contact: '/app/contacts',
+};
+
+function RecentlyConnectedWidget() {
+  const { data: links = [], isLoading } = useRecentLinks(6);
+  const qc = useQueryClient();
+
+  const idMap = useMemo(() => {
+    const m = new Map<string, { title: string; type: LinkableItemType }>();
+    const add = (id: string, title: string, type: LinkableItemType) => { if (id) m.set(id, { title, type }); };
+    (qc.getQueryData<Note[]>(noteKeys.all()) ?? []).forEach(n => add(n.id, n.title, 'note'));
+    (qc.getQueryData<InboxItem[]>(inboxKeys.all()) ?? []).forEach(i => add(i.id, i.title, 'inbox'));
+    (qc.getQueryData<List[]>(listKeys.all()) ?? []).forEach(l => add(l.id, l.title, 'list'));
+    (qc.getQueryData<Reminder[]>(reminderKeys.all()) ?? []).forEach(r => add(r.id, r.title, 'reminder'));
+    (qc.getQueryData<Collection[]>(collectionKeys.all()) ?? []).forEach(c => add(c.id, c.title, 'collection'));
+    (qc.getQueryData<Contact[]>(contactKeys.all()) ?? []).forEach(c => add(c.id, c.name, 'contact'));
+    return m;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [qc]);
+
+  if (isLoading || links.length === 0) return null;
+
+  return (
+    <Widget>
+      <WidgetHeader title="Recently Connected" href="/app/notes" />
+      <div className="px-4 pb-3 space-y-2">
+        {(links as ItemLink[]).map(link => {
+          const src = idMap.get(link.source_id);
+          const tgt = idMap.get(link.target_id);
+          const srcCfg = TYPE_CONFIG[link.source_type];
+          const tgtCfg = TYPE_CONFIG[link.target_type];
+          const srcHref = `${ITEM_PATHS[link.source_type]}?detail=${link.source_id}`;
+          const tgtHref = `${ITEM_PATHS[link.target_type]}?detail=${link.target_id}`;
+          return (
+            <div key={link.id} className="flex items-center gap-1.5 text-xs">
+              <Link href={srcHref} className="flex items-center gap-1 px-1.5 py-0.5 bg-muted rounded hover:bg-muted/70 transition-colors max-w-[140px]">
+                <srcCfg.Icon size={10} className={`shrink-0 ${srcCfg.color}`} />
+                <span className="text-foreground truncate">{src?.title ?? link.source_id.slice(0, 6)}</span>
+              </Link>
+              <ArrowRight size={10} className="text-muted-foreground/50 shrink-0" />
+              <Link href={tgtHref} className="flex items-center gap-1 px-1.5 py-0.5 bg-muted rounded hover:bg-muted/70 transition-colors max-w-[140px]">
+                <tgtCfg.Icon size={10} className={`shrink-0 ${tgtCfg.color}`} />
+                <span className="text-foreground truncate">{tgt?.title ?? link.target_id.slice(0, 6)}</span>
+              </Link>
+              <span className="text-muted-foreground/40 ml-auto shrink-0">{formatRelativeTime(link.created_at)}</span>
+            </div>
+          );
+        })}
+      </div>
+    </Widget>
+  );
+}
+
+// ──────────────────────────────────────────────
 //  Main dashboard page
 // ──────────────────────────────────────────────
 export default function DashboardPage() {
@@ -761,6 +934,13 @@ export default function DashboardPage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <RecentNotesWidget notes={notes} />
             <RecentInboxWidget inbox={inbox} />
+          </div>
+          <RecentlyEditedWidget />
+          <RecentlyConnectedWidget />
+          <GraphWidget />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <FrequentTagsWidget />
+            <RecentTagsWidget />
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <RecentListsWidget lists={lists} />

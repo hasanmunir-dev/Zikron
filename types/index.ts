@@ -128,9 +128,12 @@ export interface UserProfile {
   user_id: string;
   email: string | null;
   full_name: string | null;
+  avatar_url: string | null;
+  avatar_path: string | null;
   role: 'user' | 'admin';
   status: 'active' | 'disabled';
   created_at: string;
+  updated_at?: string;
 }
 
 export interface AdminList {
@@ -411,6 +414,39 @@ export type SharedWithMeResponse =
   | { status: 'password_required'; item_type: ItemType; share_type: ShareType }
   | { status: 'denied' | 'revoked' | 'expired' | 'not_found' };
 
+// ─── Item link types ──────────────────────────────────────────────────────────
+
+export type LinkableItemType = 'note' | 'inbox' | 'list' | 'reminder' | 'collection' | 'contact';
+export type RelationshipType = 'reference' | 'related' | 'mentioned';
+
+export interface ItemLink {
+  id: string;
+  user_id: string;
+  source_type: LinkableItemType;
+  source_id: string;
+  target_type: LinkableItemType;
+  target_id: string;
+  relationship_type: RelationshipType;
+  created_at: string;
+}
+
+/** A linkable item returned by the search endpoint */
+export interface LinkableItem {
+  id: string;
+  title: string;
+  type: LinkableItemType;
+}
+
+/** ItemLink with resolved target title/type for display */
+export interface ItemLinkWithTarget extends ItemLink {
+  target_title?: string;
+  source_title?: string;
+}
+
+export interface AdminItemLink extends ItemLink {
+  owner_email?: string | null;
+}
+
 // ─── Changelog types ───────────────────────────────────────────────────────────
 
 export type ChangelogType = 'feature' | 'improvement' | 'fix' | 'security' | 'announcement';
@@ -432,4 +468,61 @@ export interface Changelog {
   commit_sha: string | null;
   created_at: string;
   updated_at: string;
+}
+
+// ─── Version History ──────────────────────────────────────────────────────────
+
+export type VersionableItemType = 'note' | 'inbox' | 'list' | 'reminder' | 'collection';
+export type VersionHistoryLimit = 0 | 50 | 100;
+
+export interface ItemVersion {
+  id: string;
+  user_id: string;
+  item_type: VersionableItemType;
+  item_id: string;
+  version_number: number;
+  title_snapshot: string | null;
+  content_snapshot: string | null;
+  metadata_snapshot: Record<string, unknown> & { summary?: string };
+  created_by: string;
+  created_at: string;
+}
+
+export interface AdminItemVersion extends ItemVersion {
+  owner_email: string | null;
+}
+
+// ─── Universal Tags ───────────────────────────────────────────────────────────
+
+export type TagColor = 'slate' | 'violet' | 'blue' | 'green' | 'amber' | 'rose' | 'cyan';
+export type TagItemType =
+  | 'note' | 'inbox' | 'list' | 'reminder' | 'collection' | 'self_chat'
+  | 'file' | 'voice_note' | 'contact';
+
+export interface Tag {
+  id: string;
+  user_id: string;
+  name: string;
+  color: TagColor;
+  description: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface TagWithCount extends Tag {
+  item_count: number;
+}
+
+export interface TagItem {
+  id: string;
+  tag_id: string;
+  user_id: string;
+  item_type: TagItemType;
+  item_id: string;
+  created_at: string;
+  item_title?: string | null;
+}
+
+export interface AdminTag extends TagWithCount {
+  owner_email: string | null;
 }

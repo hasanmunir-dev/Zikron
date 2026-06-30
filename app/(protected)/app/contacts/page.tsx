@@ -41,6 +41,8 @@ import type { BulkAction } from '@/components/shared/bulk-action-toolbar';
 import { MarkdownViewer } from '@/components/editor/markdown-viewer';
 import { MarkdownEditor } from '@/components/editor/markdown-editor';
 import { DeleteConfirmDialog } from '@/components/shared/delete-confirm-dialog';
+import { ItemLinksSection } from '@/components/features/links/ItemLinksSection';
+import { useWikiLinkMap } from '@/hooks/use-wiki-link-map';
 import { DateTimePicker } from '@/components/ui/date-time-picker';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import type { Contact, ContactEmail, ContactPhone, ContactAddress, ContactWebsite } from '@/types';
@@ -553,6 +555,7 @@ function ContactDetail({
   onToggleArchive: () => void;
 }) {
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const wikiLinks = useWikiLinkMap();
 
   const emails = contact.emails?.length > 0 ? contact.emails : (contact.email ? [{ value: contact.email, label: 'main', primary: true }] : []);
   const phones = contact.phones?.length > 0 ? contact.phones : (contact.phone ? [{ value: contact.phone, label: 'mobile', primary: true }] : []);
@@ -669,7 +672,7 @@ function ContactDetail({
                   <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Notes</p>
                 </div>
                 <div className="rounded-lg bg-muted/50 border border-border p-3">
-                  <MarkdownViewer content={contact.notes} />
+                  <MarkdownViewer content={contact.notes} wikiLinks={wikiLinks} />
                 </div>
               </div>
             ) : (
@@ -686,6 +689,8 @@ function ContactDetail({
                 </span>
               </div>
             )}
+
+            <ItemLinksSection itemType="contact" itemId={contact.id} />
           </div>
 
           {/* Footer actions */}

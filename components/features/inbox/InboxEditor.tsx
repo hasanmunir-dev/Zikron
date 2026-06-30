@@ -2,10 +2,14 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { X, Star, Trash2, Archive, Pencil, Link as LinkIcon, FileText, Tag, ExternalLink } from 'lucide-react';
+import { X, Star, Trash2, Archive, Pencil, Link as LinkIcon, FileText, ExternalLink } from 'lucide-react';
 import { MarkdownEditor } from '@/components/editor/markdown-editor';
 import { MarkdownViewer } from '@/components/editor/markdown-viewer';
 import { DeleteConfirmDialog } from '@/components/shared/delete-confirm-dialog';
+import { ItemLinksSection } from '@/components/features/links/ItemLinksSection';
+import { VersionHistoryPanel } from '@/components/features/history/VersionHistoryPanel';
+import { TagsSection } from '@/components/features/tags/TagsSection';
+import { useWikiLinkMap } from '@/hooks/use-wiki-link-map';
 import { formatRelativeTime } from '@/utils/date';
 import type { InboxItem } from '@/types';
 
@@ -25,15 +29,15 @@ export function InboxEditor({ mode, item, onSave, onDelete, onToggleFavorite, on
   const [title, setTitle] = useState(item?.title ?? '');
   const [content, setContent] = useState(item?.content ?? '');
   const [url, setUrl] = useState(item?.url ?? '');
-  const [tags, setTags] = useState(item?.tags?.join(', ') ?? '');
   const [confirmDelete, setConfirmDelete] = useState(false);
+
+  const wikiLinks = useWikiLinkMap();
 
   useEffect(() => {
     setType(item?.type ?? 'text');
     setTitle(item?.title ?? '');
     setContent(item?.content ?? '');
     setUrl(item?.url ?? '');
-    setTags(item?.tags?.join(', ') ?? '');
   }, [item]);
 
   function handleSave() {
@@ -43,7 +47,7 @@ export function InboxEditor({ mode, item, onSave, onDelete, onToggleFavorite, on
       content: content.trim() || null,
       url: type === 'link' ? url.trim() || null : null,
       type,
-      tags: tags.split(',').map(t => t.trim()).filter(Boolean),
+      tags: [],
       category_id: item?.category_id ?? null,
     });
     onClose();
@@ -109,7 +113,7 @@ export function InboxEditor({ mode, item, onSave, onDelete, onToggleFavorite, on
                 type="button"
                 onClick={handleSave}
                 disabled={!title.trim()}
-                className="px-4 py-1.5 bg-blue-600 text-white rounded-lg text-sm font-semibold hover:bg-blue-700 transition-colors disabled:opacity-50"
+                className="px-4 py-1.5 bg-primary text-primary-foreground rounded-lg text-sm font-semibold hover:bg-primary/90 transition-colors disabled:opacity-50"
               >
                 {mode === 'create' ? 'Save' : 'Update'}
               </button>
@@ -147,20 +151,28 @@ export function InboxEditor({ mode, item, onSave, onDelete, onToggleFavorite, on
             )}
 
             {item?.content ? (
-              <MarkdownViewer content={item.content} />
+              <MarkdownViewer content={item.content} wikiLinks={wikiLinks} />
             ) : (
               <p className="text-sm text-muted-foreground italic">No notes added.</p>
             )}
 
-            {(item?.tags?.length || item?.created_at) && (
-              <div className="flex items-center gap-2 flex-wrap pt-2 border-t border-border">
-                {item.tags?.map(tag => (
-                  <span key={tag} className="text-xs bg-muted text-muted-foreground px-1.5 py-0.5 rounded">#{tag}</span>
-                ))}
-                {item.created_at && (
-                  <span className="text-xs text-muted-foreground/50 ml-auto">{formatRelativeTime(item.created_at)}</span>
-                )}
-              </div>
+            {item?.created_at && (
+              <p className="text-xs text-muted-foreground/50">{formatRelativeTime(item.created_at)}</p>
+            )}
+
+            {item?.id && (
+              <ItemLinksSection itemType="inbox" itemId={item.id} />
+            )}
+            {item?.id && (
+              <VersionHistoryPanel
+                itemType="inbox"
+                itemId={item.id}
+                currentTitle={item.title ?? null}
+                currentContent={item.content ?? null}
+              />
+            )}
+            {item?.id && (
+              <TagsSection itemType="inbox" itemId={item.id} />
             )}
           </>
         ) : (
@@ -204,25 +216,15 @@ export function InboxEditor({ mode, item, onSave, onDelete, onToggleFavorite, on
               onChange={setContent}
               placeholder="Notes or description (Markdown supported)..."
               minHeight="300px"
+              wikiLinks={wikiLinks}
             />
+            {item?.id && (
+              <TagsSection itemType="inbox" itemId={item.id} />
+            )}
           </>
         )}
       </div>
 
-      {/* Tags footer — create/edit only */}
-      {mode !== 'detail' && (
-        <div className="border-t border-border px-5 py-3 shrink-0">
-          <div className="flex items-center gap-2">
-            <Tag size={14} className="text-muted-foreground/40 shrink-0" />
-            <input
-              value={tags}
-              onChange={e => setTags(e.target.value)}
-              placeholder="Tags: study, important, work  (comma separated)"
-              className="flex-1 text-sm text-foreground placeholder:text-muted-foreground/40 border-none outline-none bg-transparent"
-            />
-          </div>
-        </div>
-      )}
     </div>
   );
 

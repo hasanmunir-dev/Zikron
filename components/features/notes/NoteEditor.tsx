@@ -1,9 +1,13 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { X, Star, Trash2, Tag } from 'lucide-react';
+import { X, Star, Trash2 } from 'lucide-react';
 import { MarkdownEditor } from '@/components/editor/markdown-editor';
 import { DeleteConfirmDialog } from '@/components/shared/delete-confirm-dialog';
+import { ItemLinksSection } from '@/components/features/links/ItemLinksSection';
+import { VersionHistoryPanel } from '@/components/features/history/VersionHistoryPanel';
+import { TagsSection } from '@/components/features/tags/TagsSection';
+import { useWikiLinkMap } from '@/hooks/use-wiki-link-map';
 import type { Note } from '@/types';
 
 interface Props {
@@ -20,14 +24,14 @@ interface Props {
 export function NoteEditor({ note, onSave, onDelete, onClose, fullPage = false, defaultTab = 'write' }: Props) {
   const [title, setTitle] = useState(note?.title ?? '');
   const [content, setContent] = useState(note?.content ?? '');
-  const [tags, setTags] = useState(note?.tags?.join(', ') ?? '');
   const [isFavorite, setIsFavorite] = useState(note?.is_favorite ?? false);
   const [confirmDelete, setConfirmDelete] = useState(false);
+
+  const wikiLinks = useWikiLinkMap();
 
   useEffect(() => {
     setTitle(note?.title ?? '');
     setContent(note?.content ?? '');
-    setTags(note?.tags?.join(', ') ?? '');
     setIsFavorite(note?.is_favorite ?? false);
   }, [note]);
 
@@ -37,7 +41,6 @@ export function NoteEditor({ note, onSave, onDelete, onClose, fullPage = false, 
       ...note,
       title: title.trim(),
       content: content.trim() || null,
-      tags: tags.split(',').map(t => t.trim()).filter(Boolean),
       is_favorite: isFavorite,
     });
     onClose();
@@ -76,7 +79,7 @@ export function NoteEditor({ note, onSave, onDelete, onClose, fullPage = false, 
             type="button"
             onClick={handleSave}
             disabled={!title.trim()}
-            className="px-4 py-1.5 bg-blue-600 text-white rounded-lg text-sm font-semibold hover:bg-blue-700 transition-colors disabled:opacity-50"
+            className="px-4 py-1.5 bg-primary text-primary-foreground rounded-lg text-sm font-semibold hover:bg-primary/90 transition-colors disabled:opacity-50"
           >
             {note?.id ? 'Save' : 'Create'}
           </button>
@@ -106,21 +109,31 @@ export function NoteEditor({ note, onSave, onDelete, onClose, fullPage = false, 
           placeholder="Write your note in Markdown..."
           minHeight="400px"
           defaultTab={defaultTab}
+          wikiLinks={wikiLinks}
         />
+
+        {/* Knowledge links — only shown for existing notes */}
+        {note?.id && (
+          <ItemLinksSection itemType="note" itemId={note.id} />
+        )}
+        {note?.id && (
+          <div className="px-1">
+            <VersionHistoryPanel
+              itemType="note"
+              itemId={note.id}
+              currentTitle={title}
+              currentContent={content}
+            />
+          </div>
+        )}
       </div>
 
       {/* Tags */}
-      <div className="border-t border-border px-5 py-3">
-        <div className="flex items-center gap-2">
-          <Tag size={14} className="text-muted-foreground/40 shrink-0" />
-          <input
-            value={tags}
-            onChange={e => setTags(e.target.value)}
-            placeholder="Tags: study, important, work  (comma separated)"
-            className="flex-1 text-sm text-foreground placeholder:text-muted-foreground/40 border-none outline-none bg-transparent"
-          />
+      {note?.id && (
+        <div className="border-t border-border px-5 py-3">
+          <TagsSection itemType="note" itemId={note.id} className="" />
         </div>
-      </div>
+      )}
     </div>
   );
 

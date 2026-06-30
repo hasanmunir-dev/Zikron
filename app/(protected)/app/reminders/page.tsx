@@ -28,6 +28,10 @@ import { ShareDialog } from '@/components/features/sharing/ShareDialog';
 import { SharedItemDetailDialog } from '@/components/features/sharing/SharedItemDetailDialog';
 import { MarkdownEditor } from '@/components/editor/markdown-editor';
 import { MarkdownViewer } from '@/components/editor/markdown-viewer';
+import { ItemLinksSection } from '@/components/features/links/ItemLinksSection';
+import { VersionHistoryPanel } from '@/components/features/history/VersionHistoryPanel';
+import { TagsSection } from '@/components/features/tags/TagsSection';
+import { useWikiLinkMap } from '@/hooks/use-wiki-link-map';
 import { useSharedWithMe } from '@/hooks/queries/use-shared-links';
 import { closeDialogUrl } from '@/lib/dialog-url';
 import { formatRelativeTime } from '@/utils/date';
@@ -408,6 +412,7 @@ function DetailDialog({ id, closeUrl }: { id: string; closeUrl: string }) {
   const router = useRouter();
   const { data: reminder, isLoading } = useReminder(id);
   const updateStatus = useUpdateReminderStatus();
+  const wikiLinks = useWikiLinkMap();
 
   if (isLoading) {
     return (
@@ -454,7 +459,7 @@ function DetailDialog({ id, closeUrl }: { id: string; closeUrl: string }) {
         )}
 
         {reminder.description
-          ? <div className="border border-border rounded-lg p-4 bg-muted/30"><MarkdownViewer content={reminder.description} /></div>
+          ? <div className="border border-border rounded-lg p-4 bg-muted/30"><MarkdownViewer content={reminder.description} wikiLinks={wikiLinks} /></div>
           : <p className="text-sm text-muted-foreground italic">No description.</p>
         }
 
@@ -466,13 +471,16 @@ function DetailDialog({ id, closeUrl }: { id: string; closeUrl: string }) {
           </div>
         )}
 
-        {reminder.tags.length > 0 && (
-          <div className="flex flex-wrap gap-1.5">
-            {reminder.tags.map(t => <span key={t} className="text-xs bg-muted text-muted-foreground px-2 py-0.5 rounded-full">#{t}</span>)}
-          </div>
-        )}
-
         <p className="text-xs text-muted-foreground/60">Created {formatRelativeTime(reminder.created_at)}</p>
+
+        <ItemLinksSection itemType="reminder" itemId={reminder.id} />
+        <VersionHistoryPanel
+          itemType="reminder"
+          itemId={reminder.id}
+          currentTitle={reminder.title}
+          currentContent={reminder.description ?? null}
+        />
+        <TagsSection itemType="reminder" itemId={reminder.id} />
 
         <div className="flex flex-wrap gap-2 pt-2 border-t border-border">
           <Link href={`${BASE}?edit=${reminder.id}`} className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium border border-border rounded-lg hover:bg-muted transition-colors">

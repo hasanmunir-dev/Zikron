@@ -218,6 +218,14 @@ function SearchResults() {
 
   useEffect(() => { setInput(query); }, [query]);
 
+  // #tag prefix → redirect to tag page
+  useEffect(() => {
+    const tagMatch = query.match(/^#([a-z0-9_-]+)$/i);
+    if (tagMatch) {
+      router.replace(`/app/tags/${encodeURIComponent(tagMatch[1].toLowerCase())}`);
+    }
+  }, [query, router]);
+
   const { data: notes = [], isFetching: nf }      = useQuery({ queryKey: noteKeys.all(),      queryFn: () => api.get<Note[]>('/api/notes'),           enabled: !!query });
   const { data: inbox = [], isFetching: inf }      = useQuery({ queryKey: inboxKeys.all(),     queryFn: () => api.get<InboxItem[]>('/api/inbox'),      enabled: !!query });
   const { data: messages = [], isFetching: mf }    = useQuery({ queryKey: selfChatKeys.all(),  queryFn: () => api.get<SelfChatMessage[]>('/api/self-chat'), enabled: !!query });
@@ -325,7 +333,14 @@ function SearchResults() {
 
   function handleSearch(e: React.FormEvent) {
     e.preventDefault();
-    if (input.trim()) router.push(`/app/search?q=${encodeURIComponent(input.trim())}`);
+    const trimmed = input.trim();
+    if (!trimmed) return;
+    const tagMatch = trimmed.match(/^#([a-z0-9_-]+)$/i);
+    if (tagMatch) {
+      router.push(`/app/tags/${encodeURIComponent(tagMatch[1].toLowerCase())}`);
+    } else {
+      router.push(`/app/search?q=${encodeURIComponent(trimmed)}`);
+    }
   }
 
   return (

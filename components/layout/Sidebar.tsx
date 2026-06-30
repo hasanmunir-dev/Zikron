@@ -21,9 +21,13 @@ import {
   MessageSquarePlus,
   Users,
   Link2,
+  Hash,
+  Network,
 } from "lucide-react";
 import Image from "next/image";
 import { useAuth } from "@/hooks/useAuth";
+import { useProfile } from "@/hooks/queries/use-profile";
+import { ProfileAvatar } from "@/components/features/profile/ProfileAvatar";
 
 const navItems = [
   { href: "/app/dashboard", icon: LayoutDashboard, label: "Dashboard" },
@@ -34,6 +38,8 @@ const navItems = [
   { href: "/app/reminders", icon: Bell, label: "Reminders" },
   { href: "/app/collections", icon: FolderOpen, label: "Collections" },
   { href: "/app/contacts", icon: Users, label: "Contacts" },
+  { href: "/app/tags", icon: Hash, label: "Tags" },
+  { href: "/app/graph", icon: Network, label: "Graph" },
   { href: "/app/shared", icon: Link2, label: "Shared" },
 ];
 
@@ -47,6 +53,7 @@ interface SidebarProps {
 export function Sidebar({ open, onClose }: SidebarProps) {
   const pathname = usePathname();
   const { user, role, signOut } = useAuth();
+  const { data: profile } = useProfile();
   const asideRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
@@ -66,14 +73,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
     return "auto";
   });
 
-  const initials = user?.user_metadata?.full_name
-    ? user.user_metadata.full_name
-        .split(" ")
-        .map((n: string) => n[0])
-        .join("")
-        .slice(0, 2)
-        .toUpperCase()
-    : (user?.email?.[0]?.toUpperCase() ?? "Z");
+  const displayName = profile?.full_name ?? user?.user_metadata?.full_name ?? null;
 
   const isAuto = sidebarMode === "auto";
   const isExpanded = sidebarMode === "expanded";
@@ -284,13 +284,16 @@ export function Sidebar({ open, onClose }: SidebarProps) {
               ${alignClass}
             `}
           >
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-600 text-xs font-semibold text-white">
-              {initials}
-            </div>
+            <ProfileAvatar
+              name={displayName}
+              email={user?.email}
+              avatarUrl={profile?.avatar_url}
+              size="sm"
+            />
 
             <div className={`min-w-0 flex-1 ${labelClass}`}>
               <p className="truncate text-xs font-medium text-foreground">
-                {user?.user_metadata?.full_name ?? "My Account"}
+                {displayName ?? "My Account"}
               </p>
               <p className="truncate text-xs text-muted-foreground">
                 {user?.email}

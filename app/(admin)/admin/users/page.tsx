@@ -8,6 +8,7 @@ import { cacheItem } from '@/lib/page-state';
 import { parseDialogState, closeDialogUrl } from '@/lib/dialog-url';
 import { formatRelativeTime } from '@/utils/date';
 import { UserDetailPanel } from '@/components/admin/UserDetailPanel';
+import { ProfileAvatar } from '@/components/features/profile/ProfileAvatar';
 
 const BASE = '/admin/users';
 
@@ -55,9 +56,12 @@ export default function AdminUsersPage() {
                       aria-label={`View user: ${u.full_name ?? u.email ?? u.user_id}`}
                     />
                     <div className="relative z-10 flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white text-xs font-semibold shrink-0">
-                        {(u.full_name?.[0] ?? u.email?.[0] ?? '?').toUpperCase()}
-                      </div>
+                      <ProfileAvatar
+                        name={u.full_name}
+                        email={u.email}
+                        avatarUrl={u.avatar_url}
+                        size="sm"
+                      />
                       <div className="min-w-0">
                         <p className="text-foreground font-medium truncate">{u.full_name ?? '—'}</p>
                         <p className="text-xs text-muted-foreground truncate">{u.email}</p>

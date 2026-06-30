@@ -12,6 +12,10 @@ import { ShareDialog } from '@/components/features/sharing/ShareDialog';
 import { SharedItemDetailDialog } from '@/components/features/sharing/SharedItemDetailDialog';
 import { MarkdownEditor } from '@/components/editor/markdown-editor';
 import { MarkdownViewer } from '@/components/editor/markdown-viewer';
+import { ItemLinksSection } from '@/components/features/links/ItemLinksSection';
+import { VersionHistoryPanel } from '@/components/features/history/VersionHistoryPanel';
+import { TagsSection } from '@/components/features/tags/TagsSection';
+import { useWikiLinkMap } from '@/hooks/use-wiki-link-map';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
   useCollections, useCollection, useCreateCollection,
@@ -307,6 +311,7 @@ function CollectionDetailDialog({ id }: { id: string }) {
   const { data: col, isLoading } = useCollection(id);
   const removeItem = useRemoveCollectionItem();
   const update = useUpdateCollection();
+  const wikiLinks = useWikiLinkMap();
 
   function close() { router.replace(BASE); }
 
@@ -363,7 +368,7 @@ function CollectionDetailDialog({ id }: { id: string }) {
 
         {col.description && (
           <div className="bg-muted/40 rounded-xl p-4">
-            <MarkdownViewer content={col.description} />
+            <MarkdownViewer content={col.description} wikiLinks={wikiLinks} />
           </div>
         )}
 
@@ -429,6 +434,15 @@ function CollectionDetailDialog({ id }: { id: string }) {
             </div>
           );
         })}
+
+        <ItemLinksSection itemType="collection" itemId={col.id} />
+        <VersionHistoryPanel
+          itemType="collection"
+          itemId={col.id}
+          currentTitle={col.title}
+          currentContent={col.description ?? null}
+        />
+        <TagsSection itemType="collection" itemId={col.id} />
       </div>
     </Modal>
   );

@@ -3,6 +3,18 @@ import { toast } from 'sonner';
 import { api } from '@/lib/api';
 import type { Collection, CollectionWithItems, AdminCollection, CollectionItemType } from '@/types';
 
+export interface CollectionLinkEntry {
+  id: string;
+  title: string;
+  description: string | null;
+  color: string | null;
+  icon: string | null;
+  is_favorite: boolean;
+  item_count: number;
+  is_linked: boolean;
+  collection_item_id: string | null;
+}
+
 export const collectionKeys = {
   all: () => ['collections'] as const,
   detail: (id: string) => ['collection', id] as const,
@@ -88,6 +100,53 @@ export function useDeleteCollection() {
       toast.error('Failed to delete collection');
     },
     onSuccess: () => toast.success('Collection deleted'),
+  });
+}
+
+export function useItemCollections(itemType: CollectionItemType, itemId: string) {
+  return useQuery<string[]>({
+    queryKey: ['item-collections', itemType, itemId],
+    queryFn: () =>
+      api.get(`/api/collections/item-collections?item_type=${itemType}&item_id=${itemId}`),
+    enabled: !!itemType && !!itemId,
+    staleTime: 30 * 1000,
+  });
+}
+
+export function useCollectionLinkStatus(itemType: CollectionItemType, itemId: string) {
+  return useQuery<{ collections: CollectionLinkEntry[] }>({
+    queryKey: ['collection-link-status', itemType, itemId],
+    queryFn: () =>
+      api.get(`/api/collections/link-status?item_type=${itemType}&item_id=${itemId}`),
+    enabled: !!itemType && !!itemId,
+    staleTime: 30 * 1000,
+  });
+}
+
+export function useToggleCollectionItem() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      collectionId,
+      item_type,
+      item_id,
+    }: {
+      collectionId: string;
+      item_type: CollectionItemType;
+      item_id: string;
+    }) =>
+      api.post<{ linked: boolean; collection_item_id?: string }>(
+        `/api/collections/${collectionId}/toggle-item`,
+        { item_type, item_id },
+      ),
+    onSuccess: (data, { collectionId, item_type, item_id }) => {
+      toast.success(data.linked ? 'Added to collection' : 'Removed from collection');
+      queryClient.invalidateQueries({ queryKey: ['collection-link-status', item_type, item_id] });
+      queryClient.invalidateQueries({ queryKey: ['item-collections', item_type, item_id] });
+      queryClient.invalidateQueries({ queryKey: collectionKeys.detail(collectionId) });
+      queryClient.invalidateQueries({ queryKey: collectionKeys.all() });
+    },
+    onError: () => toast.error('Failed to update collection'),
   });
 }
 

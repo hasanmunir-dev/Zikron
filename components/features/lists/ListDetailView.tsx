@@ -7,6 +7,10 @@ import { ChevronLeft, Star, Archive, Pencil, Trash2, Table2, Loader2 } from 'luc
 import { useList, useUpdateList, useDeleteList } from '@/hooks/queries/use-lists';
 import { MarkdownViewer } from '@/components/editor/markdown-viewer';
 import { DeleteConfirmDialog } from '@/components/shared/delete-confirm-dialog';
+import { ItemLinksSection } from '@/components/features/links/ItemLinksSection';
+import { VersionHistoryPanel } from '@/components/features/history/VersionHistoryPanel';
+import { TagsSection } from '@/components/features/tags/TagsSection';
+import { useWikiLinkMap } from '@/hooks/use-wiki-link-map';
 import { formatRelativeTime } from '@/utils/date';
 
 interface Props {
@@ -20,6 +24,7 @@ export function ListDetailView({ id }: Props) {
   const { data: list, isLoading } = useList(id);
   const updateList = useUpdateList();
   const deleteList = useDeleteList();
+  const wikiLinks = useWikiLinkMap();
 
   if (isLoading) {
     return (
@@ -67,17 +72,10 @@ export function ListDetailView({ id }: Props) {
             </div>
             {list.description && (
               <div className="text-sm text-muted-foreground">
-                <MarkdownViewer content={list.description} compact />
+                <MarkdownViewer content={list.description} compact wikiLinks={wikiLinks} />
               </div>
             )}
             <div className="flex items-center gap-3 mt-1.5">
-              {list.tags.length > 0 && (
-                <div className="flex flex-wrap gap-1">
-                  {list.tags.map(tag => (
-                    <span key={tag} className="text-xs bg-muted text-muted-foreground px-1.5 py-0.5 rounded">#{tag}</span>
-                  ))}
-                </div>
-              )}
               <span className="text-xs text-muted-foreground/50">Updated {formatRelativeTime(list.updated_at)}</span>
             </div>
           </div>
@@ -190,6 +188,17 @@ export function ListDetailView({ id }: Props) {
           </div>
         </div>
       )}
+
+      <div className="mt-6">
+        <ItemLinksSection itemType="list" itemId={list.id} />
+        <VersionHistoryPanel
+          itemType="list"
+          itemId={list.id}
+          currentTitle={list.title}
+          currentContent={list.description ?? null}
+        />
+        <TagsSection itemType="list" itemId={list.id} />
+      </div>
 
       <DeleteConfirmDialog
         open={confirmDelete}

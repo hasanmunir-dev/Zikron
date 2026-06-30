@@ -15,6 +15,10 @@ import {
   X,
   Bell,
   LinkIcon,
+  Link2,
+  History,
+  Hash,
+  Network,
   FolderOpen,
   Contact,
   Table2,
@@ -27,6 +31,9 @@ import {
 } from "lucide-react";
 import Image from "next/image";
 import { useAuth } from "@/hooks/useAuth";
+import { useProfile } from "@/hooks/queries/use-profile";
+import { ProfileAvatar } from "@/components/features/profile/ProfileAvatar";
+import { ImageIcon } from "lucide-react";
 
 const mySpaceItems = [
   {
@@ -132,6 +139,36 @@ const systemItems = [
     label: "Shared Links",
     placeholder: true,
   },
+  {
+    href: "/admin/links",
+    icon: Link2,
+    label: "Knowledge Links",
+    placeholder: false,
+  },
+  {
+    href: "/admin/history",
+    icon: History,
+    label: "Version History",
+    placeholder: false,
+  },
+  {
+    href: "/admin/tags",
+    icon: Hash,
+    label: "Tags",
+    placeholder: false,
+  },
+  {
+    href: "/admin/graph",
+    icon: Network,
+    label: "Graph",
+    placeholder: false,
+  },
+  {
+    href: "/admin/profile-pictures",
+    icon: ImageIcon,
+    label: "Profile Pictures",
+    placeholder: false,
+  },
 ];
 
 type SidebarMode = "collapsed" | "expanded" | "auto";
@@ -144,16 +181,10 @@ interface Props {
 export function AdminSidebar({ open, onClose }: Props) {
   const pathname = usePathname();
   const { user, signOut } = useAuth();
+  const { data: profile } = useProfile();
   const [sidebarMode, setSidebarMode] = useState<SidebarMode>("auto");
 
-  const initials = user?.user_metadata?.full_name
-    ? user.user_metadata.full_name
-        .split(" ")
-        .map((n: string) => n[0])
-        .join("")
-        .slice(0, 2)
-        .toUpperCase()
-    : (user?.email?.[0]?.toUpperCase() ?? "A");
+  const displayName = profile?.full_name ?? user?.user_metadata?.full_name ?? null;
 
   const isAuto = sidebarMode === "auto";
   const isExpanded = sidebarMode === "expanded";
@@ -360,13 +391,16 @@ export function AdminSidebar({ open, onClose }: Props) {
           <div
             className={`flex items-center gap-3 rounded-lg px-3 py-2 ${alignClass}`}
           >
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-semibold text-primary-foreground">
-              {initials}
-            </div>
+            <ProfileAvatar
+              name={displayName}
+              email={user?.email}
+              avatarUrl={profile?.avatar_url}
+              size="sm"
+            />
 
             <div className={`min-w-0 flex-1 ${labelClass}`}>
               <p className="truncate text-xs font-medium text-foreground">
-                {user?.user_metadata?.full_name ?? "Admin"}
+                {displayName ?? "Admin"}
               </p>
               <p className="truncate text-xs text-muted-foreground">
                 {user?.email}

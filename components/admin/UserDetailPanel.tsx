@@ -7,6 +7,7 @@ import { api } from '@/lib/api';
 import { getCachedItem } from '@/lib/page-state';
 import { formatRelativeTime } from '@/utils/date';
 import type { UserProfile } from '@/types';
+import { ProfileAvatar } from '@/components/features/profile/ProfileAvatar';
 
 interface Props {
   userId: string;
@@ -63,9 +64,12 @@ export function UserDetailPanel({ userId, listRoute, fullPage = false }: Props) 
           <div className="space-y-5">
             {/* Avatar + name + badges */}
             <div className="flex flex-col items-center gap-2 pb-4 border-b border-border">
-              <div className="w-16 h-16 rounded-full bg-blue-600 flex items-center justify-center text-white text-2xl font-semibold">
-                {(profile.full_name?.[0] ?? profile.email?.[0] ?? '?').toUpperCase()}
-              </div>
+              <ProfileAvatar
+                name={profile.full_name}
+                email={profile.email}
+                avatarUrl={profile.avatar_url}
+                size="lg"
+              />
               <p className="text-base font-semibold text-foreground">{profile.full_name ?? '—'}</p>
               <div className="flex items-center gap-2">
                 <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${

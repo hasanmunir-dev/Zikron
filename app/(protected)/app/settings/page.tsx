@@ -1,13 +1,21 @@
 'use client';
 
+import { useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
-import { User, Mail, LogOut, Shield, Palette, Bell, BellOff, BellRing } from 'lucide-react';
+import { User, Mail, LogOut, Shield, Palette, Bell, BellOff, BellRing, History } from 'lucide-react';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { usePushNotifications } from '@/hooks/use-push-notifications';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { api } from '@/lib/api';
+import { toast } from 'sonner';
+import type { VersionHistoryLimit } from '@/types';
+import { useProfile } from '@/hooks/queries/use-profile';
+import { ProfilePictureUploader } from '@/components/features/profile/ProfilePictureUploader';
 
 export default function SettingsPage() {
   const { user, signOut } = useAuth();
-  const name = user?.user_metadata?.full_name ?? '';
+  const { data: profile } = useProfile();
+  const name = profile?.full_name ?? user?.user_metadata?.full_name ?? '';
   const push = usePushNotifications();
 
   return (
@@ -21,14 +29,12 @@ export default function SettingsPage() {
       <section className="mb-6">
         <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Profile</h3>
         <div className="bg-card border border-border rounded-xl overflow-hidden">
-          <div className="p-4 flex items-center gap-4 border-b border-border">
-            <div className="w-12 h-12 bg-primary rounded-full flex items-center justify-center text-primary-foreground text-lg font-bold shrink-0">
-              {(name[0] ?? user?.email?.[0] ?? 'Z').toUpperCase()}
-            </div>
-            <div>
-              <p className="font-semibold text-foreground">{name || 'My Account'}</p>
-              <p className="text-sm text-muted-foreground">{user?.email}</p>
-            </div>
+          <div className="p-4 border-b border-border">
+            <ProfilePictureUploader
+              avatarUrl={profile?.avatar_url}
+              name={name || null}
+              email={user?.email}
+            />
           </div>
           <div className="divide-y divide-border">
             <SettingRow icon={User} label="Full name" value={name || '—'} />
@@ -97,6 +103,9 @@ export default function SettingsPage() {
         </div>
       </section>
 
+      {/* Version History */}
+      <VersionHistorySettings />
+
       {/* Account */}
       <section className="mb-6">
         <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Account</h3>
@@ -131,5 +140,72 @@ function SettingRow({ icon: Icon, label, value }: { icon: React.ElementType; lab
       <span className="text-sm text-muted-foreground w-28 shrink-0">{label}</span>
       <span className="text-sm text-foreground flex-1">{value}</span>
     </div>
+  );
+}
+
+function VersionHistorySettings() {
+  const qc = useQueryClient();
+
+  const { data: profile } = useQuery({
+    queryKey: ['me'],
+    queryFn: () => api.get<{ version_history_limit: number }>('/api/me'),
+    staleTime: 1000 * 60 * 5,
+  });
+
+  const currentLimit = (profile?.version_history_limit ?? 100) as VersionHistoryLimit;
+  const [pending, setPending] = useState<VersionHistoryLimit | null>(null);
+
+  const mutation = useMutation({
+    mutationFn: (limit: VersionHistoryLimit) =>
+      api.patch('/api/me', { version_history_limit: limit }),
+    onSuccess: (_, limit) => {
+      qc.invalidateQueries({ queryKey: ['me'] });
+      setPending(null);
+      toast.success('Version history limit updated');
+    },
+    onError: () => { setPending(null); toast.error('Failed to update setting'); },
+  });
+
+  const OPTIONS: { value: VersionHistoryLimit; label: string }[] = [
+    { value: 100, label: 'Last 100' },
+    { value: 50, label: 'Last 50' },
+    { value: 0, label: 'Unlimited' },
+  ];
+
+  return (
+    <section className="mb-6">
+      <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Version History</h3>
+      <div className="bg-card border border-border rounded-xl overflow-hidden">
+        <div className="px-4 py-3 flex items-center gap-3">
+          <History size={16} className="text-muted-foreground/40 shrink-0" />
+          <div className="flex-1 min-w-0">
+            <p className="text-sm text-foreground">Keep version history</p>
+            <p className="text-xs text-muted-foreground mt-0.5">Per item. Older versions are automatically removed.</p>
+          </div>
+          <div className="flex gap-1.5">
+            {OPTIONS.map(opt => (
+              <button
+                key={opt.value}
+                type="button"
+                disabled={mutation.isPending}
+                onClick={() => {
+                  if (opt.value !== currentLimit) {
+                    setPending(opt.value);
+                    mutation.mutate(opt.value);
+                  }
+                }}
+                className={`text-xs font-medium px-3 py-1.5 rounded-lg border transition-colors disabled:opacity-50 ${
+                  opt.value === currentLimit
+                    ? 'bg-primary text-primary-foreground border-primary'
+                    : 'border-border hover:bg-accent text-foreground'
+                }`}
+              >
+                {pending === opt.value && mutation.isPending ? '…' : opt.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+    </section>
   );
 }
