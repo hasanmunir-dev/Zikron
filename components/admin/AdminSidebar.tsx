@@ -133,13 +133,7 @@ const systemItems = [
     label: "Collections",
     placeholder: false,
   },
-  {
-    href: "/admin/shared",
-    icon: LinkIcon,
-    label: "Shared Links",
-    placeholder: true,
-  },
-  {
+    {
     href: "/admin/links",
     icon: Link2,
     label: "Knowledge Links",
@@ -169,6 +163,13 @@ const systemItems = [
     label: "Profile Pictures",
     placeholder: false,
   },
+  {
+    href: "/admin/shared",
+    icon: LinkIcon,
+    label: "Shared Links",
+    placeholder: true,
+  },
+
 ];
 
 type SidebarMode = "collapsed" | "expanded" | "auto";
@@ -237,14 +238,17 @@ export function AdminSidebar({ open, onClose }: Props) {
         onClick={onClose}
         title={label}
         className={`
-          relative flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all
+          group/nav relative flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all
           ${alignClass}
           ${
-            collapsedActive
-              ? "text-primary"
-              : active
-                ? "bg-primary/10 text-primary"
-                : "text-muted-foreground hover:bg-muted hover:text-foreground  hover:bg-primary/10 text-primary/10 "
+            collapsedActive || active
+      ? "text-primary"
+      : "text-foreground/20 hover:text-primary/50"
+            // collapsedActive
+            //   ? "text-primary"
+            //   : active
+            //     ? "text-primary"
+            //     : "text-foreground/20 hover:text-foreground "
           }
           ${placeholder ? "opacity-50" : ""}
         `}
@@ -262,12 +266,13 @@ export function AdminSidebar({ open, onClose }: Props) {
                 ? "scale-110 text-primary drop-shadow-[0_0_10px_hsl(var(--primary))]"
                 : active
                   ? "text-primary"
-                  : "text-muted-foreground"
+                  // : "text-foreground/20 hover:text-foreground"
+                  : "text-current"
             }
           `}
         />
 
-        <span className={`flex-1 ${labelClass}`}>{label}</span>
+        <span className={`flex-1 ${labelClass} `}>{label}</span>
 
         {placeholder && !isCollapsed && (
           <span
