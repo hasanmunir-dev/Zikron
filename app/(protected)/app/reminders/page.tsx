@@ -6,7 +6,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import {
   Bell, Plus, Search, X, Clock, CheckCircle2, XCircle,
   AlertCircle, Trash2, Pencil, Circle,
-  BookOpen, Inbox, Table2, MessageSquare, Link2, RotateCcw, FolderOpen, Share2, Users, Check,
+  BookOpen, Inbox, Table2, MessageSquare, Link2, RotateCcw, FolderOpen, Share2, Users, Check, LayoutTemplate,
 } from 'lucide-react';
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
@@ -34,6 +34,9 @@ import { TagsSection } from '@/components/features/tags/TagsSection';
 import { useWikiLinkMap } from '@/hooks/use-wiki-link-map';
 import { useSharedWithMe } from '@/hooks/queries/use-shared-links';
 import { closeDialogUrl } from '@/lib/dialog-url';
+import { TemplatePicker } from '@/components/features/templates/TemplatePicker';
+import { useTemplate } from '@/hooks/queries/use-templates';
+import { resolveTemplateVariables } from '@/utils/template-variables';
 import { formatRelativeTime } from '@/utils/date';
 import { usePushNotifications } from '@/hooks/use-push-notifications';
 import type { Reminder, ReminderStatus, ReminderPriority, ReminderLinkedType, SharedWithMeItem } from '@/types';
@@ -152,7 +155,7 @@ interface FormData {
 }
 type FormErrors = Partial<Record<keyof FormData, string>>;
 
-function defaultForm(r?: Reminder): FormData {
+function defaultForm(r?: Partial<Reminder>): FormData {
   return {
     title:       r?.title ?? '',
     description: r?.description ?? '',
@@ -165,7 +168,7 @@ function defaultForm(r?: Reminder): FormData {
 }
 
 interface ReminderFormProps {
-  initial?: Reminder;
+  initial?: Partial<Reminder>;
   onSubmit: (data: Partial<Reminder>) => void;
   onCancel: () => void;
   isLoading: boolean;
@@ -523,12 +526,36 @@ function DetailDialog({ id, closeUrl }: { id: string; closeUrl: string }) {
 
 // ─── Create / Edit / Delete dialogs ──────────────────────────────────────────
 
-function CreateDialog({ closeUrl }: { closeUrl: string }) {
+function CreateDialog({ closeUrl, templateId }: { closeUrl: string; templateId?: string }) {
   const router = useRouter();
   const create = useCreateReminder();
+  const { data: template, isLoading: templateLoading } = useTemplate(templateId);
+
+  // Wait for template to load before rendering the form so useState initializes correctly
+  if (templateId && templateLoading && !template) {
+    return (
+      <Modal title="New Reminder" onClose={() => router.replace(closeUrl)}>
+        <div className="animate-pulse h-48 bg-muted rounded" />
+      </Modal>
+    );
+  }
+
+  let initial: Partial<Reminder> | undefined;
+  if (template) {
+    const meta = template.metadata_template as { priority?: ReminderPriority; tags?: string[] } ?? {};
+    const resolved = resolveTemplateVariables(template);
+    initial = {
+      title: resolved.title_template ?? '',
+      description: resolved.content_template ?? '',
+      priority: meta.priority ?? 'medium',
+      tags: meta.tags ?? [],
+    };
+  }
+
   return (
     <Modal title="New Reminder" onClose={() => router.replace(closeUrl)}>
       <ReminderForm
+        initial={initial}
         onSubmit={data => create.mutate(data, { onSuccess: () => router.replace(closeUrl) })}
         onCancel={() => router.replace(closeUrl)}
         isLoading={create.isPending}
@@ -591,6 +618,7 @@ function RemindersContent() {
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState<FilterTab>('all');
   const [notificationDismissed, setNotificationDismissed] = useState(false);
+  const [showTemplatePicker, setShowTemplatePicker] = useState(false);
   const bulkUpdate = useBulkUpdateReminders();
   const bulkDelete = useBulkDeleteReminders();
   const bulk = useBulkSelection();
@@ -606,6 +634,7 @@ function RemindersContent() {
   const shareId   = searchParams.get('share');
   const sharedViewId = searchParams.get('shared_view');
   const isCreate  = searchParams.get('create') === 'true';
+  const templateId = searchParams.get('template') ?? undefined;
   const closeUrl  = closeDialogUrl(BASE, searchParams);
   const shareReminder = shareId ? reminders.find(r => r.id === shareId) : null;
   const closeShareUrl = (() => {
@@ -669,9 +698,20 @@ function RemindersContent() {
           <h2 className="text-xl font-bold text-foreground">Reminders</h2>
           <p className="text-sm text-muted-foreground mt-0.5">Create and manage important reminders.</p>
         </div>
-        <Link href={`${BASE}?create=true`} className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
-          <Plus size={15} /> New Reminder
-        </Link>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setShowTemplatePicker(true)}
+            className="flex items-center gap-1.5 border border-border text-muted-foreground px-3 py-2 rounded-lg text-sm font-medium hover:bg-muted hover:text-foreground transition-colors"
+            title="Create from template"
+          >
+            <LayoutTemplate size={14} />
+            <span className="hidden sm:inline">From Template</span>
+          </button>
+          <Link href={`${BASE}?create=true`} className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+            <Plus size={15} /> New Reminder
+          </Link>
+        </div>
       </div>
 
       {push.isSupported && !push.isSubscribed && push.permission !== 'denied' && !notificationDismissed && (
@@ -840,7 +880,17 @@ function RemindersContent() {
         </>
       )}
 
-      {isCreate  && <CreateDialog closeUrl={closeUrl} />}
+      {showTemplatePicker && (
+        <TemplatePicker
+          templateType="reminder"
+          onSelect={(t) => {
+            setShowTemplatePicker(false);
+            router.push(`${BASE}?create=true&template=${t.id}`);
+          }}
+          onClose={() => setShowTemplatePicker(false)}
+        />
+      )}
+      {isCreate  && <CreateDialog closeUrl={closeUrl} templateId={templateId} />}
       {detailId  && !editId && !deleteId && !isCreate && <DetailDialog id={detailId} closeUrl={closeUrl} />}
       {editId    && <EditDialog id={editId} closeUrl={closeUrl} />}
       {deleteId  && <DeleteDialog id={deleteId} closeUrl={closeUrl} />}

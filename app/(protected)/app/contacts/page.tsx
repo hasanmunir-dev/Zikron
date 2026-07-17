@@ -25,6 +25,7 @@ import {
   FileText,
   Calendar,
   Check,
+  LayoutTemplate,
 } from 'lucide-react';
 import {
   useContacts,
@@ -47,6 +48,9 @@ import { DateTimePicker } from '@/components/ui/date-time-picker';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import type { Contact, ContactEmail, ContactPhone, ContactAddress, ContactWebsite } from '@/types';
 import { MasonryGrid, MasonrySkeleton } from '@/components/shared/masonry-grid';
+import { TemplatePicker } from '@/components/features/templates/TemplatePicker';
+import { useTemplate } from '@/hooks/queries/use-templates';
+import { resolveTemplateVariables } from '@/utils/template-variables';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -1004,6 +1008,7 @@ function ContactsContent() {
   const searchParams = useSearchParams();
 
   const createParam = searchParams.get('create');
+  const templateId = searchParams.get('template') ?? undefined;
   const detailId = searchParams.get('detail');
   const editId = searchParams.get('edit');
   const deleteId = searchParams.get('delete');
@@ -1012,6 +1017,9 @@ function ContactsContent() {
   const [tab, setTab] = useState<Tab>('all');
   const [deleteTarget, setDeleteTarget] = useState<Contact | null>(null);
   const [showCsvImport, setShowCsvImport] = useState(false);
+  const [showTemplatePicker, setShowTemplatePicker] = useState(false);
+
+  const { data: contactTemplate, isLoading: templateLoading } = useTemplate(createParam === 'true' ? templateId : undefined);
 
   const { data: contacts = [], isLoading } = useContacts();
   const createContact = useCreateContact();
@@ -1132,6 +1140,15 @@ function ContactsContent() {
             >
               <Upload size={15} />
               <span className="hidden sm:inline">Import CSV</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowTemplatePicker(true)}
+              className="flex items-center gap-1.5 border border-border text-muted-foreground px-3 py-2 rounded-lg text-sm font-medium hover:bg-muted hover:text-foreground transition-colors"
+              title="Create from template"
+            >
+              <LayoutTemplate size={14} />
+              <span className="hidden sm:inline">From Template</span>
             </button>
             <Link
               href="?create=true"
@@ -1304,11 +1321,27 @@ function ContactsContent() {
         )}
       </div>
 
-      {/* Create dialog */}
-      {createParam === 'true' && (
+      {showTemplatePicker && (
+        <TemplatePicker
+          templateType="contact"
+          onSelect={(t) => {
+            setShowTemplatePicker(false);
+            router.push(`/app/contacts?create=true&template=${t.id}`);
+          }}
+          onClose={() => setShowTemplatePicker(false)}
+        />
+      )}
+
+      {/* Create dialog — wait for template before rendering so form useState initializes correctly */}
+      {createParam === 'true' && !(templateId && templateLoading && !contactTemplate) && (
         <DialogShell title="New Contact" onClose={close}>
           <ContactForm
             mode="create"
+            initial={contactTemplate ? {
+              ...emptyFormData(),
+              notes: resolveTemplateVariables(contactTemplate).content_template ?? '',
+              job_title: (contactTemplate.metadata_template as { job_title?: string })?.job_title ?? '',
+            } : undefined}
             onSubmit={handleCreate}
             onCancel={close}
             isLoading={createContact.isPending}

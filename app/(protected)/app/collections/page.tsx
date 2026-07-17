@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
   FolderOpen, Plus, Search, X, Star, Archive, Pencil, Trash2,
-  BookOpen, Inbox, Table2, MessageSquare, Bell, Hash, Share2, Users, Check,
+  BookOpen, Inbox, Table2, MessageSquare, Bell, Hash, Share2, Users, Check, LayoutTemplate,
 } from 'lucide-react';
 import { DeleteConfirmDialog } from '@/components/shared/delete-confirm-dialog';
 import { ShareDialog } from '@/components/features/sharing/ShareDialog';
@@ -17,6 +17,9 @@ import { VersionHistoryPanel } from '@/components/features/history/VersionHistor
 import { TagsSection } from '@/components/features/tags/TagsSection';
 import { useWikiLinkMap } from '@/hooks/use-wiki-link-map';
 import { Skeleton } from '@/components/ui/skeleton';
+import { TemplatePicker } from '@/components/features/templates/TemplatePicker';
+import { useTemplate } from '@/hooks/queries/use-templates';
+import { resolveTemplateVariables } from '@/utils/template-variables';
 import {
   useCollections, useCollection, useCreateCollection,
   useUpdateCollection, useDeleteCollection, useRemoveCollectionItem,
@@ -450,9 +453,10 @@ function CollectionDetailDialog({ id }: { id: string }) {
 
 // ─── Create / edit dialog ──────────────────────────────────────────────────────
 
-function CollectionCreateDialog() {
+function CollectionCreateDialog({ templateId }: { templateId?: string }) {
   const router = useRouter();
   const create = useCreateCollection();
+  const { data: template, isLoading: templateLoading } = useTemplate(templateId);
   function close() { router.replace(BASE); }
 
   async function handleSave(data: CollectionFormData) {
@@ -461,9 +465,30 @@ function CollectionCreateDialog() {
     close();
   }
 
+  // Wait for template to load before rendering the form so useState initializes correctly
+  if (templateId && templateLoading && !template) {
+    return (
+      <Modal title="New Collection" onClose={close}>
+        <div className="animate-pulse h-48 bg-muted rounded" />
+      </Modal>
+    );
+  }
+
+  let initial: CollectionFormData | undefined;
+  if (template) {
+    const meta = template.metadata_template as { color?: string; icon?: string } ?? {};
+    const resolved = resolveTemplateVariables(template);
+    initial = {
+      title: resolved.title_template ?? '',
+      description: resolved.content_template ?? '',
+      color: meta.color ?? 'violet',
+      icon: meta.icon ?? '📁',
+    };
+  }
+
   return (
     <Modal title="New Collection" onClose={close}>
-      <CollectionForm onSave={handleSave} onCancel={close} saving={create.isPending} />
+      <CollectionForm initial={initial} onSave={handleSave} onCancel={close} saving={create.isPending} />
     </Modal>
   );
 }
@@ -500,8 +525,10 @@ function CollectionsContent() {
   const searchParams = useSearchParams();
   const [query, setQuery] = useState('');
   const [tab, setTab] = useState<'all' | 'favorites' | 'archived' | 'shared'>('all');
+  const [showTemplatePicker, setShowTemplatePicker] = useState(false);
 
   const create = searchParams.get('create');
+  const templateId = searchParams.get('template') ?? undefined;
   const detail = searchParams.get('detail');
   const edit = searchParams.get('edit');
   const shareId = searchParams.get('share');
@@ -569,13 +596,24 @@ function CollectionsContent() {
             <h1 className="text-xl font-bold text-foreground">Collections</h1>
             <p className="text-sm text-muted-foreground mt-0.5">Organize your knowledge into smart workspaces</p>
           </div>
-          <Link
-            href={`${BASE}?create=true`}
-            className="flex items-center gap-1.5 bg-primary text-primary-foreground hover:bg-primary/90 text-sm font-medium px-3 py-2 rounded-lg transition-colors"
-          >
-            <Plus size={15} />
-            New
-          </Link>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setShowTemplatePicker(true)}
+              className="flex items-center gap-1.5 border border-border text-muted-foreground px-3 py-2 rounded-lg text-sm font-medium hover:bg-muted hover:text-foreground transition-colors"
+              title="Create from template"
+            >
+              <LayoutTemplate size={14} />
+              <span className="hidden sm:inline">From Template</span>
+            </button>
+            <Link
+              href={`${BASE}?create=true`}
+              className="flex items-center gap-1.5 bg-primary text-primary-foreground hover:bg-primary/90 text-sm font-medium px-3 py-2 rounded-lg transition-colors"
+            >
+              <Plus size={15} />
+              New
+            </Link>
+          </div>
         </div>
 
         {/* Tabs */}
@@ -743,7 +781,17 @@ function CollectionsContent() {
       </div>
 
       {/* Dialogs */}
-      {create === 'true' && <CollectionCreateDialog />}
+      {showTemplatePicker && (
+        <TemplatePicker
+          templateType="collection"
+          onSelect={(t) => {
+            setShowTemplatePicker(false);
+            router.push(`${BASE}?create=true&template=${t.id}`);
+          }}
+          onClose={() => setShowTemplatePicker(false)}
+        />
+      )}
+      {create === 'true' && <CollectionCreateDialog templateId={templateId} />}
       {detail && <CollectionDetailDialog id={detail} />}
       {edit && <CollectionEditDialog id={edit} />}
       {shareId && shareCollection && (

@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Plus, BookOpen, Search, X, Users, Check, Trash2, Star, Archive } from "lucide-react";
+import { Plus, BookOpen, Search, X, Users, Check, Trash2, Star, Archive, LayoutTemplate } from "lucide-react";
 import { savePageState, getPageState, cacheItem } from "@/lib/page-state";
 import { dialogUrl, closeDialogUrl, parseDialogState } from "@/lib/dialog-url";
 import { formatRelativeTime } from "@/utils/date";
@@ -11,6 +11,7 @@ import { useNotes, useUpdateNote, useDeleteNote, useBulkUpdateNotes, useBulkDele
 import { useSharedWithMe } from "@/hooks/queries/use-shared-links";
 import { ItemActions } from "@/components/shared/item-actions";
 import { NoteDialog } from "./NoteDialog";
+import { TemplatePicker } from "@/components/features/templates/TemplatePicker";
 import { ShareDialog } from "@/components/features/sharing/ShareDialog";
 import { SharedItemDetailDialog } from "@/components/features/sharing/SharedItemDetailDialog";
 import { useBulkSelection } from "@/hooks/use-bulk-selection";
@@ -30,7 +31,7 @@ export function NotesPage({ basePath }: Props) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const stateKey = `notes:${basePath}`;
-  
+  const [showTemplatePicker, setShowTemplatePicker] = useState(false);
   const saved = getPageState<SavedState>(stateKey);
   const [tab, setTab] = useState<Tab>(saved?.tab ?? "all");
   const notesTab = tab === 'shared' ? 'all' : tab;
@@ -42,6 +43,7 @@ export function NotesPage({ basePath }: Props) {
 
   const dialog = parseDialogState(searchParams);
   const closeUrl = closeDialogUrl(basePath, searchParams);
+  const templateId = searchParams.get("template") ?? undefined;
   const sharedViewId = searchParams.get("shared_view");
   const sharedViewItem = sharedViewId ? sharedNotes.find(i => i.share_id === sharedViewId) : null;
   const closeSharedViewUrl = (() => {
@@ -158,13 +160,24 @@ export function NotesPage({ basePath }: Props) {
             Write, organize, and find your notes.
           </p>
         </div>
-        <Link
-          href={dialogUrl(basePath, "create")}
-          scroll={false}
-          className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-blue-700 transition-colors"
-        >
-          <Plus size={16} /> New note
-        </Link>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setShowTemplatePicker(true)}
+            className="flex items-center gap-1.5 border border-border text-muted-foreground px-3 py-2 rounded-lg text-sm font-medium hover:bg-muted hover:text-foreground transition-colors"
+            title="Create from template"
+          >
+            <LayoutTemplate size={14} />
+            <span className="hidden sm:inline">From Template</span>
+          </button>
+          <Link
+            href={dialogUrl(basePath, "create")}
+            scroll={false}
+            className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-blue-700 transition-colors"
+          >
+            <Plus size={16} /> New note
+          </Link>
+        </div>
       </div>
 
       <div className="flex gap-1 mb-5 flex-wrap">
@@ -326,8 +339,18 @@ export function NotesPage({ basePath }: Props) {
         </MasonryGrid>
       )}
 
+      {showTemplatePicker && (
+        <TemplatePicker
+          templateType="note"
+          onSelect={(t) => {
+            setShowTemplatePicker(false);
+            router.push(`${basePath}?create=true&template=${t.id}`);
+          }}
+          onClose={() => setShowTemplatePicker(false)}
+        />
+      )}
       {dialog?.action === "create" && (
-        <NoteDialog mode="create" closeUrl={closeUrl} defaultTab="write" />
+        <NoteDialog mode="create" closeUrl={closeUrl} defaultTab="write" templateId={templateId} />
       )}
       {dialog?.action === "detail" && dialog.id && (
         <NoteDialog

@@ -23,6 +23,10 @@ import {
   Link2,
   Hash,
   Network,
+  Activity,
+  LayoutTemplate,
+  Calendar,
+  GitBranch,
 } from "lucide-react";
 import Image from "next/image";
 import { useAuth } from "@/hooks/useAuth";
@@ -41,6 +45,10 @@ const navItems = [
   { href: "/app/tags", icon: Hash, label: "Tags" },
   { href: "/app/graph", icon: Network, label: "Graph" },
   { href: "/app/shared", icon: Link2, label: "Shared" },
+  { href: "/app/calendar", icon: Calendar, label: "Calendar" },
+  { href: "/app/timeline", icon: GitBranch, label: "Timeline" },
+  { href: "/app/activity", icon: Activity, label: "Activity" },
+  { href: "/app/templates", icon: LayoutTemplate, label: "Templates" },
 ];
 
 type SidebarMode = "collapsed" | "expanded" | "auto";

@@ -19,6 +19,9 @@ import {
   ArrowRight,
   FileText,
   X,
+  LayoutTemplate,
+  Calendar,
+  GitBranch,
 } from 'lucide-react';
 
 interface CommandPaletteProps {
@@ -37,6 +40,16 @@ const navItems = [
   { label: 'Go to Contacts', icon: Users, href: '/app/contacts', group: 'Navigate' },
   { label: 'Go to Shared', icon: Link2, href: '/app/shared', group: 'Navigate' },
   { label: 'Go to Settings', icon: Settings, href: '/app/settings', group: 'Navigate' },
+  { label: 'Go to Templates', icon: LayoutTemplate, href: '/app/templates', group: 'Navigate' },
+  { label: 'Go to Calendar', icon: Calendar, href: '/app/calendar', group: 'Navigate' },
+  { label: 'Go to Timeline', icon: GitBranch, href: '/app/timeline', group: 'Navigate' },
+];
+
+const templateItems = [
+  { label: 'Browse Templates', icon: LayoutTemplate, href: '/app/templates' },
+  { label: 'New Note Template', icon: BookOpen, href: '/app/templates?create=true&type=note' },
+  { label: 'New Reminder Template', icon: Bell, href: '/app/templates?create=true&type=reminder' },
+  { label: 'New List Template', icon: Table2, href: '/app/templates?create=true&type=list' },
 ];
 
 const createItems = [
@@ -153,6 +166,26 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
                 >
                   <div className="w-7 h-7 rounded-lg bg-emerald-100 dark:bg-emerald-950/60 flex items-center justify-center shrink-0">
                     <Plus size={14} className="text-emerald-600" />
+                  </div>
+                  <span className="flex-1 text-foreground">{item.label}</span>
+                  <item.icon size={13} className="text-muted-foreground" />
+                </Command.Item>
+              ))}
+            </Command.Group>
+
+            <Command.Separator />
+
+            {/* Templates */}
+            <Command.Group heading="Templates">
+              {templateItems.map(item => (
+                <Command.Item
+                  key={item.href}
+                  value={`template-${item.label}`}
+                  onSelect={() => handleSelect(item.href)}
+                  className="flex items-center gap-3 px-4 py-2.5 text-sm cursor-pointer rounded-lg mx-1 aria-selected:bg-muted hover:bg-muted transition-colors"
+                >
+                  <div className="w-7 h-7 rounded-lg bg-violet-100 dark:bg-violet-950/60 flex items-center justify-center shrink-0">
+                    <LayoutTemplate size={14} className="text-violet-600" />
                   </div>
                   <span className="flex-1 text-foreground">{item.label}</span>
                   <item.icon size={13} className="text-muted-foreground" />

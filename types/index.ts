@@ -1,3 +1,73 @@
+// ─── Calendar & Milestones ────────────────────────────────────────────────────
+
+export type CalendarEventSource = 'note' | 'inbox' | 'contact' | 'reminder' | 'milestone';
+
+export interface CalendarEvent {
+  id: string;
+  source: CalendarEventSource;
+  title: string;
+  start: string;
+  end?: string;
+  allDay: boolean;
+  status?: string;
+  priority?: string;
+  url: string;
+  color?: string;
+}
+
+export interface CollectionMilestone {
+  id: string;
+  collection_id: string;
+  user_id: string;
+  title: string;
+  description: string | null;
+  due_date: string | null;
+  completed_at: string | null;
+  sort_order: number;
+  created_at: string;
+  updated_at: string;
+}
+
+// ─── Templates ────────────────────────────────────────────────────────────────
+
+export type TemplateType = 'note' | 'inbox' | 'list' | 'reminder' | 'collection' | 'contact';
+
+export interface Template {
+  id: string;
+  user_id: string | null;
+  name: string;
+  description: string | null;
+  template_type: TemplateType;
+  title_template: string | null;
+  content_template: string | null;
+  metadata_template: Record<string, unknown>;
+  is_favorite: boolean;
+  is_system: boolean;
+  usage_count: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface AdminTemplate extends Template {
+  owner: { email: string | null; full_name: string | null } | null;
+}
+
+// ─── Activity Log ─────────────────────────────────────────────────────────────
+
+export type ActivityItemType = 'note' | 'inbox' | 'list' | 'reminder' | 'collection' | 'tag' | 'contact' | 'shared_link' | 'self_chat';
+export type ActivityAction = 'created' | 'updated' | 'deleted' | 'restored' | 'completed' | 'cancelled' | 'shared' | 'imported' | 'archived' | 'favorited';
+
+export interface ActivityLog {
+  id: string;
+  user_id: string;
+  action: ActivityAction;
+  item_type: ActivityItemType;
+  item_id: string | null;
+  item_title: string | null;
+  description: string;
+  created_at: string;
+}
+
 // ─── List types ───────────────────────────────────────────────────────────────
 
 export interface List {

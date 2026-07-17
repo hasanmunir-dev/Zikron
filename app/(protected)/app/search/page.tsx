@@ -17,6 +17,7 @@ import {
   Link2,
   ExternalLink,
   ArrowRight,
+  LayoutTemplate,
 } from 'lucide-react';
 import { api } from '@/lib/api';
 import { noteKeys } from '@/hooks/queries/use-notes';
@@ -26,10 +27,11 @@ import { listKeys } from '@/hooks/queries/use-lists';
 import { reminderKeys } from '@/hooks/queries/use-reminders';
 import { collectionKeys } from '@/hooks/queries/use-collections';
 import { contactKeys } from '@/hooks/queries/use-contacts';
+import { templateKeys } from '@/hooks/queries/use-templates';
 import { formatRelativeTime } from '@/utils/date';
-import type { Note, InboxItem, SelfChatMessage, List, Reminder, Collection, Contact, SharedLink } from '@/types';
+import type { Note, InboxItem, SelfChatMessage, List, Reminder, Collection, Contact, SharedLink, Template } from '@/types';
 
-type FilterTab = 'all' | 'notes' | 'inbox' | 'lists' | 'chat' | 'reminders' | 'collections' | 'contacts' | 'shared';
+type FilterTab = 'all' | 'notes' | 'inbox' | 'lists' | 'chat' | 'reminders' | 'collections' | 'contacts' | 'shared' | 'templates';
 
 type Result =
   | { type: 'note';        item: Note }
@@ -39,27 +41,31 @@ type Result =
   | { type: 'reminder';    item: Reminder }
   | { type: 'collection';  item: Collection }
   | { type: 'contact';     item: Contact }
-  | { type: 'shared_link'; item: SharedLink & { created_at: string } };
+  | { type: 'shared_link'; item: SharedLink & { created_at: string } }
+  | { type: 'template';    item: Template };
 
 const tabConfig: { id: FilterTab; label: string; icon: React.ElementType; color: string }[] = [
-  { id: 'all',         label: 'All',         icon: Search,       color: 'text-foreground' },
-  { id: 'notes',       label: 'Notes',       icon: BookOpen,     color: 'text-violet-600' },
-  { id: 'inbox',       label: 'Inbox',       icon: Inbox,        color: 'text-blue-600' },
-  { id: 'lists',       label: 'Lists',       icon: Table2,       color: 'text-indigo-600' },
-  { id: 'chat',        label: 'Chat',        icon: MessageSquare, color: 'text-emerald-600' },
-  { id: 'reminders',   label: 'Reminders',   icon: Bell,         color: 'text-amber-600' },
-  { id: 'collections', label: 'Collections', icon: FolderOpen,   color: 'text-fuchsia-600' },
-  { id: 'contacts',    label: 'Contacts',    icon: Users,        color: 'text-cyan-600' },
-  { id: 'shared',      label: 'Shared',      icon: Link2,        color: 'text-rose-600' },
+  { id: 'all',         label: 'All',         icon: Search,          color: 'text-foreground' },
+  { id: 'notes',       label: 'Notes',       icon: BookOpen,        color: 'text-violet-600' },
+  { id: 'inbox',       label: 'Inbox',       icon: Inbox,           color: 'text-blue-600' },
+  { id: 'lists',       label: 'Lists',       icon: Table2,          color: 'text-indigo-600' },
+  { id: 'chat',        label: 'Chat',        icon: MessageSquare,   color: 'text-emerald-600' },
+  { id: 'reminders',   label: 'Reminders',   icon: Bell,            color: 'text-amber-600' },
+  { id: 'collections', label: 'Collections', icon: FolderOpen,      color: 'text-fuchsia-600' },
+  { id: 'contacts',    label: 'Contacts',    icon: Users,           color: 'text-cyan-600' },
+  { id: 'shared',      label: 'Shared',      icon: Link2,           color: 'text-rose-600' },
+  { id: 'templates',   label: 'Templates',   icon: LayoutTemplate,  color: 'text-orange-600' },
 ];
 
 const typeLabel: Record<Result['type'], string> = {
   note: 'Note', inbox: 'Inbox', message: 'Chat', list: 'List',
   reminder: 'Reminder', collection: 'Collection', contact: 'Contact', shared_link: 'Shared',
+  template: 'Template',
 };
 const typeIcon: Record<Result['type'], React.ElementType> = {
   note: BookOpen, inbox: Inbox, message: MessageSquare, list: Table2,
   reminder: Bell, collection: FolderOpen, contact: Users, shared_link: Link2,
+  template: LayoutTemplate,
 };
 const typeColor: Record<Result['type'], string> = {
   note:        'bg-violet-100 dark:bg-violet-950/60 text-violet-600',
@@ -70,6 +76,7 @@ const typeColor: Record<Result['type'], string> = {
   collection:  'bg-fuchsia-100 dark:bg-fuchsia-950/60 text-fuchsia-600',
   contact:     'bg-cyan-100 dark:bg-cyan-950/60 text-cyan-600',
   shared_link: 'bg-rose-100 dark:bg-rose-950/60 text-rose-600',
+  template:    'bg-orange-100 dark:bg-orange-950/60 text-orange-600',
 };
 const typeBadgeColor: Record<Result['type'], string> = {
   note:        'bg-violet-100 dark:bg-violet-950/60 text-violet-700 dark:text-violet-400',
@@ -80,6 +87,7 @@ const typeBadgeColor: Record<Result['type'], string> = {
   collection:  'bg-fuchsia-100 dark:bg-fuchsia-950/60 text-fuchsia-700 dark:text-fuchsia-400',
   contact:     'bg-cyan-100 dark:bg-cyan-950/60 text-cyan-700 dark:text-cyan-400',
   shared_link: 'bg-rose-100 dark:bg-rose-950/60 text-rose-700 dark:text-rose-400',
+  template:    'bg-orange-100 dark:bg-orange-950/60 text-orange-700 dark:text-orange-400',
 };
 
 function getHref(result: Result): string {
@@ -91,6 +99,7 @@ function getHref(result: Result): string {
   if (result.type === 'collection')  return `/app/collections?detail=${result.item.id}`;
   if (result.type === 'contact')     return `/app/contacts?detail=${result.item.id}`;
   if (result.type === 'shared_link') return '/app/shared';
+  if (result.type === 'template')    return `/app/templates?detail=${result.item.id}`;
   return '/app/dashboard';
 }
 
@@ -103,6 +112,7 @@ function getLabel(result: Result): string {
   if (result.type === 'collection')  return result.item.title;
   if (result.type === 'contact')     return result.item.name;
   if (result.type === 'shared_link') return `${result.item.share_type} · ${result.item.item_type}`;
+  if (result.type === 'template')    return result.item.name;
   return '';
 }
 
@@ -115,6 +125,7 @@ function getSub(result: Result): string | null {
   if (result.type === 'collection')  return result.item.description ?? null;
   if (result.type === 'contact')     return [result.item.job_title, result.item.company, result.item.email].filter(Boolean).join(' · ') || null;
   if (result.type === 'shared_link') return `${result.item.view_count} view${result.item.view_count !== 1 ? 's' : ''} · ${result.item.is_revoked ? 'revoked' : 'active'}`;
+  if (result.type === 'template')    return result.item.description ?? (result.item.template_type ? `Type: ${result.item.template_type}` : null);
   return null;
 }
 
@@ -206,7 +217,7 @@ function ResultsSkeleton() {
 const TAB_TYPE_MAP: Record<FilterTab, Result['type'] | null> = {
   all: null, notes: 'note', inbox: 'inbox', lists: 'list',
   chat: 'message', reminders: 'reminder', collections: 'collection',
-  contacts: 'contact', shared: 'shared_link',
+  contacts: 'contact', shared: 'shared_link', templates: 'template',
 };
 
 function SearchResults() {
@@ -233,9 +244,10 @@ function SearchResults() {
   const { data: reminders = [], isFetching: rf }   = useQuery({ queryKey: reminderKeys.all(),  queryFn: () => api.get<Reminder[]>('/api/reminders'),  enabled: !!query });
   const { data: collections = [], isFetching: cf } = useQuery({ queryKey: collectionKeys.all(), queryFn: () => api.get<Collection[]>('/api/collections'), enabled: !!query });
   const { data: contacts = [], isFetching: ctf }   = useQuery({ queryKey: contactKeys.all(),   queryFn: () => api.get<Contact[]>('/api/contacts'),    enabled: !!query });
-  const { data: sharedLinks = [], isFetching: sf } = useQuery({ queryKey: ['shared-links'],    queryFn: () => api.get<SharedLink[]>('/api/shared-links'), enabled: !!query });
+  const { data: sharedLinks = [], isFetching: sf }  = useQuery({ queryKey: ['shared-links'],        queryFn: () => api.get<SharedLink[]>('/api/shared-links'), enabled: !!query });
+  const { data: templates = [], isFetching: tf }    = useQuery({ queryKey: templateKeys.all(),       queryFn: () => api.get<Template[]>('/api/templates'),      enabled: !!query });
 
-  const loading = query && (nf || inf || mf || lf || rf || cf || ctf || sf);
+  const loading = query && (nf || inf || mf || lf || rf || cf || ctf || sf || tf);
 
   const allResults = useMemo<Result[]>(() => {
     if (!query.trim()) return [];
@@ -291,6 +303,13 @@ function SearchResults() {
       l.share_type.toLowerCase().includes(q) ||
       l.token.toLowerCase().includes(q)
     );
+    const filteredTemplates = (templates as Template[]).filter(t =>
+      t.name.toLowerCase().includes(q) ||
+      (t.description ?? '').toLowerCase().includes(q) ||
+      (t.title_template ?? '').toLowerCase().includes(q) ||
+      (t.content_template ?? '').toLowerCase().includes(q) ||
+      t.template_type.toLowerCase().includes(q)
+    );
 
     const all: Result[] = [
       ...filteredNotes.map(item => ({ type: 'note' as const, item })),
@@ -301,6 +320,7 @@ function SearchResults() {
       ...filteredCollections.map(item => ({ type: 'collection' as const, item })),
       ...filteredContacts.map(item => ({ type: 'contact' as const, item })),
       ...filteredSharedLinks.map(item => ({ type: 'shared_link' as const, item: item as SharedLink & { created_at: string } })),
+      ...filteredTemplates.map(item => ({ type: 'template' as const, item })),
     ];
 
     type Dated = { created_at: string; updated_at?: string };
@@ -311,7 +331,7 @@ function SearchResults() {
     });
 
     return all;
-  }, [query, notes, inbox, messages, lists, reminders, collections, contacts, sharedLinks]);
+  }, [query, notes, inbox, messages, lists, reminders, collections, contacts, sharedLinks, templates]);
 
   const filteredResults = useMemo(() => {
     const mappedType = TAB_TYPE_MAP[activeTab];
@@ -322,7 +342,7 @@ function SearchResults() {
   const countByTab = useMemo(() => {
     const counts: Record<FilterTab, number> = {
       all: allResults.length, notes: 0, inbox: 0, lists: 0,
-      chat: 0, reminders: 0, collections: 0, contacts: 0, shared: 0,
+      chat: 0, reminders: 0, collections: 0, contacts: 0, shared: 0, templates: 0,
     };
     for (const result of allResults) {
       const tab = Object.entries(TAB_TYPE_MAP).find(([, t]) => t === result.type)?.[0] as FilterTab | undefined;

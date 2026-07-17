@@ -2,23 +2,31 @@
 
 import { motion } from 'framer-motion';
 import {
+  ArrowLeftRight,
+  Bell,
+  BookOpen,
+  Calendar,
   CheckCircle2,
   Circle,
-  Loader2,
-  BookOpen,
-  Inbox,
-  MessageSquare,
-  Search,
-  Bell,
-  Layers,
-  Users,
-  Share2,
-  Mic,
-  Smartphone,
+  Clock,
   FileUp,
-  Brain,
-  Link2,
-  FolderKanban,
+  FolderOpen,
+  GitBranch,
+  Inbox,
+  LayoutDashboard,
+  LayoutTemplate,
+  Layers,
+  MessageSquare,
+  Mic,
+  Search,
+  Settings,
+  Share2,
+  Smartphone,
+  Sparkles,
+  Table2,
+  Terminal,
+  Users,
+  Zap,
 } from 'lucide-react';
 import { Navbar } from '@/components/landing/navbar';
 import { Footer } from '@/components/landing/footer';
@@ -30,66 +38,46 @@ const fadeUp = {
 
 const stagger = {
   hidden: {},
-  visible: { transition: { staggerChildren: 0.08 } },
+  visible: { transition: { staggerChildren: 0.07 } },
 };
 
 type RoadmapItem = {
   icon: React.ElementType;
   label: string;
   description: string;
+  tag?: string;
 };
 
-const columns: { title: string; status: 'completed' | 'in-progress' | 'planned'; color: string; items: RoadmapItem[] }[] = [
-  {
-    title: 'Completed',
-    status: 'completed',
-    color: 'text-green-600',
-    items: [
-      { icon: BookOpen, label: 'Notes', description: 'Create, edit, favorite, archive, and search notes with Markdown support.' },
-      { icon: Inbox, label: 'Inbox', description: 'Capture text and links, organize with tabs, and search instantly.' },
-      { icon: MessageSquare, label: 'Self Chat', description: 'Send messages to yourself — like a private WhatsApp.' },
-      { icon: Search, label: 'Global Search', description: 'Search across all modules from one place.' },
-      { icon: Layers, label: 'Lists', description: 'Custom tables with columns, rows, and Markdown cell values.' },
-      { icon: Bell, label: 'Reminders', description: 'Reminders with due dates, priorities, and browser push notifications.' },
-    ],
-  },
-  {
-    title: 'In Progress',
-    status: 'in-progress',
-    color: 'text-blue-600',
-    items: [
-      { icon: FolderKanban, label: 'Collections', description: 'Group notes and inbox items into named collections for better organization.' },
-    ],
-  },
-  {
-    title: 'Planned',
-    status: 'planned',
-    color: 'text-muted-foreground',
-    items: [
-      { icon: Users, label: 'Contacts', description: 'Manage personal contacts with Google Contacts import.' },
-      { icon: Share2, label: 'Secure Sharing', description: 'Share notes and lists publicly, with password protection, or privately.' },
-      { icon: Link2, label: 'Tracked Links', description: 'Protected sharing links with access logs and view tracking.' },
-      { icon: FileUp, label: 'File Uploads', description: 'Attach files and documents to your notes and inbox items.' },
-      { icon: FileUp, label: 'PDF Viewing', description: 'View and annotate PDFs directly inside Zikron.' },
-      { icon: Mic, label: 'Voice Notes', description: 'Record voice notes and have them transcribed automatically.' },
-      { icon: Smartphone, label: 'Mobile Application', description: 'iOS and Android app with offline sync via SQLite.' },
-      { icon: Brain, label: 'AI Features', description: 'Smart summarization, search suggestions, and auto-tagging.' },
-      { icon: Users, label: 'Team Collaboration', description: 'Share workspaces and collaborate with your team.' },
-    ],
-  },
+const completed: RoadmapItem[] = [
+  { icon: Inbox,          label: 'Universal Inbox',    description: 'Capture links, thoughts, and ideas instantly. Auto-detects URLs from plain text.' },
+  { icon: BookOpen,       label: 'Markdown Notes',     description: 'Write in Markdown, read it rendered. Full formatting with toolbar and live preview.' },
+  { icon: Table2,         label: 'Dynamic Lists',      description: 'Custom tables with user-defined columns. Inline editing, sort, and reorder rows.' },
+  { icon: MessageSquare,  label: 'Self Chat',          description: 'Send messages to yourself with Markdown support. Favorite messages for quick access.' },
+  { icon: Bell,           label: 'Reminders',          description: 'Due dates, priorities, and browser push notifications. Overdue and today views.' },
+  { icon: FolderOpen,     label: 'Collections',        description: 'Group notes and inbox items into named projects. Milestones and progress tracking.' },
+  { icon: Users,          label: 'Contacts',           description: 'Manage contacts with tags, notes, and follow-up dates. Linked to inbox and reminders.' },
+  { icon: LayoutTemplate, label: 'Templates',          description: 'Reusable templates for notes, lists, reminders, inbox, collections, and contacts.' },
+  { icon: Calendar,       label: 'Calendar',           description: 'All scheduled items in one place. Month, week, day, and list views with source filters.' },
+  { icon: GitBranch,      label: 'Activity Timeline',  description: 'Chronological feed combining activity history and upcoming scheduled events.' },
+  { icon: Search,         label: 'Global Search',      description: 'Search everything — notes, inbox, contacts, reminders, collections, and templates.' },
+  { icon: Terminal,       label: 'Command Palette',    description: 'Keyboard-driven navigation and creation across all modules. Accessible from anywhere.' },
+  { icon: Layers,         label: 'Tags & Graph',       description: 'Tag any item and explore connections visually via the knowledge graph.' },
+  { icon: LayoutDashboard,label: 'Admin Dashboard',    description: 'Full platform admin panel: user management, content visibility, and metrics.' },
 ];
 
-const statusIcon = {
-  completed: <CheckCircle2 size={14} className="text-green-600" />,
-  'in-progress': <Loader2 size={14} className="text-blue-600 animate-spin" />,
-  planned: <Circle size={14} className="text-muted-foreground" />,
-};
+const coming: RoadmapItem[] = [
+  { icon: ArrowLeftRight, label: 'Import / Export',    description: 'Export all your data as Markdown, CSV, or JSON. Import from Notion, Bear, and other tools.', tag: 'Near' },
+  { icon: Zap,            label: 'Automation',         description: 'Rule-based triggers — auto-tag inbox items, remind on follow-up dates, and more.', tag: 'Near' },
+  { icon: Settings,       label: 'Profile & Settings', description: 'Timezone preferences, notification settings, appearance, and account management.', tag: 'Near' },
+  { icon: Share2,         label: 'Public link sharing', description: 'Share notes and lists via public or password-protected links with view tracking.', tag: 'Near' },
+];
 
-const columnBg = {
-  completed: 'border-green-600/20 bg-green-600/5',
-  'in-progress': 'border-blue-600/20 bg-blue-600/5',
-  planned: 'border-border bg-muted/30',
-};
+const future: RoadmapItem[] = [
+  { icon: FileUp,     label: 'File uploads',    description: 'Attach files, PDFs, and images to notes, inbox items, and collections.' },
+  { icon: Mic,        label: 'Voice notes',     description: 'Record voice memos and have them automatically transcribed into text.' },
+  { icon: Smartphone, label: 'Mobile app',      description: 'Native iOS and Android app with offline support and background sync.' },
+  { icon: Sparkles,   label: 'Premium plans',   description: 'Expanded storage limits, priority support, and access to advanced features.' },
+];
 
 export default function RoadmapPage() {
   return (
@@ -109,75 +97,147 @@ export default function RoadmapPage() {
               variants={fadeUp}
               className="w-14 h-14 rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center shadow-lg"
             >
-              <FolderKanban size={24} className="text-white" />
+              <Calendar size={24} className="text-white" />
             </motion.div>
             <motion.h1 variants={fadeUp} className="text-4xl md:text-5xl font-bold tracking-tight">
               Roadmap
             </motion.h1>
-            <motion.p variants={fadeUp} className="text-muted-foreground max-w-xl leading-relaxed">
-              Where Zikron is headed. This is a public roadmap — features may change based on usage and feedback.
+            <motion.p variants={fadeUp} className="text-muted-foreground max-w-xl leading-relaxed text-lg">
+              What is live, what is coming next, and what is planned for the future. Updated as the product evolves.
             </motion.p>
 
-            {/* Legend */}
-            <motion.div variants={fadeUp} className="flex flex-wrap justify-center gap-5 text-sm">
-              <div className="flex items-center gap-1.5">
-                <CheckCircle2 size={14} className="text-green-600" />
-                <span className="text-muted-foreground">Completed</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <Loader2 size={14} className="text-blue-600" />
-                <span className="text-muted-foreground">In Progress</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <Circle size={14} className="text-muted-foreground" />
-                <span className="text-muted-foreground">Planned</span>
-              </div>
+            {/* Stats */}
+            <motion.div variants={fadeUp} className="flex flex-wrap justify-center gap-6 mt-2">
+              {[
+                { icon: CheckCircle2, label: `${completed.length} features live`, color: 'text-green-600' },
+                { icon: Clock,        label: `${coming.length} coming next`,     color: 'text-blue-600' },
+                { icon: Circle,       label: `${future.length} on the horizon`,  color: 'text-muted-foreground' },
+              ].map(({ icon: Icon, label, color }) => (
+                <div key={label} className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Icon size={15} className={color} />
+                  <span>{label}</span>
+                </div>
+              ))}
             </motion.div>
           </motion.div>
         </div>
       </section>
 
-      {/* Kanban columns */}
-      <section className="pb-24 px-6">
-        <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-6">
-          {columns.map((col) => (
-            <motion.div
-              key={col.title}
-              initial="hidden"
-              whileInView="visible"
-              viewport={{ once: true, margin: '-60px' }}
-              variants={stagger}
-              className="flex flex-col gap-4"
-            >
-              <motion.div variants={fadeUp} className="flex items-center gap-2 pb-3 border-b border-border">
-                <div className="flex items-center gap-2">
-                  {statusIcon[col.status]}
-                  <h2 className={`font-bold text-base ${col.color}`}>{col.title}</h2>
-                </div>
-                <span className="ml-auto text-xs text-muted-foreground font-medium bg-muted px-2 py-0.5 rounded-full">
-                  {col.items.length}
-                </span>
-              </motion.div>
-
-              <div className="flex flex-col gap-3">
-                {col.items.map((item) => (
-                  <motion.div
-                    key={item.label}
-                    variants={fadeUp}
-                    className={`p-4 rounded-2xl border ${columnBg[col.status]} flex flex-col gap-3`}
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-lg bg-background border border-border flex items-center justify-center shrink-0 shadow-sm">
-                        <item.icon size={14} className="text-muted-foreground" />
-                      </div>
-                      <p className="text-sm font-semibold text-foreground">{item.label}</p>
-                    </div>
-                    <p className="text-xs text-muted-foreground leading-relaxed">{item.description}</p>
-                  </motion.div>
-                ))}
-              </div>
+      {/* Completed — compact grid */}
+      <section className="pb-16 px-6">
+        <div className="max-w-6xl mx-auto">
+          <motion.div
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, margin: '-40px' }}
+            variants={stagger}
+          >
+            <motion.div variants={fadeUp} className="flex items-center gap-3 mb-6">
+              <CheckCircle2 size={18} className="text-green-600" />
+              <h2 className="text-xl font-bold text-green-600">Live Now</h2>
+              <span className="text-xs font-semibold bg-green-100 dark:bg-green-950/60 text-green-700 dark:text-green-400 px-2.5 py-0.5 rounded-full border border-green-200 dark:border-green-900">
+                {completed.length} features
+              </span>
             </motion.div>
-          ))}
+
+            <motion.div
+              variants={stagger}
+              className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3"
+            >
+              {completed.map((item) => (
+                <motion.div
+                  key={item.label}
+                  variants={fadeUp}
+                  className="flex gap-3 p-4 rounded-xl border border-green-200/60 dark:border-green-900/40 bg-green-50/50 dark:bg-green-950/10 hover:border-green-300 dark:hover:border-green-800 transition-colors"
+                >
+                  <div className="w-8 h-8 rounded-lg bg-white dark:bg-background border border-border flex items-center justify-center shrink-0 shadow-sm">
+                    <item.icon size={14} className="text-green-600 dark:text-green-400" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-foreground">{item.label}</p>
+                    <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed line-clamp-2">{item.description}</p>
+                  </div>
+                </motion.div>
+              ))}
+            </motion.div>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* Coming next + Future — 2-col */}
+      <section className="pb-24 px-6">
+        <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-8">
+          {/* Coming Next */}
+          <motion.div
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, margin: '-40px' }}
+            variants={stagger}
+          >
+            <motion.div variants={fadeUp} className="flex items-center gap-3 mb-6">
+              <Clock size={18} className="text-blue-600" />
+              <h2 className="text-xl font-bold text-blue-600">Coming Next</h2>
+              <span className="text-xs font-semibold bg-blue-100 dark:bg-blue-950/60 text-blue-700 dark:text-blue-400 px-2.5 py-0.5 rounded-full border border-blue-200 dark:border-blue-900">
+                {coming.length} planned
+              </span>
+            </motion.div>
+
+            <div className="space-y-3">
+              {coming.map((item) => (
+                <motion.div
+                  key={item.label}
+                  variants={fadeUp}
+                  className="flex gap-4 p-4 rounded-xl border border-blue-200/60 dark:border-blue-900/40 bg-blue-50/50 dark:bg-blue-950/10"
+                >
+                  <div className="w-9 h-9 rounded-xl bg-white dark:bg-background border border-border flex items-center justify-center shrink-0 shadow-sm">
+                    <item.icon size={15} className="text-blue-600 dark:text-blue-400" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-foreground">{item.label}</p>
+                    <p className="text-xs text-muted-foreground mt-1 leading-relaxed">{item.description}</p>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          </motion.div>
+
+          {/* Future */}
+          <motion.div
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, margin: '-40px' }}
+            variants={stagger}
+          >
+            <motion.div variants={fadeUp} className="flex items-center gap-3 mb-6">
+              <Circle size={18} className="text-muted-foreground" />
+              <h2 className="text-xl font-bold text-muted-foreground">Future</h2>
+              <span className="text-xs font-semibold bg-muted text-muted-foreground px-2.5 py-0.5 rounded-full border border-border">
+                {future.length} on the horizon
+              </span>
+            </motion.div>
+
+            <div className="space-y-3">
+              {future.map((item) => (
+                <motion.div
+                  key={item.label}
+                  variants={fadeUp}
+                  className="flex gap-4 p-4 rounded-xl border border-border bg-muted/30"
+                >
+                  <div className="w-9 h-9 rounded-xl bg-background border border-border flex items-center justify-center shrink-0 shadow-sm">
+                    <item.icon size={15} className="text-muted-foreground" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-foreground">{item.label}</p>
+                    <p className="text-xs text-muted-foreground mt-1 leading-relaxed">{item.description}</p>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+
+            <motion.p variants={fadeUp} className="text-xs text-muted-foreground/60 mt-6 leading-relaxed">
+              Roadmap is subject to change. Features are prioritised based on user needs and feedback.
+            </motion.p>
+          </motion.div>
         </div>
       </section>
 
@@ -195,7 +255,7 @@ export default function RoadmapPage() {
               Have a feature request?
             </motion.h2>
             <motion.p variants={fadeUp} className="text-muted-foreground">
-              Reach out — feedback shapes what gets built next.
+              Reach out — your feedback shapes what gets built next.
             </motion.p>
             <motion.div variants={fadeUp} className="flex flex-col sm:flex-row gap-3">
               <a

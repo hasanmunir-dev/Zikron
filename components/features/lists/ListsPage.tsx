@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { Plus, Table2, Search, X, Users, Check, Trash2, Star, Archive } from "lucide-react";
+import { Plus, Table2, Search, X, Users, Check, Trash2, Star, Archive, LayoutTemplate } from "lucide-react";
 import { useLists, useUpdateList, useDeleteList, useBulkUpdateLists, useBulkDeleteLists } from "@/hooks/queries/use-lists";
 import { useSharedWithMe } from "@/hooks/queries/use-shared-links";
 import { useBulkSelection } from "@/hooks/use-bulk-selection";
@@ -15,6 +15,7 @@ import { ShareDialog } from "@/components/features/sharing/ShareDialog";
 import { SharedItemDetailDialog } from "@/components/features/sharing/SharedItemDetailDialog";
 import type { List, SharedWithMeItem } from "@/types";
 import { MasonryGrid, MasonrySkeleton } from "@/components/shared/masonry-grid";
+import { TemplatePicker } from "@/components/features/templates/TemplatePicker";
 
 type Tab = "all" | "favorites" | "archived" | "shared";
 
@@ -23,6 +24,7 @@ export function ListsPage() {
   const searchParams = useSearchParams();
   const [tab, setTab] = useState<Tab>("all");
   const [search, setSearch] = useState("");
+  const [showTemplatePicker, setShowTemplatePicker] = useState(false);
 
   const listsTab = tab === 'shared' ? 'all' : tab;
   const { data: lists = [], isFetching } = useLists(listsTab);
@@ -120,13 +122,34 @@ export function ListsPage() {
             more.
           </p>
         </div>
-        <Link
-          href="/app/lists/new"
-          className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-blue-700 transition-colors shrink-0"
-        >
-          <Plus size={16} /> New List
-        </Link>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setShowTemplatePicker(true)}
+            className="flex items-center gap-1.5 border border-border text-muted-foreground px-3 py-2 rounded-lg text-sm font-medium hover:bg-muted hover:text-foreground transition-colors"
+            title="Create from template"
+          >
+            <LayoutTemplate size={14} />
+            <span className="hidden sm:inline">From Template</span>
+          </button>
+          <Link
+            href="/app/lists/new"
+            className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-blue-700 transition-colors shrink-0"
+          >
+            <Plus size={16} /> New List
+          </Link>
+        </div>
       </div>
+      {showTemplatePicker && (
+        <TemplatePicker
+          templateType="list"
+          onSelect={(t) => {
+            setShowTemplatePicker(false);
+            router.push(`/app/lists/new?template=${t.id}`);
+          }}
+          onClose={() => setShowTemplatePicker(false)}
+        />
+      )}
 
       <div className="flex gap-1 mb-5 flex-wrap">
         {tabs.map(({ id, label, count }) => (

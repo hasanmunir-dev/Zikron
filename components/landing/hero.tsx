@@ -6,11 +6,14 @@ import {
   ArrowRight,
   Bell,
   BookOpen,
+  Calendar,
+  FolderOpen,
   Inbox,
   LayoutDashboard,
   MessageSquare,
   Search,
   Table2,
+  Users,
 } from 'lucide-react';
 
 function AppMockup() {
@@ -19,8 +22,11 @@ function AppMockup() {
     { icon: Inbox, label: 'Inbox' },
     { icon: BookOpen, label: 'Notes' },
     { icon: Table2, label: 'Lists' },
-    { icon: MessageSquare, label: 'Self Chat' },
     { icon: Bell, label: 'Reminders' },
+    { icon: FolderOpen, label: 'Collections' },
+    { icon: Users, label: 'Contacts' },
+    { icon: Calendar, label: 'Calendar' },
+    { icon: MessageSquare, label: 'Self Chat' },
     { icon: Search, label: 'Search' },
   ];
 
@@ -80,11 +86,12 @@ function AppMockup() {
             {/* Content */}
             <div className="flex-1 overflow-hidden p-3">
               {/* Stats */}
-              <div className="grid grid-cols-3 gap-2 mb-3">
+              <div className="grid grid-cols-4 gap-2 mb-3">
                 {[
                   { label: 'Notes', count: '24' },
                   { label: 'Inbox', count: '8' },
                   { label: 'Reminders', count: '3' },
+                  { label: 'Contacts', count: '12' },
                 ].map(({ label, count }) => (
                   <div key={label} className="bg-muted/60 rounded-xl p-2.5 text-center border border-border/50">
                     <p className="text-sm font-bold text-foreground leading-none mb-0.5">{count}</p>
@@ -227,7 +234,7 @@ export function Hero() {
           transition={{ duration: 0.5, delay: 0.32, ease: [0.25, 0.1, 0.25, 1] }}
           className="text-center text-lg sm:text-xl text-muted-foreground max-w-2xl mx-auto mb-4 leading-relaxed"
         >
-          Save notes, links, reminders, self-messages, and structured lists — all in one organized, searchable, cloud-synced workspace.
+          Notes, inbox, reminders, contacts, collections, calendar, and more — all in one organized, searchable, cloud-synced workspace.
         </motion.p>
 
         <motion.p

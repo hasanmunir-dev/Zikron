@@ -5,6 +5,9 @@ import { FeatureGrid } from '@/components/landing/feature-grid';
 import { MarkdownSection } from '@/components/landing/markdown-section';
 import { ListsSection } from '@/components/landing/lists-section';
 import { RemindersSection } from '@/components/landing/reminders-section';
+import { CollectionsSection } from '@/components/landing/collections-section';
+import { ContactsSection } from '@/components/landing/contacts-section';
+import { CalendarSection } from '@/components/landing/calendar-section';
 import { WorkflowSection } from '@/components/landing/workflow-section';
 import { RoadmapSection } from '@/components/landing/roadmap-section';
 import { CtaSection } from '@/components/landing/cta-section';
@@ -21,6 +24,9 @@ export default function LandingPage() {
         <MarkdownSection />
         <ListsSection />
         <RemindersSection />
+        <CollectionsSection />
+        <ContactsSection />
+        <CalendarSection />
         <WorkflowSection />
         <RoadmapSection />
         <CtaSection />

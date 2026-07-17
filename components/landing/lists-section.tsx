@@ -15,11 +15,13 @@ const gitCommands = [
 
 const useCases = [
   'Git commands and shell shortcuts',
-  'Vocabulary lists with translations',
+  'API endpoints and parameters',
   'Study terms and definitions',
   'Formula and algorithm reference',
   'Feature comparison tables',
-  'Meeting notes in table format',
+  'Sprint task boards and backlogs',
+  'Software version changelogs',
+  'Interview question banks',
 ];
 
 export function ListsSection() {

@@ -38,6 +38,8 @@ interface Props {
   mode: 'create' | 'edit';
   initialData?: FullList;
   backHref?: string;
+  initialTitle?: string;
+  initialColumns?: { name: string; sort_order: number }[];
 }
 
 function generateTempId() {
@@ -46,19 +48,20 @@ function generateTempId() {
 
 // ─── Component ─────────────────────────────────────────────────────────────────
 
-export function ListEditor({ mode, initialData, backHref = '/app/lists' }: Props) {
+export function ListEditor({ mode, initialData, backHref = '/app/lists', initialTitle, initialColumns }: Props) {
   const router = useRouter();
   const queryClient = useQueryClient();
   const { user } = useAuth();
 
-  const [title, setTitle] = useState(initialData?.title ?? '');
+  const [title, setTitle] = useState(initialTitle ?? initialData?.title ?? '');
   const [description, setDescription] = useState(initialData?.description ?? '');
   const [tagInput, setTagInput] = useState('');
   const [tags, setTags] = useState<string[]>(initialData?.tags ?? []);
   const [columns, setColumns] = useState<LocalColumn[]>(
-    initialData?.columns.map(c => ({ id: c.id, name: c.name, sort_order: c.sort_order })) ?? [
-      { id: generateTempId(), name: 'Column 1', sort_order: 0, isNew: true },
-    ]
+    initialData?.columns.map(c => ({ id: c.id, name: c.name, sort_order: c.sort_order }))
+    ?? (initialColumns?.length
+      ? initialColumns.map(c => ({ id: generateTempId(), name: c.name, sort_order: c.sort_order, isNew: true }))
+      : [{ id: generateTempId(), name: 'Column 1', sort_order: 0, isNew: true }])
   );
   const [rows, setRows] = useState<LocalRow[]>(
     initialData?.rows.map(r => ({

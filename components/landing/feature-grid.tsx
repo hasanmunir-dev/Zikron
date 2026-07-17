@@ -4,12 +4,18 @@ import { motion } from 'framer-motion';
 import {
   Bell,
   BookOpen,
+  Calendar,
+  FolderOpen,
+  GitBranch,
   Inbox,
   LayoutDashboard,
+  LayoutTemplate,
   MessageSquare,
   Moon,
   Search,
   Table2,
+  Terminal,
+  Users,
 } from 'lucide-react';
 import { staggerContainer, staggerItem, fadeInUp } from './motion-variants';
 
@@ -35,7 +41,7 @@ const features = [
   {
     icon: MessageSquare,
     title: 'Self Chat',
-    desc: 'Send messages to yourself like WhatsApp Saved Messages. Markdown supported. Favorite for quick access later.',
+    desc: 'Send messages to yourself like a saved messages channel. Markdown supported. Favorite for quick access later.',
     color: 'bg-indigo-100 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400',
   },
   {
@@ -45,17 +51,53 @@ const features = [
     color: 'bg-amber-100 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400',
   },
   {
-    icon: Search,
-    title: 'Global Search',
-    desc: 'Search everything from one place — notes, inbox, messages, lists, and reminders — instantly.',
+    icon: FolderOpen,
+    title: 'Collections',
+    desc: 'Group notes and inbox items into named collections. Add milestones, track progress, and organize projects.',
+    color: 'bg-fuchsia-100 dark:bg-fuchsia-950/60 text-fuchsia-600 dark:text-fuchsia-400',
+  },
+  {
+    icon: Users,
+    title: 'Contacts',
+    desc: 'Store and manage contacts with tags, notes, and follow-up dates. Keep everything linked to your workflow.',
+    color: 'bg-cyan-100 dark:bg-cyan-950/60 text-cyan-600 dark:text-cyan-400',
+  },
+  {
+    icon: LayoutTemplate,
+    title: 'Templates',
+    desc: 'Create reusable templates for notes, lists, reminders, and more. Start any item from a template in one click.',
+    color: 'bg-rose-100 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400',
+  },
+  {
+    icon: Calendar,
+    title: 'Calendar',
+    desc: 'See all scheduled items across every module in one view. Month, week, day, and list layouts with source filters.',
+    color: 'bg-teal-100 dark:bg-teal-950/60 text-teal-600 dark:text-teal-400',
+  },
+  {
+    icon: GitBranch,
+    title: 'Activity Timeline',
+    desc: 'A combined feed of everything you\'ve done and what\'s coming up. Filter by activity, scheduled, or both.',
     color: 'bg-green-100 dark:bg-green-950/60 text-green-600 dark:text-green-400',
   },
   {
-    icon: LayoutDashboard,
-    title: 'Admin Dashboard',
-    desc: 'Separate admin panel with full platform visibility — user management, content overview, and statistics.',
+    icon: Search,
+    title: 'Global Search',
+    desc: 'Search everything from one place — notes, inbox, messages, lists, reminders, contacts, and templates.',
+    color: 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400',
+  },
+  {
+    icon: Terminal,
+    title: 'Command Palette',
+    desc: 'Keyboard-driven command palette to navigate, create, and act without touching the mouse.',
     color: 'bg-slate-100 dark:bg-slate-800/60 text-slate-600 dark:text-slate-400',
   },
+  // {
+  //   icon: LayoutDashboard,
+  //   title: 'Admin Dashboard',
+  //   desc: 'Separate admin panel with full platform visibility — user management, content overview, and statistics.',
+  //   color: 'bg-orange-100 dark:bg-orange-950/60 text-orange-600 dark:text-orange-400',
+  // },
   {
     icon: Moon,
     title: 'Light · Dark · System',

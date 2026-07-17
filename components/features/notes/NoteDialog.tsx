@@ -2,6 +2,8 @@
 
 import { useRouter } from 'next/navigation';
 import { useNote, useCreateNote, useUpdateNote, useDeleteNote } from '@/hooks/queries/use-notes';
+import { useTemplate } from '@/hooks/queries/use-templates';
+import { resolveTemplateVariables } from '@/utils/template-variables';
 import { useAuth } from '@/hooks/useAuth';
 import { NoteEditor } from './NoteEditor';
 import type { Note } from '@/types';
@@ -11,9 +13,10 @@ interface Props {
   id?: string;
   closeUrl: string;
   defaultTab?: 'write' | 'preview';
+  templateId?: string;
 }
 
-export function NoteDialog({ mode, id, closeUrl, defaultTab = 'write' }: Props) {
+export function NoteDialog({ mode, id, closeUrl, defaultTab = 'write', templateId }: Props) {
   const router = useRouter();
   const { user } = useAuth();
   const createNote = useCreateNote();
@@ -21,6 +24,7 @@ export function NoteDialog({ mode, id, closeUrl, defaultTab = 'write' }: Props) 
   const deleteNote = useDeleteNote();
 
   const { data: note, isLoading } = useNote(mode === 'edit' ? id : undefined);
+  const { data: template } = useTemplate(mode === 'create' ? templateId : undefined);
 
   function handleSave(data: Partial<Note>) {
     if (mode === 'create') {
@@ -36,7 +40,6 @@ export function NoteDialog({ mode, id, closeUrl, defaultTab = 'write' }: Props) 
     } else if (id) {
       updateNote.mutate({ id, data });
     }
-    // NoteEditor calls onClose() right after onSave(), so dialog closes immediately
   }
 
   function handleDelete(noteId: string) {
@@ -61,9 +64,28 @@ export function NoteDialog({ mode, id, closeUrl, defaultTab = 'write' }: Props) 
     return null;
   }
 
+  // Wait for template to load before rendering the form so useState initializes correctly
+  if (mode === 'create' && templateId && !template) {
+    return (
+      <div className="fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
+        <div className="bg-card w-full sm:rounded-2xl sm:max-w-xl h-80 animate-pulse" />
+      </div>
+    );
+  }
+
+  // Build initial note data from template when creating
+  let initialNote: Partial<Note> | null = null;
+  if (mode === 'create' && template) {
+    const resolved = resolveTemplateVariables(template, { userName: user?.email ?? undefined });
+    initialNote = {
+      title: resolved.title_template ?? '',
+      content: resolved.content_template ?? '',
+    };
+  }
+
   return (
     <NoteEditor
-      note={mode === 'create' ? null : note ?? null}
+      note={mode === 'create' ? initialNote : note ?? null}
       onSave={handleSave}
       onDelete={mode === 'edit' ? handleDelete : undefined}
       onClose={handleClose}

@@ -64,7 +64,7 @@ export function MarkdownSection() {
             <span className="text-muted-foreground">Read it rendered.</span>
           </h2>
           <p className="text-muted-foreground text-lg max-w-xl mx-auto">
-            Every content field — notes, inbox, self-chat, reminders — supports full Markdown with a live preview and formatting toolbar.
+            Every content field — notes, inbox, self-chat, reminders, contact notes, collection descriptions — supports full Markdown with a live preview and formatting toolbar.
           </p>
         </motion.div>
 

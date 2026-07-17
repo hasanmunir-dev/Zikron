@@ -25,6 +25,10 @@ import {
   BellRing,
   Share2,
   Network,
+  LayoutTemplate,
+  Calendar,
+  AlertCircle,
+  GitBranch,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { api } from "@/lib/api";
@@ -39,13 +43,16 @@ import { contactKeys } from "@/hooks/queries/use-contacts";
 import { useSharedLinks, useSharedWithMe } from "@/hooks/queries/use-shared-links";
 import { useRecentLinks } from "@/hooks/queries/use-item-links";
 import { useRecentVersions } from "@/hooks/queries/use-history";
+import { useRecentActivity } from "@/hooks/queries/use-activity";
+import { useFavoriteTemplates } from "@/hooks/queries/use-templates";
+import { useTodayEvents, useUpcomingEvents, useOverdueEvents } from "@/hooks/queries/use-calendar";
 import { useFrequentTags, useRecentTags } from "@/hooks/queries/use-tags";
 import { TagChip } from "@/components/features/tags/TagChip";
 import { TYPE_CONFIG } from "@/components/features/links/LinkPicker";
 import { GraphCanvas } from "@/components/features/graph/GraphCanvas";
 import { usePushNotifications } from "@/hooks/use-push-notifications";
 import { formatRelativeTime } from "@/utils/date";
-import type { Note, InboxItem, SelfChatMessage, List, Reminder, Collection, Contact, SharedLink, SharedWithMeItem, ItemLink, LinkableItemType, VersionableItemType } from "@/types";
+import type { Note, InboxItem, SelfChatMessage, List, Reminder, Collection, Contact, SharedLink, SharedWithMeItem, ItemLink, LinkableItemType, VersionableItemType, ActivityLog, Template, TemplateType, CalendarEvent } from "@/types";
 
 const COLLECTION_COLORS: Record<string, string> = {
   blue: 'bg-blue-500', violet: 'bg-violet-500', green: 'bg-emerald-500',
@@ -76,6 +83,16 @@ function Skeleton({ className = '' }: { className?: string }) {
 function Widget({ children, className = '' }: { children: React.ReactNode; className?: string }) {
   return (
     <div className={`bg-card border border-border rounded-2xl overflow-hidden ${className}`}>
+      {children}
+    </div>
+  );
+}
+
+// Masonry cell — break-inside-avoid keeps widget from splitting across columns.
+// spanAll spans all CSS columns (used for wide widgets like the graph).
+function MasonryItem({ children, spanAll }: { children: React.ReactNode; spanAll?: boolean }) {
+  return (
+    <div className={`break-inside-avoid mb-4 ${spanAll ? '[column-span:all]' : ''}`}>
       {children}
     </div>
   );
@@ -170,6 +187,7 @@ function OverdueWidget({ reminders }: { reminders: Reminder[] }) {
             +{overdue.length - 5} more overdue
           </Link>
         )}
+        
       </div>
     </Widget>
   );
@@ -643,9 +661,10 @@ function RecentlyEditedWidget() {
   if (isLoading || versions.length === 0) return null;
 
   return (
-    <div className="rounded-xl border border-border bg-card p-4 space-y-3">
+    <Widget>
+    {/* <div className="rounded-xl border border-border bg-card p-4 space-y-3"> */}
       <WidgetHeader title="Recently Edited" href="#" />
-      <div className="space-y-1">
+      <div className="px-4 pb-4 space-y-2">
         {versions.map(v => {
           const href = `${VERSION_ITEM_PATHS[v.item_type]}?detail=${v.item_id}`;
           const summary = v.metadata_snapshot?.summary as string | undefined;
@@ -667,7 +686,8 @@ function RecentlyEditedWidget() {
           );
         })}
       </div>
-    </div>
+    {/* </div> */}
+    </Widget>
   );
 }
 
@@ -704,14 +724,16 @@ function FrequentTagsWidget() {
   const { data: tags = [], isLoading } = useFrequentTags(12);
   if (isLoading || tags.length === 0) return null;
   return (
-    <div className="rounded-xl border border-border bg-card p-4 space-y-3">
+    <Widget>
+    {/* <div className="rounded-xl border border-border bg-card px-4 pb-4 space-y-2"> */}
       <WidgetHeader title="Frequently Used Tags" href="/app/tags" />
-      <div className="flex flex-wrap gap-1.5">
+      <div className="flex flex-wrap gap-1.5 px-4 pb-4 space-y-2">
         {tags.map(tag => (
           <TagChip key={tag.id} tag={tag} linkable size="xs" />
         ))}
       </div>
-    </div>
+    {/* </div> */}
+    </Widget>
   );
 }
 
@@ -723,14 +745,14 @@ function RecentTagsWidget() {
   const { data: tags = [], isLoading } = useRecentTags(10);
   if (isLoading || tags.length === 0) return null;
   return (
-    <div className="rounded-xl border border-border bg-card p-4 space-y-3">
+    <Widget>
       <WidgetHeader title="Recent Tags" href="/app/tags" />
-      <div className="flex flex-wrap gap-1.5">
+      <div className="flex flex-wrap gap-1.5 px-4 pb-4 space-y-2">
         {tags.map(tag => (
           <TagChip key={tag.id} tag={tag} linkable size="xs" />
         ))}
       </div>
-    </div>
+    </Widget>
   );
 }
 
@@ -788,6 +810,150 @@ function RecentlyConnectedWidget() {
             </div>
           );
         })}
+      </div>
+    </Widget>
+  );
+}
+
+// ──────────────────────────────────────────────
+//  Favorite Templates widget
+// ──────────────────────────────────────────────
+const TYPE_USE_HREF: Record<TemplateType, string> = {
+  note: '/app/notes',
+  inbox: '/app/inbox',
+  list: '/app/lists/new',
+  reminder: '/app/reminders',
+  collection: '/app/collections',
+  contact: '/app/contacts',
+};
+
+function FavoriteTemplatesWidget() {
+  const { data: templates = [], isLoading } = useFavoriteTemplates();
+  if (isLoading) return null;
+  // if (templates.length === 0) return null;
+  const shown = (templates as Template[]).slice(0, 6);
+  return (
+    <Widget>
+      <WidgetHeader title="Favorite Templates" href="/app/templates" />
+      <div className="px-4 pb-3 space-y-1.5">
+        {templates.length === 0 && (
+          <p className="text-xs text-muted-foreground py-2">None of the template is Favourite.</p>
+        )}
+        {shown.map(t => (
+          <Link
+            key={t.id}
+            href={`${TYPE_USE_HREF[t.template_type]}?create=true&template=${t.id}`}
+            className="flex items-center justify-between gap-2 px-2 py-1.5 rounded-lg hover:bg-muted group transition-colors"
+          >
+            <div className="min-w-0 flex-1">
+              <p className="text-xs font-medium text-foreground truncate">{t.name}</p>
+              {t.description && <p className="text-[10px] text-muted-foreground truncate">{t.description}</p>}
+            </div>
+            <span className="text-[10px] text-muted-foreground shrink-0 capitalize">{t.template_type}</span>
+          </Link>
+        ))}
+        <Link href="/app/templates" className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1 mt-1">
+          All templates <ArrowRight size={10} />
+        </Link>
+      </div>
+    </Widget>
+  );
+}
+
+// ──────────────────────────────────────────────
+//  Calendar widgets
+// ──────────────────────────────────────────────
+const EVENT_SOURCE_COLORS: Record<string, string> = {
+  note: 'bg-violet-100 dark:bg-violet-950/60 text-violet-700 dark:text-violet-400',
+  inbox: 'bg-blue-100 dark:bg-blue-950/60 text-blue-700 dark:text-blue-400',
+  contact: 'bg-cyan-100 dark:bg-cyan-950/60 text-cyan-700 dark:text-cyan-400',
+  reminder: 'bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-400',
+  milestone: 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400',
+};
+
+function TodayEventsWidget() {
+  const { data: events = [] } = useTodayEvents();
+  if ((events as CalendarEvent[]).length === 0) return null;
+  return (
+    <Widget>
+      <WidgetHeader title="Today" href="/app/calendar" count={(events as CalendarEvent[]).length} />
+      <div className="px-4 pb-3 space-y-1.5">
+        {(events as CalendarEvent[]).slice(0, 5).map(e => (
+          <Link key={e.id} href={e.url} className="flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-muted transition-colors">
+            <Calendar size={12} className="shrink-0 text-muted-foreground" />
+            <span className="flex-1 text-xs text-foreground truncate">{e.title}</span>
+            <span className={`text-[10px] px-1.5 py-0.5 rounded-full capitalize ${EVENT_SOURCE_COLORS[e.source] ?? 'bg-muted text-muted-foreground'}`}>{e.source}</span>
+          </Link>
+        ))}
+        <Link href="/app/calendar" className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1 mt-1">View calendar <ArrowRight size={10} /></Link>
+      </div>
+    </Widget>
+  );
+}
+
+function UpcomingEventsWidget() {
+  const { data: events = [] } = useUpcomingEvents();
+  if ((events as CalendarEvent[]).length === 0) return null;
+  return (
+    <Widget>
+      <WidgetHeader title="Upcoming (7 days)" href="/app/calendar" count={(events as CalendarEvent[]).length} />
+      <div className="px-4 pb-3 space-y-1.5">
+        {(events as CalendarEvent[]).slice(0, 5).map(e => (
+          <Link key={e.id} href={e.url} className="flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-muted transition-colors">
+            <GitBranch size={12} className="shrink-0 text-muted-foreground" />
+            <span className="flex-1 text-xs text-foreground truncate">{e.title}</span>
+            <span className={`text-[10px] px-1.5 py-0.5 rounded-full capitalize ${EVENT_SOURCE_COLORS[e.source] ?? 'bg-muted text-muted-foreground'}`}>{e.source}</span>
+          </Link>
+        ))}
+        <Link href="/app/calendar" className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1 mt-1">View calendar <ArrowRight size={10} /></Link>
+      </div>
+    </Widget>
+  );
+}
+
+function OverdueCalendarWidget() {
+  const { data: events = [] } = useOverdueEvents();
+  if ((events as CalendarEvent[]).length === 0) return null;
+  return (
+    <Widget>
+      <WidgetHeader title="Overdue" href="/app/calendar" count={(events as CalendarEvent[]).length} />
+      <div className="px-4 pb-3 space-y-1.5">
+        {(events as CalendarEvent[]).slice(0, 5).map(e => (
+          <Link key={e.id} href={e.url} className="flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-muted transition-colors">
+            <AlertCircle size={12} className="shrink-0 text-red-500" />
+            <span className="flex-1 text-xs text-foreground truncate">{e.title}</span>
+            <span className={`text-[10px] px-1.5 py-0.5 rounded-full capitalize ${EVENT_SOURCE_COLORS[e.source] ?? 'bg-muted text-muted-foreground'}`}>{e.source}</span>
+          </Link>
+        ))}
+        <Link href="/app/calendar" className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1 mt-1">View calendar <ArrowRight size={10} /></Link>
+      </div>
+    </Widget>
+  );
+}
+
+// ──────────────────────────────────────────────
+//  Recent Activity Log widget
+// ──────────────────────────────────────────────
+function RecentActivityLogWidget() {
+  const { data: activity = [], isLoading } = useRecentActivity(8);
+  if (isLoading) return null;
+  if (activity.length === 0) return null;
+  return (
+    <Widget>
+      <WidgetHeader title="Recent Activity" href="/app/activity" />
+      <div className="px-4 pb-3 space-y-2.5">
+        {(activity as ActivityLog[]).map(entry => (
+          <div key={entry.id} className="flex items-start gap-2">
+            <div className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-primary/40" />
+            <div className="min-w-0 flex-1">
+              <p className="text-xs text-foreground leading-snug truncate">{entry.description}</p>
+              <p className="text-[10px] text-muted-foreground mt-0.5">{formatRelativeTime(entry.created_at)}</p>
+            </div>
+          </div>
+        ))}
+        <Link href="/app/activity" className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1 mt-1">
+          View full timeline <ArrowRight size={10} />
+        </Link>
       </div>
     </Widget>
   );
@@ -920,10 +1086,10 @@ export default function DashboardPage() {
         />
       )}
 
-      {/* ── Main masonry grid ── */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        {/* Left column */}
-        <div className="lg:col-span-2 space-y-4">
+      {/* ── Masonry widget grid ── */}
+      <div className="columns-1 sm:columns-2 xl:columns-3 gap-4">
+
+        <MasonryItem>
           <RecentActivityWidget
             notes={notes}
             inbox={inbox}
@@ -931,32 +1097,30 @@ export default function DashboardPage() {
             reminders={reminders}
             lists={lists}
           />
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <RecentNotesWidget notes={notes} />
-            <RecentInboxWidget inbox={inbox} />
-          </div>
-          <RecentlyEditedWidget />
-          <RecentlyConnectedWidget />
-          <GraphWidget />
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <FrequentTagsWidget />
-            <RecentTagsWidget />
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <RecentListsWidget lists={lists} />
-            <RecentCollectionsWidget collections={collections} />
-          </div>
-        </div>
+        </MasonryItem>
 
-        {/* Right side panel */}
-        <div className="space-y-4">
-          <QuickActionsWidget />
-          <TodayRemindersWidget reminders={reminders} />
-          <OverdueWidget reminders={reminders} />
-          <SharedWithMeWidget items={sharedWithMe as SharedWithMeItem[]} />
-          <ContactsWidget contacts={contacts} />
-          <NotificationWidget />
-        </div>
+        <MasonryItem><QuickActionsWidget /></MasonryItem>
+        <MasonryItem><TodayEventsWidget /></MasonryItem>
+        <MasonryItem><TodayRemindersWidget reminders={reminders} /></MasonryItem>
+        <MasonryItem><UpcomingEventsWidget /></MasonryItem>
+        <MasonryItem><RecentNotesWidget notes={notes} /></MasonryItem>
+        <MasonryItem><OverdueWidget reminders={reminders} /></MasonryItem>
+        <MasonryItem><RecentInboxWidget inbox={inbox} /></MasonryItem>
+        <MasonryItem><OverdueCalendarWidget /></MasonryItem>
+        <MasonryItem><RecentlyEditedWidget /></MasonryItem>
+        <MasonryItem><ContactsWidget contacts={contacts} /></MasonryItem>
+        <MasonryItem><SharedWithMeWidget items={sharedWithMe as SharedWithMeItem[]} /></MasonryItem>
+        <MasonryItem><FavoriteTemplatesWidget /></MasonryItem>
+        <MasonryItem><RecentlyConnectedWidget /></MasonryItem>
+        <MasonryItem><FrequentTagsWidget /></MasonryItem>
+        <MasonryItem><RecentTagsWidget /></MasonryItem>
+        <MasonryItem><RecentListsWidget lists={lists} /></MasonryItem>
+        <MasonryItem><RecentCollectionsWidget collections={collections} /></MasonryItem>
+        <MasonryItem><NotificationWidget /></MasonryItem>
+        <MasonryItem><RecentActivityLogWidget /></MasonryItem>
+
+        {/* <MasonryItem spanAll><GraphWidget /></MasonryItem> */}
+
       </div>
     </div>
   );

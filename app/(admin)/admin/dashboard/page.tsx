@@ -62,9 +62,9 @@ export default function AdminDashboardPage() {
               <div className={`w-8 h-8 rounded-lg flex items-center justify-center mb-2 ${color}`}>
                 <Icon size={15} />
               </div>
-              <p className="text-xl font-bold text-foreground">
+              <div className="text-xl font-bold text-foreground">
                 {statsLoading ? <Skeleton className="inline-block w-6 h-5" /> : value}
-              </p>
+              </div>
               <p className="text-xs text-muted-foreground mt-0.5 leading-tight">{label}</p>
             </Link>
           ))}

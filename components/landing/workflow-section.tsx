@@ -16,14 +16,14 @@ const steps = [
     icon: FolderOpen,
     step: '02',
     title: 'Organize',
-    desc: 'Move it into Notes for writing, Lists for structured tables, or set a Reminder with a due date.',
+    desc: 'Move it into Notes, Lists, or Collections. Tag contacts, set reminders with due dates.',
     color: 'text-violet-600 bg-violet-100 dark:bg-violet-950/60 dark:text-violet-400',
   },
   {
     icon: Search,
     step: '03',
     title: 'Search',
-    desc: 'One search box finds everything — notes, inbox items, messages, lists, and reminders. No switching apps.',
+    desc: 'One search box finds everything — notes, inbox, contacts, reminders, collections, and templates. No switching apps.',
     color: 'text-indigo-600 bg-indigo-100 dark:bg-indigo-950/60 dark:text-indigo-400',
   },
   {
@@ -90,13 +90,13 @@ export function WorkflowSection() {
         >
           <span className="font-medium">Example:</span>
           {[
-            'Save a Git command in Inbox',
+            'Drop a link in Inbox',
             '→',
-            'Move it to Lists',
+            'Move it to a Collection',
             '→',
-            'Find it by search',
+            'Set a reminder follow-up',
             '→',
-            'Use it later',
+            'See it on Calendar',
           ].map((item, i) => (
             <span
               key={i}

@@ -28,6 +28,8 @@ import {
   MessageSquarePlus,
   GitCommit,
   Mail,
+  LayoutTemplate,
+  CalendarDays,
 } from "lucide-react";
 import Image from "next/image";
 import { useAuth } from "@/hooks/useAuth";
@@ -169,7 +171,18 @@ const systemItems = [
     label: "Shared Links",
     placeholder: true,
   },
-
+  {
+    href: "/admin/templates",
+    icon: LayoutTemplate,
+    label: "Templates",
+    placeholder: false,
+  },
+  {
+    href: "/admin/calendar",
+    icon: CalendarDays,
+    label: "Calendar",
+    placeholder: false,
+  },
 ];
 
 type SidebarMode = "collapsed" | "expanded" | "auto";

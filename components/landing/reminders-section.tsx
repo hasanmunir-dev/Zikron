@@ -6,31 +6,31 @@ import { fadeInUp, staggerContainer, staggerItem } from './motion-variants';
 
 const reminders = [
   {
-    title: 'Submit compiler assignment',
+    title: 'Reply to Sara — project proposal',
     time: 'Overdue by 2 hours',
     priority: 'High',
     status: 'overdue',
   },
   {
-    title: 'Revise LR parsing',
-    time: 'Due today at 8:00 PM',
+    title: 'Review Website Redesign milestone',
+    time: 'Due today at 6:00 PM',
     priority: 'Medium',
     status: 'today',
   },
   {
-    title: 'Push project to GitHub',
+    title: 'Push staging build to GitHub',
     time: 'Tomorrow at 10:00 AM',
     priority: 'Medium',
     status: 'upcoming',
   },
   {
-    title: 'Call HR about internship',
+    title: 'Follow up with Tom Park (investor)',
     time: 'In 3 days',
     priority: 'Low',
     status: 'upcoming',
   },
   {
-    title: 'Review auth middleware',
+    title: 'Merge design system PR',
     time: 'Completed yesterday',
     priority: 'High',
     status: 'completed',
@@ -158,7 +158,7 @@ export function RemindersSection() {
                 { label: 'Due Today', desc: 'See all reminders due today highlighted at the top', color: 'text-amber-500' },
                 { label: 'Overdue alerts', desc: 'Overdue reminders shown in red so nothing is missed', color: 'text-red-500' },
                 { label: 'Browser push notifications', desc: 'Get notified in the browser when a reminder is due', color: 'text-blue-500' },
-                { label: 'Linked to your content', desc: 'Link reminders to a note, inbox item, list, or message', color: 'text-green-500' },
+                { label: 'Linked to your content', desc: 'Link reminders to a note, inbox item, list, contact, or collection', color: 'text-green-500' },
               ].map(({ label, desc, color }) => (
                 <motion.div key={label} variants={staggerItem} className="flex gap-3">
                   <div className={`w-1.5 h-1.5 rounded-full ${color.replace('text-', 'bg-')} mt-2 shrink-0`} />

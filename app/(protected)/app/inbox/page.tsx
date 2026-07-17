@@ -3,13 +3,14 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Plus, Inbox, Archive, Star, Search, X, Users, Check, Trash2 } from 'lucide-react';
+import { Plus, Inbox, Archive, Star, Search, X, Users, Check, Trash2, LayoutTemplate } from 'lucide-react';
 import { savePageState, getPageState } from '@/lib/page-state';
 import { dialogUrl, closeDialogUrl, parseDialogState } from '@/lib/dialog-url';
 import { useInbox, useUpdateInboxItem, useDeleteInboxItem, useBulkUpdateInboxItems, useBulkDeleteInboxItems } from '@/hooks/queries/use-inbox';
 import { useSharedWithMe } from '@/hooks/queries/use-shared-links';
 import { InboxItemCard } from '@/components/features/inbox/InboxItem';
 import { InboxDialog } from '@/components/features/inbox/InboxDialog';
+import { TemplatePicker } from '@/components/features/templates/TemplatePicker';
 import { ShareDialog } from '@/components/features/sharing/ShareDialog';
 import { SharedItemDetailDialog } from '@/components/features/sharing/SharedItemDetailDialog';
 import { useBulkSelection } from '@/hooks/use-bulk-selection';
@@ -27,6 +28,7 @@ export default function InboxPage() {
   const searchParams = useSearchParams();
   
   const saved = getPageState<SavedState>('inbox');
+  const [showTemplatePicker, setShowTemplatePicker] = useState(false);
 
   const [tab, setTab] = useState<Tab>(saved?.tab ?? 'inbox');
   const inboxTab = tab === 'shared' ? 'inbox' : tab;
@@ -36,6 +38,7 @@ export default function InboxPage() {
 
   const [search, setSearch] = useState(saved?.search ?? '');
 
+  const templateId = searchParams.get('template') ?? undefined;
   const dialog = parseDialogState(searchParams);
   const closeUrl = closeDialogUrl(BASE_PATH, searchParams);
   const sharedViewId = searchParams.get('shared_view');
@@ -117,13 +120,24 @@ export default function InboxPage() {
           <h2 className="text-xl font-bold text-foreground">Inbox</h2>
           <p className="text-sm text-muted-foreground mt-0.5">Everything you capture, in one place.</p>
         </div>
-        <Link
-          href={dialogUrl(BASE_PATH, 'create')}
-          scroll={false}
-          className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-blue-700 transition-colors"
-        >
-          <Plus size={16} /> Capture
-        </Link>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setShowTemplatePicker(true)}
+            className="flex items-center gap-1.5 border border-border text-muted-foreground px-3 py-2 rounded-lg text-sm font-medium hover:bg-muted hover:text-foreground transition-colors"
+            title="Create from template"
+          >
+            <LayoutTemplate size={14} />
+            <span className="hidden sm:inline">From Template</span>
+          </button>
+          <Link
+            href={dialogUrl(BASE_PATH, 'create')}
+            scroll={false}
+            className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-blue-700 transition-colors"
+          >
+            <Plus size={16} /> Capture
+          </Link>
+        </div>
       </div>
 
       <div className="flex gap-1 bg-muted rounded-lg p-1 mb-5 flex-wrap">
@@ -296,8 +310,18 @@ export default function InboxPage() {
         </>
       )}
 
+      {showTemplatePicker && (
+        <TemplatePicker
+          templateType="inbox"
+          onSelect={(t) => {
+            setShowTemplatePicker(false);
+            router.push(`${BASE_PATH}?create=true&template=${t.id}`);
+          }}
+          onClose={() => setShowTemplatePicker(false)}
+        />
+      )}
       {dialog?.action === 'create' && (
-        <InboxDialog mode="create" closeUrl={closeUrl} basePath={BASE_PATH} />
+        <InboxDialog mode="create" closeUrl={closeUrl} basePath={BASE_PATH} templateId={templateId} />
       )}
       {dialog?.action === 'detail' && dialog.id && (
         <InboxDialog mode="detail" id={dialog.id} closeUrl={closeUrl} basePath={BASE_PATH} />
